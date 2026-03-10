@@ -1,0 +1,45 @@
+{
+  "url": "https://phindai.org/phind-chat/",
+  "name": "phind_chat",
+  "title": "Phind Chat",
+  "collected_at": "2026-03-10T20:03:41.521734+00:00",
+  "dom_length": 158042,
+  "scripts": [
+    "https://pagead2.googlesyndication.com/pagead/managed/js/adsense/m202603050101/show_ads_impl_fy2021.js",
+    "https://phindai.org/wp-includes/js/jquery/jquery.min.js?ver=3.7.1",
+    "https://phindai.org/wp-includes/js/jquery/jquery-migrate.min.js?ver=3.4.1",
+    "https://www.googletagmanager.com/gtag/js?id=G-0L6FHGE2QY",
+    "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1541877538371266",
+    "https://phindai.org/wp-content/plugins/Phindai/phind-ai-script.js?ver=2.5.0",
+    "https://phindai.org/wp-content/plugins/kk-star-ratings/src/core/public/js/kk-star-ratings.min.js?ver=5.4.10.4",
+    "https://phindai.org/wp-content/themes/kadence/assets/js/navigation.min.js?ver=1.4.5",
+    "https://phindai.org/wp-content/plugins/kadence-blocks/includes/assets/js/kt-accordion.min.js?ver=3.6.5",
+    "https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516"
+  ],
+  "script_count": 10,
+  "inline_script_count": 13,
+  "iframes": [
+    {
+      "src": "https://googleads.g.doubleclick.net/pagead/ads?client=ca-pub-1541877538371266&output=html&adk=1812271804&adf=3025194257&lmt=1773173014&plat=3%3A16%2C4%3A16%2C9%3A32776%2C16%3A8388608%2C17%3A32%2C24%3A32%2C25%3A32%2C30%3A1081344%2C32%3A32%2C41%3A32%2C42%3A32%2C43%3A32&format=0x0&url=https%3A%2F%2Fphindai.org%2Fphind-chat%2F&pra=5&aiof=9&asro=0&aiapm=0.1542&aiapmd=0.1423&aiapmi=0.16&aiapmid=1&aiact=0.0001&aiactd=0.0001&aicct=0.0001&aicctd=0.0001&ailct=0.0001&ailctd=0.0001&aimart=4&aimartd=4&uach=WyJMaW51eCIsIiIsIng4NiIsIiIsIjE0NS4wLjc2MzIuNiIsbnVsbCwwLG51bGwsIjY0IixbWyJOb3Q6QS1CcmFuZCIsIjk5LjAuMC4wIl0sWyJIZWFkbGVzc0Nocm9tZSIsIjE0NS4wLjc2MzIuNiJdLFsiQ2hyb21pdW0iLCIxNDUuMC43NjMyLjYiXV0sMF0.&abgtt=6&dt=1773173014369&bpp=3&bdt=340&idt=298&shv=r20260309&mjsv=m202603050101&ptt=9&saldr=aa&abxe=1&cookie_enabled=1&eoidce=1&nras=1&correlator=4701866320545&frm=20&pv=2&u_tz=120&u_his=2&u_h=900&u_w=1280&u_ah=900&u_aw=1280&u_cd=24&u_sd=1&dmc=8&adx=-12245933&ady=-12245933&biw=1280&bih=900&scr_x=0&scr_y=0&eid=31084127%2C31097123%2C95378429%2C95381339%2C95383702%2C95384193%2C95385043%2C95372615%2C95384714&oid=2&pvsid=10558939128531&tmod=1048606034&uas=0&nvt=1&fsapi=1&fc=1920&brdim=0%2C0%2C0%2C0%2C1280%2C0%2C1280%2C900%2C1280%2C900&vis=1&rsz=%7C%7Cs%7C&abl=NS&fu=32768&bc=31&bz=1&pgls=CAEaBTYuOS4x&ifi=1&uci=a!1&fsb=1&dtd=329",
+      "id": "aswift_0",
+      "name": "aswift_0",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "https://www.google.com/recaptcha/api2/aframe",
+      "id": "",
+      "name": "",
+      "width": "0",
+      "height": "0"
+    },
+    {
+      "src": "https://googleads.g.doubleclick.net/pagead/html/r20260309/r20190131/zrt_lookup_fy2021.html",
+      "id": "google_esf",
+      "name": "google_esf",
+      "width": "",
+      "height": ""
+    }
+  ],
+  "iframe_count": 3
+}

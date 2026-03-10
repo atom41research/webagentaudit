@@ -1,0 +1,99 @@
+{
+  "url": "https://www.bbc.com/news",
+  "name": "bbc_news",
+  "title": "BBC News - Breaking news, video and the latest top stories from the U.S. and around the world",
+  "collected_at": "2026-03-10T20:04:58.105479+00:00",
+  "dom_length": 311968,
+  "scripts": [
+    "https://cdn.cxense.com/cx.js",
+    "https://cdn.cxense.com/cx.cce.js",
+    "https://static.files.bbci.co.uk/bbcdotcom/web/20260226-102003-cac85f7ad7-web-2.40.2-1/_next/static/chunks/polyfills-42372ed130431b0a.js",
+    "https://static.bbci.co.uk/frameworks/requirejs/0.13.0/sharedmodules/require.js",
+    "https://cdn.optimizely.com/public/4621041136/s/bbcx_prod.js",
+    "https://cdn.tinypass.com/api/tinypass.min.js",
+    "https://gn-web-assets.api.bbc.com/ngas/latest/dotcom-bootstrap.js",
+    "https://emp.bbci.co.uk/emp/bump-4/bump-4.js",
+    "https://static.files.bbci.co.uk/bbcdotcom/web/20260226-102003-cac85f7ad7-web-2.40.2-1/_next/static/chunks/webpack-9c51d505e0070b36.js",
+    "https://static.files.bbci.co.uk/bbcdotcom/web/20260226-102003-cac85f7ad7-web-2.40.2-1/_next/static/chunks/framework-331fb39aeba27237.js",
+    "https://static.files.bbci.co.uk/bbcdotcom/web/20260226-102003-cac85f7ad7-web-2.40.2-1/_next/static/chunks/main-4205673c4f343b95.js",
+    "https://static.files.bbci.co.uk/bbcdotcom/web/20260226-102003-cac85f7ad7-web-2.40.2-1/_next/static/chunks/pages/_app-587692fb14e825c7.js",
+    "https://static.files.bbci.co.uk/bbcdotcom/web/20260226-102003-cac85f7ad7-web-2.40.2-1/_next/static/chunks/905-0080178b74282117.js",
+    "https://static.files.bbci.co.uk/bbcdotcom/web/20260226-102003-cac85f7ad7-web-2.40.2-1/_next/static/chunks/691-f44d410ab9a29f9c.js",
+    "https://static.files.bbci.co.uk/bbcdotcom/web/20260226-102003-cac85f7ad7-web-2.40.2-1/_next/static/chunks/127-29b5058064eb5fb8.js",
+    "https://static.files.bbci.co.uk/bbcdotcom/web/20260226-102003-cac85f7ad7-web-2.40.2-1/_next/static/chunks/389-fbb629886f5be92a.js",
+    "https://static.files.bbci.co.uk/bbcdotcom/web/20260226-102003-cac85f7ad7-web-2.40.2-1/_next/static/chunks/771-a55474a1f33ab33c.js",
+    "https://static.files.bbci.co.uk/bbcdotcom/web/20260226-102003-cac85f7ad7-web-2.40.2-1/_next/static/chunks/pages/%5B%5B...slug%5D%5D-67b6c8e3037caee2.js",
+    "https://static.files.bbci.co.uk/bbcdotcom/web/20260226-102003-cac85f7ad7-web-2.40.2-1/_next/static/bnISOqIqwu2TUhOuU052h/_buildManifest.js",
+    "https://static.files.bbci.co.uk/bbcdotcom/web/20260226-102003-cac85f7ad7-web-2.40.2-1/_next/static/bnISOqIqwu2TUhOuU052h/_ssgManifest.js",
+    "https://cdn.cxense.com/ari.js",
+    "https://mybbc-analytics.files.bbci.co.uk/echo-client-js/echo-2.6.0-avi.min.js",
+    "https://scripts.webcontentassessor.com/scripts/64ca3dfd44dd68a629e2e51a27e7ccd960974b5961e4ca2897139d14bf10be8b",
+    "https://securepubads.g.doubleclick.net/tag/js/gpt.js",
+    "https://cdn.privacy-mgmt.com/unified/wrapperMessagingWithoutDetection.js",
+    "https://cdn.privacy-mgmt.com/unified/4.40.1/gdpr-tcf.27718c8cb9d29947d2c1.bundle.js",
+    "https://cdn.privacy-mgmt.com/unified/4.40.1/usnat.f12613136193900e32e2.bundle.js",
+    "https://securepubads.g.doubleclick.net/pagead/managed/js/gpt/m202603050101/pubads_impl.js",
+    "https://prebid.the-ozone-project.com/hw2/OZONEBBC4784/1500000107/current/ozpb.min.js",
+    "https://cdn.permutive.com/e488cdb0-e7cb-4d91-9648-60d437d8e491-web.js",
+    "https://pub.doubleverify.com/dvtag/29028254/DV1298722/pub.js",
+    "https://gn-web-assets.api.bbc.com/ngas/latest/dotcom-ads.js",
+    "https://gn-web-assets.api.bbc.com/ngas/latest/dotcom-preroll.js",
+    "https://uk-script.dotmetrics.net/Scripts/script.js?v=362",
+    "https://gn-web-assets.api.bbc.com/ngas/latest/dotcom-analytics.js",
+    "https://gn-web-assets.api.bbc.com/ngas/vendor/edr/edr.min.js",
+    "https://sb.scorecardresearch.com/internal-cs/default/beacon.js",
+    "https://prebid.the-ozone-project.com/hw2/OZONEBBC4784/1500000107/current/adUnits.min.js",
+    "https://prebid.the-ozone-project.com/hw2/OZONEBBC4784/1500000107/current/customized_plugin.js",
+    "https://prebid.the-ozone-project.com/hw2/builds/ozwrap_pbjs.js",
+    "https://uk-script.dotmetrics.net/SiteEvent.dotmetrics?r=1773173092829&v=eyJpZCI6MTM5MzQsImZsIjp0cnVlLCJkb20iOiJ3d3cuYmJjLmNvbSIsImxzbyI6bnVsbCwidXJsIjoiaHR0cHM6Ly93d3cuYmJjLmNvbS9uZXdzIiwicnVybCI6IiIsImVjaWQiOiI3MWU4YTZhNS01MGM3LTQ2NjYtYjBiNC05MjUwOGUwYjc3NmYiLCJkYyI6IjAwMDAwMDAwLTAwMDAtMDAwMC0wMDAwLTAwMDAwMDAwMDAwMCIsInZlciI6MzYyLCJkZnBoIjoiIiwidHpPZmZzZXQiOi0xMjAsIm9zcyI6dHJ1ZSwib3NlcyI6dHJ1ZX0%3D",
+    "https://static.chartbeat.com/js/chartbeat.js",
+    "https://uk-script.dotmetrics.net/door.js?d=www.bbc.com&t=newsstudio"
+  ],
+  "script_count": 43,
+  "inline_script_count": 10,
+  "iframes": [
+    {
+      "src": "https://a4621041136.cdn.optimizely.com/client_storage/a4621041136.html",
+      "id": "",
+      "name": "",
+      "width": "0",
+      "height": "0"
+    },
+    {
+      "src": "",
+      "id": "",
+      "name": "__tcfapiLocator",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "",
+      "id": "",
+      "name": "__gppLocator",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "about:blank",
+      "id": "1d49554eafb6cc8",
+      "name": "__pb_locator__",
+      "width": "0",
+      "height": "0"
+    },
+    {
+      "src": "https://cdn.cxense.com/sp1.html#ver=3.3.0&typ=pgv&rnd=mml1h6evqhema83s&sid=3606632254074155369&loc=https%3A%2F%2Fwww.bbc.com%2Fnews&new=1&arf=0&ltm=1773173092861&ref=&tzo=-120&wsz=1280x900&res=1280x900&dpr=1&col=24&bln=en-US&chs=UTF-8&cks=mml1h6vrzfyg241e&ckp=mml1h6evaowl4get&glb=&cp_userState=anon",
+      "id": "cx_rep_iframe_0.9711269600567399",
+      "name": "cx_rep_iframe_0.9711269600567399",
+      "width": "1",
+      "height": "1"
+    },
+    {
+      "src": "https://cm.g.doubleclick.net/partnerpixels?gdpr=0&gpp=DBABLA~BVQqAAAAAgA.QA&gpp_sid=7&url=https%3A%2F%2Fwww.bbc.com%2Fnews",
+      "id": "goog_plcm_frame",
+      "name": "",
+      "width": "",
+      "height": ""
+    }
+  ],
+  "iframe_count": 6
+}

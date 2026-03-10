@@ -1,0 +1,26 @@
+{
+  "url": "https://www.intercom.com",
+  "name": "intercom_fin",
+  "title": "The AI customer service company",
+  "collected_at": "2026-03-10T20:03:59.806048+00:00",
+  "dom_length": 129413,
+  "scripts": [
+    "https://www.intercom.com/_next/static/chunks/4bd1b696-647ad4350a6b0867.js",
+    "https://www.intercom.com/_next/static/chunks/3794-1214295318e3751d.js",
+    "https://www.intercom.com/_next/static/chunks/main-app-e0e3b31ba6a84573.js",
+    "https://www.intercom.com/_next/static/chunks/5870-0f4ac8816470a6e1.js",
+    "https://www.intercom.com/_next/static/chunks/2246-105f17eb5980d1ac.js",
+    "https://www.intercom.com/_next/static/chunks/app/layout-e0c0825636e7722c.js",
+    "https://www.intercom.com/_next/static/chunks/970-668a40ca3c0775b3.js",
+    "https://www.intercom.com/_next/static/chunks/polyfills-42372ed130431b0a.js",
+    "https://cdn.cookielaw.org/scripttemplates/202511.1.0/otBannerSdk.js",
+    "https://www.intercom.com/_next/static/chunks/webpack-36130cbb8a78c7ea.js",
+    "https://www.googletagmanager.com/gtag/js?id=",
+    "https://www.googletagmanager.com/gtm.js?id=GTM-WB899HL",
+    "https://cdn.cookielaw.org/scripttemplates/otSDKStub.js"
+  ],
+  "script_count": 13,
+  "inline_script_count": 26,
+  "iframes": [],
+  "iframe_count": 0
+}

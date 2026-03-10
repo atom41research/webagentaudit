@@ -1,0 +1,93 @@
+{
+  "url": "https://quillbot.com/ai-chat",
+  "name": "quillbot_ai_chat",
+  "title": "AI Chat",
+  "collected_at": "2026-03-10T20:00:32.973301+00:00",
+  "dom_length": 728474,
+  "scripts": [
+    "https://libs.quillbot.com/vendor/sentry@9.10.1/bundle.tracing.min.js",
+    "https://www.googletagmanager.com/gtag/destination?id=AW-644617084&cx=c&gtm=4e6390&sign=94d5d5d22e9dcfcb8c4b7e8b186140eed372b6c16862f0eb5533916d422d4fba_20260310",
+    "https://scripts.clarity.ms/0.8.57/clarity.js",
+    "https://www.clarity.ms/tag/uet/17470464?conversions=1&insights=1",
+    "https://bat.bing.com/bat.js",
+    "https://snap.licdn.com/li.lms-analytics/insight.min.js",
+    "https://www.googletagmanager.com/gtag/js?id=DC-15491507&cx=c&gtm=4e6390&sign=94d5d5d22e9dcfcb8c4b7e8b186140eed372b6c16862f0eb5533916d422d4fba_20260310",
+    "https://www.googletagmanager.com/gtag/js?id=DC-14895710&cx=c&gtm=4e6390&sign=94d5d5d22e9dcfcb8c4b7e8b186140eed372b6c16862f0eb5533916d422d4fba_20260310",
+    "https://www.googletagmanager.com/gtm.js?id=GTM-MJ377JJ&gtg_health=1",
+    "https://connect.facebook.net/signals/config/3825961284112163?v=2.9.277&r=stable&domain=quillbot.com&hme=b0ad3da822578fe2b808f13c29c26424c1eec6df21f897230a1f8d7975c03c8e&ex_m=101%2C194%2C143%2C22%2C69%2C70%2C136%2C65%2C64%2C11%2C151%2C87%2C16%2C130%2C123%2C72%2C75%2C129%2C148%2C153%2C8%2C4%2C5%2C7%2C6%2C3%2C88%2C98%2C154%2C159%2C208%2C59%2C175%2C176%2C52%2C262%2C30%2C71%2C220%2C219%2C218%2C23%2C32%2C100%2C58%2C10%2C60%2C94%2C95%2C96%2C102%2C126%2C31%2C29%2C128%2C125%2C124%2C144%2C73%2C147%2C145%2C146%2C47%2C57%2C119%2C15%2C150%2C42%2C249%2C250%2C248%2C26%2C27%2C28%2C45%2C137%2C74%2C109%2C18%2C20%2C41%2C37%2C39%2C38%2C80%2C89%2C93%2C107%2C135%2C138%2C43%2C108%2C24%2C21%2C115%2C66%2C35%2C140%2C139%2C141%2C132%2C131%2C25%2C34%2C56%2C106%2C149%2C67%2C17%2C142%2C111%2C78%2C63%2C19%2C82%2C83%2C112%2C81%2C33%2C277%2C201%2C190%2C191%2C189%2C280%2C272%2C49%2C202%2C104%2C127%2C77%2C117%2C51%2C44%2C46%2C110%2C116%2C122%2C55%2C61%2C50%2C53%2C97%2C152%2C1%2C120%2C14%2C118%2C12%2C2%2C54%2C90%2C62%2C114%2C86%2C85%2C155%2C156%2C91%2C92%2C9%2C121%2C99%2C48%2C133%2C84%2C76%2C68%2C113%2C103%2C40%2C134%2C0%2C79%2C36%2C105%2C13%2C157",
+    "https://connect.facebook.net/en_US/fbevents.js",
+    "https://a.quora.com/qevents.js",
+    "https://gtm.quillbot.com/gtag/js?id=G-D39F2PYGLM&cx=c&gtm=4e6390&sign=94d5d5d22e9dcfcb8c4b7e8b186140eed372b6c16862f0eb5533916d422d4fba_20260310",
+    "https://cdn.cookielaw.org/scripttemplates/otSDKStub.js?did=420a3f3c-5291-453b-aa3b-6c8a2d850e2e&data-document-language=true",
+    "https://cdn.cookielaw.org/consent/420a3f3c-5291-453b-aa3b-6c8a2d850e2e/OtAutoBlock.js",
+    "https://www.gstatic.com/recaptcha/releases/QvLuXwupqtKMva7GIh5eGl3U/recaptcha__en.js",
+    "https://cdp.customer.io/v1/analytics-js/snippet/98ad51f4687f1b48716a/analytics.min.js",
+    "https://gtm.quillbot.com/gtm.js?id=GTM-MJ377JJ",
+    "https://cdn.cookielaw.org/scripttemplates/otSDKStub.js",
+    "https://js.partnerstack.com/v1/",
+    "https://cdn.cookielaw.org/scripttemplates/202505.2.0/otBannerSdk.js",
+    "https://accounts.google.com/gsi/client",
+    "https://widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js",
+    "https://widget.trustpilot.com/bootstrap/v5/tp.widget.bootstrap.min.js",
+    "https://bat.bing.com/p/action/17470464.js",
+    "https://cdn.cookielaw.org/scripttemplates/202505.2.0/otBannerSdk.js",
+    "https://googleads.g.doubleclick.net/pagead/viewthroughconversion/644617084/?random=1773172825904&cv=11&fst=1773172825904&bg=ffffff&guid=ON&async=1&gtm=45be6390v9102398704z878600876za20gzb78600876zd78600876xea&gcd=13r3r3r2r5l1&dma=0&tag_exp=103116026~103200004~115938465~115938468~116024733~117484252~117625638~117625640&u_w=1280&u_h=900&url=https%3A%2F%2Fquillbot.com%2Fai-chat&frm=0&tiba=AI%20Chat&did=dYWJhMj&gdid=dYWJhMj&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=1426523748.1773172825&uaa=x86&uab=64&uafvl=Not%253AA-Brand%3B99.0.0.0%7CHeadlessChrome%3B145.0.7632.6%7CChromium%3B145.0.7632.6&uamb=0&uam=&uap=Linux&uapv=&uaw=0&_tu=CA&rfmt=3&fmt=4",
+    "https://assets.quillbot.com/js/polyfills-v2.js",
+    "https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015",
+    "https://www.google.com/recaptcha/api.js?render=6LdNFngUAAAAAPYlMOGQOclmFYl6buFVajKnmFBU"
+  ],
+  "script_count": 30,
+  "inline_script_count": 23,
+  "iframes": [
+    {
+      "src": "https://widget.trustpilot.com/trustboxes/5419b6ffb0d04a076446a9af/index.html?templateId=5419b6ffb0d04a076446a9af&businessunitId=5c1bf3ed55894b00017c8b4f#locale=en-US&reviewLanguages=en&styleWidth=100%25&stars=4%2C5&styleHeight=40px",
+      "id": "",
+      "name": "",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "https://widget.trustpilot.com/trustboxes/5419b6ffb0d04a076446a9af/index.html?templateId=5419b6ffb0d04a076446a9af&businessunitId=5c1bf3ed55894b00017c8b4f#locale=en-US&reviewLanguages=en&styleWidth=100%25&styleHeight=40px&theme=dark&stars=4%2C5",
+      "id": "",
+      "name": "",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "https://widget.trustpilot.com/trustboxes/53aa8912dec7e10d38f59f36/index.html?templateId=53aa8912dec7e10d38f59f36&businessunitId=5c1bf3ed55894b00017c8b4f#locale=en-US&reviewLanguages=en&styleWidth=100%25&stars=4%2C5&styleHeight=140px",
+      "id": "",
+      "name": "",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "https://widget.trustpilot.com/trustboxes/53aa8912dec7e10d38f59f36/index.html?templateId=53aa8912dec7e10d38f59f36&businessunitId=5c1bf3ed55894b00017c8b4f#locale=en-US&reviewLanguages=en&styleWidth=100%25&styleHeight=140px&theme=dark&stars=4%2C5",
+      "id": "",
+      "name": "",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "https://www.google.com/recaptcha/api2/anchor?ar=1&k=6LdNFngUAAAAAPYlMOGQOclmFYl6buFVajKnmFBU&co=aHR0cHM6Ly9xdWlsbGJvdC5jb206NDQz&hl=en&v=QvLuXwupqtKMva7GIh5eGl3U&size=invisible&anchor-ms=20000&execute-ms=30000&cb=jiiseex638p4",
+      "id": "",
+      "name": "a-3l4j1v1l7vp",
+      "width": "256",
+      "height": "60"
+    },
+    {
+      "src": "",
+      "id": "",
+      "name": "",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "",
+      "id": "",
+      "name": "",
+      "width": "0",
+      "height": "0"
+    }
+  ],
+  "iframe_count": 7
+}

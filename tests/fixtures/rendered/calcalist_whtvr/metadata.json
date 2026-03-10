@@ -1,0 +1,446 @@
+{
+  "url": "https://www.calcalist.co.il/world_news/article/bk4nt66twl",
+  "name": "calcalist_whtvr",
+  "title": "5.6 \u05de\u05d9\u05dc\u05d9\u05d0\u05e8\u05d3 \u05d3\u05d5\u05dc\u05e8 \u05d1\u05d9\u05d5\u05de\u05d9\u05d9\u05dd: \u05e2\u05dc\u05d5\u05ea \u05d4\u05ea\u05d7\u05de\u05d5\u05e9\u05ea \u05d4\u05d0\u05de\u05e8\u05d9\u05e7\u05d0\u05d9\u05ea \u05e0\u05d7\u05e9\u05e4\u05ea | \u05db\u05dc\u05db\u05dc\u05d9\u05e1\u05d8",
+  "collected_at": "2026-03-10T20:05:26.969218+00:00",
+  "dom_length": 1080832,
+  "scripts": [
+    "https://www.google-analytics.com/analytics.js",
+    "https://securepubads.g.doubleclick.net/pagead/managed/js/gpt/m202603050101/pubads_impl_page_level_ads.js",
+    "https://s0.2mdn.net/instream/video/client.js",
+    "https://static.vidazoo.com/basev/wgt/orion/1.2.1/widget.js",
+    "https://www.youtube.com/s/player/e42f4bf8/www-widgetapi.vflset/www-widgetapi.js",
+    "https://cdn.cxense.com/cx.js",
+    "https://www.youtube.com/iframe_api",
+    "https://api.receptivity.io/v1/prebid/ADNP250319/connector/rxConnector.js",
+    "https://cdn.cxense.com/cx.cce.js",
+    "https://tags.dxmdp.com/tags/0b41b6f0-1d53-4017-a72b-33a759568873/dmp-main.js",
+    "https://cdn.brandmetrics.com/survey/script/48394f48de8f447287c4da9a5ea741f8.js",
+    "https://cf.dxmcdn.com/dta/survey.js",
+    "https://sdk.ocmthood.com/sdk/ht.js?tag=NjY4seBuN0l8WDQ2eDkxNDY4MjE0NjoM",
+    "https://static.kueezrtb.com/js/latest.js?_=1773173089589",
+    "https://cdn.tinypass.com/api/tinypass.min.js",
+    "https://vidstat.taboola.com/lite-unit/5.6.4/UnitFeedManagerDesktop.min.js",
+    "https://vidstat.taboola.com/lite-unit/5.6.4/UnitInlineDesktop.min.js",
+    "https://gum.criteo.com/sync?c=72&r=2&j=TRC.getRTUS",
+    "https://cdn.taboola.com/scripts/eid.es5.js",
+    "https://cdn.taboola.com/scripts/fraud-detect.js",
+    "https://cdn.taboola.com/scripts/firstid.es5.js",
+    "https://cdn.taboola.com/scripts/cds-pips.js?dc=il&d=d",
+    "https://cdn.taboola.com/scripts/eid-ls-new.es5.js",
+    "https://pm-widget.taboola.com/calcalist-calcalist/load.js",
+    "https://www.googletagmanager.com/gtag/destination?id=G-C43N2FJCH0&cx=c&gtm=4e6390",
+    "https://www.googletagmanager.com/gtag/destination?id=AW-10847674167&cx=c&gtm=4e6390",
+    "https://www.googletagmanager.com/gtag/destination?id=AW-767914676&cx=c&gtm=4e6390",
+    "https://static.hotjar.com/c/hotjar-675577.js?sv=7",
+    "https://www.google-analytics.com/analytics.js",
+    "https://experience.piano.io/xbuilder/experience/load?aid=3PTOfcDYpu",
+    "https://widget.prod.equally.ai/equally-widget.min.js",
+    "https://connect.facebook.net/signals/config/251532892020667?v=2.9.277&r=stable&domain=www.calcalist.co.il&hme=b0ad3da822578fe2b808f13c29c26424c1eec6df21f897230a1f8d7975c03c8e&ex_m=101%2C194%2C143%2C22%2C69%2C70%2C136%2C65%2C64%2C11%2C151%2C87%2C16%2C130%2C123%2C72%2C75%2C129%2C148%2C153%2C8%2C4%2C5%2C7%2C6%2C3%2C88%2C98%2C154%2C159%2C208%2C59%2C175%2C176%2C52%2C262%2C30%2C71%2C220%2C219%2C218%2C23%2C32%2C100%2C58%2C10%2C60%2C94%2C95%2C96%2C102%2C126%2C31%2C29%2C128%2C125%2C124%2C144%2C73%2C147%2C145%2C146%2C47%2C57%2C119%2C15%2C150%2C42%2C249%2C250%2C248%2C26%2C27%2C28%2C45%2C137%2C74%2C109%2C18%2C20%2C41%2C37%2C39%2C38%2C80%2C89%2C93%2C107%2C135%2C138%2C43%2C108%2C24%2C21%2C115%2C66%2C35%2C140%2C139%2C141%2C132%2C131%2C25%2C34%2C56%2C106%2C149%2C67%2C17%2C142%2C111%2C78%2C63%2C19%2C82%2C83%2C112%2C81%2C33%2C277%2C201%2C190%2C191%2C189%2C280%2C272%2C49%2C202%2C104%2C127%2C77%2C117%2C51%2C44%2C46%2C110%2C116%2C122%2C55%2C61%2C50%2C53%2C97%2C152%2C1%2C120%2C14%2C118%2C12%2C2%2C54%2C90%2C62%2C114%2C86%2C85%2C155%2C156%2C91%2C92%2C9%2C121%2C99%2C48%2C133%2C84%2C76%2C68%2C113%2C103%2C40%2C134%2C0%2C79%2C36%2C105%2C13%2C157",
+    "https://connect.facebook.net/en_US/fbevents.js",
+    "https://www.gstatic.com/recaptcha/releases/QvLuXwupqtKMva7GIh5eGl3U/recaptcha__en.js",
+    "https://cdn.taboola.com/libtrc/calcalist-calcalist/loader.js",
+    "https://c2.taboola.com/nr/calcalist-calcalist/newsroom.js",
+    "https://www.googletagmanager.com/gtm.js?id=GTM-NNZS59",
+    "https://adncdn.net/f0yAU5hfYZ",
+    "https://www.calcalist.co.il/Common/Api/Scripts/paywall/paywall_new-v3_5_3.js",
+    "https://pic1.calcalist.co.il/Common/frontend/site/prod/vendors-widgets.517f9e40f1da85aafc4b.js",
+    "https://pic1.calcalist.co.il/Common/frontend/site/prod/widgets.6260f764eaf3f35b7421.js",
+    "https://pic1.calcalist.co.il/Common/frontend/site/prod/widgets.1bcb1d6495720f7dad26.js",
+    "https://cdn.flowplayer.com/releases/native/3/stable/flowplayer.min.js",
+    "https://cdn.flowplayer.com/releases/native/3/stable/plugins/ads.min.js",
+    "https://cdn.flowplayer.com/releases/native/3/stable/plugins/cuepoints.min.js",
+    "https://cdn.flowplayer.com/releases/native/3/stable/plugins/ga4.min.js",
+    "https://cdn.flowplayer.com/releases/native/3/stable/plugins/keyboard.min.js",
+    "https://cdn.flowplayer.com/releases/native/3/stable/plugins/share.min.js",
+    "https://cdn.flowplayer.com/releases/native/3/stable/plugins/qsel.min.js",
+    "https://cdn.flowplayer.com/releases/native/3/stable/plugins/asel.min.js",
+    "https://cdn.flowplayer.com/releases/native/3/stable/plugins/hls.min.js",
+    "https://cdn.flowplayer.com/releases/native/3/stable/plugins/float-on-scroll.min.js",
+    "https://imasdk.googleapis.com/js/sdkloader/ima3.js",
+    "https://cdn.flowplayer.com/releases/native/translations/flowplayer.lang.he.js",
+    "https://btloader.com/tag?o=6244355308257280&upapi=true",
+    "https://s.skimresources.com/js/261118X1745825.skimlinks.js",
+    "https://cdn.taboola.com/webpush/publishers/1363766/taboola-push-sdk.js",
+    "https://tags.dxmdp.com/tags/0b41b6f0-1d53-4017-a72b-33a759568873/dmp-provider.js",
+    "https://pic1.calcalist.co.il/Common/Api/Scripts/jquery-3.6.3.min.js",
+    "https://www.google.com/recaptcha/api.js?render=6LcvjKYcAAAAAL5_vSEM7rONiJcMhGp_HYkpHRqR",
+    "https://cdn.taboola.com/webpush/publishers/1797535/taboola-push-sdk.js",
+    "https://googleads.g.doubleclick.net/pagead/viewthroughconversion/767914676/?random=1773173118990&cv=11&fst=1773173118990&bg=ffffff&guid=ON&async=1&gtm=45be6390z872573040za20gzb72573040zd72573040xea&gcd=13l3l3l3l1l1&dma=0&tag_exp=103116026~103200004~115938466~115938468~116024733~117477894~117484252&u_w=1280&u_h=900&url=https%3A%2F%2Fwww.calcalist.co.il%2Fworld_news%2Farticle%2Fbk4nt66twl&frm=0&tiba=5.6%20%D7%9E%D7%99%D7%9C%D7%99%D7%90%D7%A8%D7%93%20%D7%93%D7%95%D7%9C%D7%A8%20%D7%91%D7%99%D7%95%D7%9E%D7%99%D7%99%D7%9D%3A%20%D7%A2%D7%9C%D7%95%D7%AA%20%D7%94%D7%AA%D7%97%D7%9E%D7%95%D7%A9%D7%AA%20%D7%94%D7%90%D7%9E%D7%A8%D7%99%D7%A7%D7%90%D7%99%D7%AA%20&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=1367351859.1773173090&uaa=x86&uab=64&uafvl=Not%253AA-Brand%3B99.0.0.0%7CHeadlessChrome%3B145.0.7632.6%7CChromium%3B145.0.7632.6&uamb=0&uam=&uap=Linux&uapv=&uaw=0&_tu=CA&rfmt=3&fmt=4",
+    "https://googleads.g.doubleclick.net/pagead/viewthroughconversion/10847674167/?random=1773173119002&cv=11&fst=1773173119002&bg=ffffff&guid=ON&async=1&gtm=45be6390v9103363417z872573040za20gzb72573040zd72573040xea&gcd=13l3l3l3l1l1&dma=0&tag_exp=103116026~103200004~115616985~115938466~115938469~116024733~117484252~117625637&u_w=1280&u_h=900&url=https%3A%2F%2Fwww.calcalist.co.il%2Fworld_news%2Farticle%2Fbk4nt66twl&frm=0&tiba=5.6%20%D7%9E%D7%99%D7%9C%D7%99%D7%90%D7%A8%D7%93%20%D7%93%D7%95%D7%9C%D7%A8%20%D7%91%D7%99%D7%95%D7%9E%D7%99%D7%99%D7%9D%3A%20%D7%A2%D7%9C%D7%95%D7%AA%20%D7%94%D7%AA%D7%97%D7%9E%D7%95%D7%A9%D7%AA%20%D7%94%D7%90%D7%9E%D7%A8%D7%99%D7%A7%D7%90%D7%99%D7%AA%20&hn=www.googleadservices.com&npa=0&pscdl=noapi&auid=1367351859.1773173090&uaa=x86&uab=64&uafvl=Not%253AA-Brand%3B99.0.0.0%7CHeadlessChrome%3B145.0.7632.6%7CChromium%3B145.0.7632.6&uamb=0&uam=&uap=Linux&uapv=&uaw=0&_tu=CA&data=article_tag%3D%D7%90%D7%99%D7%A8%D7%90%D7%9F%5C%2C%20%D7%90%D7%A8%D7%94%22%D7%91%5C%2C%20%D7%A7%D7%95%D7%A0%D7%92%D7%A8%D7%A1%5C%2C%20%D7%94%D7%A4%D7%A0%D7%98%D7%92%D7%95%D7%9F%5C%2C%20%D7%AA%D7%97%D7%9E%D7%95%D7%A9%D7%AA%5C%2C%20%D7%A9%D7%90%D7%92%D7%AA%20%D7%94%D7%90%D7%A8%D7%99&rfmt=3&fmt=4",
+    "https://c.amazon-adsystem.com/aax2/apstag.js",
+    "https://static.vidazoo.com/basev/vwpt.js",
+    "https://www.googletagmanager.com/gtag/js?id=G-3QGJ9F7KWN",
+    "https://static.kueezrtb.com/latest.js",
+    "https://static.vidazoo.com/basev/cmp/1.0.1/cmp.js",
+    "https://config.aps.amazon-adsystem.com/configs/83d5088d-5f70-4acf-a888-15a83bf33932",
+    "https://securepubads.g.doubleclick.net/tag/js/gpt.js",
+    "https://securepubads.g.doubleclick.net/pagead/managed/js/gpt/m202603050101/pubads_impl.js",
+    "https://pm-widget.taboola.com/calcalist-calcalist/pmk-20220605.5.js",
+    "https://script.hotjar.com/modules.ddd41caee2adfc4aedb8.js",
+    "https://fundingchoicesmessages.google.com/i/6870?ers=3",
+    "https://cdn.id5-sync.com/api/1.0/id5-api.js",
+    "https://s.trvdp.com/scripts/v6.54/ins.js",
+    "https://vidstat.taboola.com/vpaid/units/36_0_3/infra/cmTagINLINE_INSTREAM.js",
+    "https://fundingchoicesmessages.google.com/f/AGSKWxUIHWTbyrv_vYMIfZlsVUE-nnIBMiZKvHaAe_7ghSYzEveSfCfo28GdS5Ucofo_5O5lE0KfOpEavCEOHPXDRxnhobaCBdmiu4M_p0-6VOjdZdiAvaDNxrbPtOl6uFCIHiJgjTi97Q==?fccs=W1siQUtzUm9sX01FX0pQVW1LeF9DamZQbExManBITVNCVGdlQmQtWE9oeFlHbm1idURDSTBwZ2lXVFI2Tk1zcHdmOTBtUWNsNUhsbjFSUjNNemlBMmxJWEZqWHlKRHk5R1Z3c19NZ1lhX05WOXVOeFBxQ3A4SlhVZlRNNVgwYllTYXUzX3k3UmkxeVdlSzZrRzBsOWhiQVVadnhwSXdVem0xWW1BPT0iXSxudWxsLG51bGwsbnVsbCxudWxsLG51bGwsWzE3NzMxNzMxMTksODgxMDAwMDAwXSxudWxsLG51bGwsbnVsbCxbbnVsbCxbN11dLCJodHRwczovL3d3dy5jYWxjYWxpc3QuY28uaWwvd29ybGRfbmV3cy9hcnRpY2xlL2JrNG50NjZ0d2wiLG51bGwsW1s4LCJhVzJuemZCMWpCZyJdLFs5LCJlbi1VUyJdLFsxOCwiW1tbbnVsbCwxMzQ5XV1dIl0sWzIzLCIxNzczMTczMDkyIl0sWzE5LCIyIl0sWzI0LCIiXSxbMjksImZhbHNlIl1dXQ",
+    "https://vidstat.taboola.com/vpaid/vPlayer/player/v17.9.9/OvaMediaPlayer.js",
+    "https://imasdk.googleapis.com/js/sdkloader/ima3.js",
+    "https://fundingchoicesmessages.google.com/f/AGSKWxX5UwjwbGL0tvgqQ0pDd3KVWyN9Z_2g1ZWXBWYyVv0IJT-qB87MkI_xxZzvbk4EGZ6LqqpAirm44b3EK_OdHPq0M7m52tyURc2HuC7qFxZyyR4w_uLd3gdlh1LQg_yIwYVJ3DI_zg==?fccs=W1siQUtzUm9sX01FX0pQVW1LeF9DamZQbExManBITVNCVGdlQmQtWE9oeFlHbm1idURDSTBwZ2lXVFI2Tk1zcHdmOTBtUWNsNUhsbjFSUjNNemlBMmxJWEZqWHlKRHk5R1Z3c19NZ1lhX05WOXVOeFBxQ3A4SlhVZlRNNVgwYllTYXUzX3k3UmkxeVdlSzZrRzBsOWhiQVVadnhwSXdVem0xWW1BPT0iXSxudWxsLG51bGwsbnVsbCxudWxsLG51bGwsWzE3NzMxNzMxMjEsMzQ5MDAwMDAwXSxudWxsLG51bGwsbnVsbCxbbnVsbCxbNyw2XSxudWxsLG51bGwsbnVsbCxudWxsLG51bGwsbnVsbCxudWxsLG51bGwsbnVsbCwxXSwiaHR0cHM6Ly93d3cuY2FsY2FsaXN0LmNvLmlsL3dvcmxkX25ld3MvYXJ0aWNsZS9iazRudDY2dHdsIixudWxsLFtbOCwiYVcybnpmQjFqQmciXSxbOSwiZW4tVVMiXSxbMTgsIltbW251bGwsMTM0OV1dXSJdLFsyMywiMTc3MzE3MzA5MiJdLFsxOSwiMiJdLFsyNCwiIl0sWzI5LCJmYWxzZSJdXV0",
+    "https://fundingchoicesmessages.google.com/f/AGSKWxUGol8yS5EpNZ6t5HHRErj8IOKcfurEXMzP8S-zN9igokDLpHMlaZN__RPvtZcOD8_hO5gH2sr-k_eGY6vods-DXf0r7eFecLmVXsuJwBJVmE7vgFpkyaiAOTUTVC79byfeDKcgtw==?fccs=W1siQUtzUm9sX01FX0pQVW1LeF9DamZQbExManBITVNCVGdlQmQtWE9oeFlHbm1idURDSTBwZ2lXVFI2Tk1zcHdmOTBtUWNsNUhsbjFSUjNNemlBMmxJWEZqWHlKRHk5R1Z3c19NZ1lhX05WOXVOeFBxQ3A4SlhVZlRNNVgwYllTYXUzX3k3UmkxeVdlSzZrRzBsOWhiQVVadnhwSXdVem0xWW1BPT0iXSxudWxsLG51bGwsbnVsbCxudWxsLG51bGwsWzE3NzMxNzMxMjEsNDI3MDAwMDAwXSxudWxsLG51bGwsbnVsbCxbbnVsbCxbNyw2LDEwXSxudWxsLG51bGwsbnVsbCxudWxsLG51bGwsbnVsbCxudWxsLG51bGwsbnVsbCwxXSwiaHR0cHM6Ly93d3cuY2FsY2FsaXN0LmNvLmlsL3dvcmxkX25ld3MvYXJ0aWNsZS9iazRudDY2dHdsIixudWxsLFtbOCwiYVcybnpmQjFqQmciXSxbOSwiZW4tVVMiXSxbMTgsIltbW251bGwsMTM0OV1dXSJdLFsyMywiMTc3MzE3MzA5MiJdLFsxOSwiMiJdLFsyNCwiIl0sWzI5LCJmYWxzZSJdXV0",
+    "https://fundingchoicesmessages.google.com/f/AGSKWxXqMrQLr37EOIz3H3AX7nT9CwFSWLWpXCWPWQDgBHxr19H9-El0xuwkX_V2DCZM8Ry-lAesvXIOiPVD3UePjFlaRWMYhGII5bxdvYvhDLQCw6OXi2j5sNa7FbpI62BaCS4OQ9vPYg==?fccs=W1siQUtzUm9sX01FX0pQVW1LeF9DamZQbExManBITVNCVGdlQmQtWE9oeFlHbm1idURDSTBwZ2lXVFI2Tk1zcHdmOTBtUWNsNUhsbjFSUjNNemlBMmxJWEZqWHlKRHk5R1Z3c19NZ1lhX05WOXVOeFBxQ3A4SlhVZlRNNVgwYllTYXUzX3k3UmkxeVdlSzZrRzBsOWhiQVVadnhwSXdVem0xWW1BPT0iXSxudWxsLG51bGwsbnVsbCxudWxsLG51bGwsWzE3NzMxNzMxMjEsNTE0MDAwMDAwXSxudWxsLG51bGwsbnVsbCxbbnVsbCxbNyw2LDEwLDldLG51bGwsMixudWxsLCJlbiIsbnVsbCxudWxsLG51bGwsbnVsbCxudWxsLDFdLCJodHRwczovL3d3dy5jYWxjYWxpc3QuY28uaWwvd29ybGRfbmV3cy9hcnRpY2xlL2JrNG50NjZ0d2wiLG51bGwsW1s4LCJhVzJuemZCMWpCZyJdLFs5LCJlbi1VUyJdLFsxOCwiW1tbbnVsbCwxMzQ5XV1dIl0sWzIzLCIxNzczMTczMDkyIl0sWzE5LCIyIl0sWzI0LCIiXSxbMjksImZhbHNlIl1dXQ",
+    "https://trinitymedia.ai/player/trinity/2900016299/?pageURL=https%3A%2F%2Fwww.calcalist.co.il%2Fworld_news%2Farticle%2Fbk4nt66twl",
+    "https://go.trvdp.com/init/17106.js?pid=11508",
+    "https://static.cloudflareinsights.com/beacon.min.js",
+    "https://sdk.whtvr.ai/kwry-shadow-sdk.js?projectId=proj_0fc91801-0fdd-447d-bc7b-9e99e0e9b0f3&direction=auto&language=heb&container-class=ArticleBodyComponent",
+    "https://vd.trinitymedia.ai/trinity-player/tts-player/20260310_bdc58d85e7c34e579775f0c0fe554d8ab0fee2fb/trinity-injector-script.js",
+    "https://cdn.brandmetrics.com/scripts/bundle/65568.js?sid=48394f48-de8f-4472-87c4-da9a5ea741f8&toploc=www.calcalist.co.il"
+  ],
+  "script_count": 89,
+  "inline_script_count": 76,
+  "iframes": [
+    {
+      "src": "",
+      "id": "skimlinks-pixels-iframe",
+      "name": "",
+      "width": "0",
+      "height": "0"
+    },
+    {
+      "src": "",
+      "id": "",
+      "name": "HCCfrm",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "",
+      "id": "google_ads_iframe_/6870/Calcalist/desktop/ad/sticky.ad_buttom_0",
+      "name": "google_ads_iframe_/6870/Calcalist/desktop/ad/sticky.ad_buttom_0",
+      "width": "890",
+      "height": "120"
+    },
+    {
+      "src": "",
+      "id": "google_ads_iframe_/6870/Calcalist/desktop/world/prime.world_0",
+      "name": "google_ads_iframe_/6870/Calcalist/desktop/world/prime.world_0",
+      "width": "1210",
+      "height": "255"
+    },
+    {
+      "src": "",
+      "id": "google_ads_iframe_/6870/Calcalist/desktop/article/carusella.article_0",
+      "name": "google_ads_iframe_/6870/Calcalist/desktop/article/carusella.article_0",
+      "width": "270",
+      "height": "80"
+    },
+    {
+      "src": "https://1913a27c5a33943bf81eb572d4a4bcc8.safeframe.googlesyndication.com/safeframe/1-0-45/html/container.html",
+      "id": "google_ads_iframe_/6870/Calcalist/desktop/world/bigbox1.world_0",
+      "name": "",
+      "width": "300",
+      "height": "250"
+    },
+    {
+      "src": "",
+      "id": "google_ads_iframe_/6870/Calcalist/desktop/world/sopranos1.world_0",
+      "name": "google_ads_iframe_/6870/Calcalist/desktop/world/sopranos1.world_0",
+      "width": "300",
+      "height": "620"
+    },
+    {
+      "src": "https://trinitymedia.ai/player/trinity-player.php?pageURL=https%3A%2F%2Fwww.calcalist.co.il%2Fworld_news%2Farticle%2Fbk4nt66twl&contentHash=2437804b51d7226c8a463fe5f211d57b0cc0d6557d53bbf6304988aa3da907f3&unitId=2900016299&userId=f9c267bf-1f8f-4659-bbd3-7722936f8e9c&isLegacyBrowser=false&version=20260310_bdc58d85e7c34e579775f0c0fe554d8ab0fee2fb&useBunnyCDN=0&themeId=479&isMobile=0&unitType=tts-player&integrationType=web",
+      "id": "",
+      "name": "audioFrame_6e445f680ad2da487c6c3503f5fe48db",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "https://imasdk.googleapis.com/js/core/bridge3.746.1_en.html#deid=%22%22&eventfe_experiment_ids=%5B%5D&fid=%22goog_642717728%22&genotype_experiment_data=%7B%22experimentStateProto%22%3A%22%5B%5B%5B45713128%2Cnull%2Cnull%2C%5B%5D%5D%2C%5Bnull%2C745150931%2Cnull%2C%5Bnull%2C1%5D%5D%2C%5Bnull%2C749060184%2Cnull%2C%5Bnull%2C128%5D%5D%2C%5B841585769%2Cnull%2Cnull%2C%5B1%5D%5D%2C%5B45761044%2Cnull%2Cnull%2C%5B%5D%5D%2C%5B45722344%2Cnull%2Cnull%2C%5B%5D%5D%2C%5B45706017%2Cnull%2Cnull%2C%5B1%5D%5D%2C%5B45740207%2Cnull%2Cnull%2C%5B%5D%5D%2C%5B45668885%2Cnull%2Cnull%2C%5B%5D%5D%2C%5B45685340%2Cnull%2Cnull%2C%5B%5D%5D%2C%5B45734716%2Cnull%2Cnull%2C%5B%5D%5D%2C%5B45735891%2Cnull%2Cnull%2C%5B%5D%5D%2C%5B45663239%2Cnull%2Cnull%2C%5B%5D%5D%2C%5B45715032%2Cnull%2Cnull%2C%5B1%5D%5D%2C%5B45661356%2Cnull%2Cnull%2C%5B%5D%5D%2C%5B839547366%2Cnull%2Cnull%2C%5B1%5D%5D%2C%5B45676441%2Cnull%2Cnull%2C%5B%5D%5D%2C%5B45675307%2Cnull%2Cnull%2C%5B1%5D%5D%2C%5B45675308%2Cnull%2Cnull%2C%5B1%5D%5D%2C%5Bnull%2C45645574%2Cnull%2C%5B%5D%5D%2C%5B45688859%2Cnull%2Cnull%2C%5B%5D%5D%2C%5B45656766%2Cnull%2Cnull%2C%5B%5D%5D%2C%5B45710689%2Cnull%2Cnull%2C%5B%5D%5D%2C%5B45710688%2Cnull%2Cnull%2C%5B1%5D%5D%2C%5B45685601%2Cnull%2Cnull%2C%5B%5D%5D%2C%5Bnull%2C45685602%2Cnull%2C%5Bnull%2C500%5D%5D%2C%5B45756824%2Cnull%2Cnull%2C%5B%5D%5D%2C%5B45747172%2Cnull%2Cnull%2C%5B%5D%5D%2C%5B775241416%2Cnull%2Cnull%2C%5B%5D%5D%2C%5B781107959%2Cnull%2Cnull%2C%5B%5D%5D%2C%5B781107958%2Cnull%2Cnull%2C%5B%5D%5D%2C%5B792614055%2Cnull%2Cnull%2C%5B%5D%5D%2C%5B781107957%2Cnull%2Cnull%2C%5B%5D%5D%2C%5B45729602%2Cnull%2Cnull%2C%5B%5D%5D%2C%5B45753603%2Cnull%2Cnull%2C%5B%5D%5D%2C%5B45753604%2Cnull%2Cnull%2C%5B%5D%5D%2C%5B45658982%2Cnull%2Cnull%2C%5B%5D%5D%2C%5B45725657%2Cnull%2Cnull%2C%5B%5D%5D%5D%2C%5B%5B16%2C%5B%5B1%2C%5B%5B31089630%5D%2C%5B31089631%2C%5B%5B45668885%2Cnull%2Cnull%2C%5B1%5D%5D%5D%5D%5D%5D%2C%5B1000%2C%5B%5B95332046%5D%5D%5D%2C%5Bnull%2C%5B%5B95332047%5D%5D%5D%2C%5B10%2C%5B%5B95338769%2C%5B%5Bnull%2C45645574%2Cnull%2C%5Bnull%2C1%5D%5D%5D%5D%2C%5B95338770%2C%5B%5Bnull%2C45645574%2Cnull%2C%5Bnull%2C2%5D%5D%5D%5D%5D%5D%2C%5B50%2C%5B%5B95345206%5D%2C%5B95345207%2C%5B%5B45661356%2Cnull%2Cnull%2C%5B1%5D%5D%5D%5D%5D%5D%2C%5B1%2C%5B%5B95351425%5D%2C%5B95351426%2C%5B%5B45676441%2Cnull%2Cnull%2C%5B1%5D%5D%5D%5D%5D%5D%2C%5B20%2C%5B%5B95356068%5D%2C%5B95356069%2C%5B%5B45685601%2Cnull%2Cnull%2C%5B%5D%5D%2C%5Bnull%2C45685602%2Cnull%2C%5B%5D%5D%5D%5D%2C%5B95356070%2C%5B%5B45685601%2Cnull%2Cnull%2C%5B1%5D%5D%2C%5Bnull%2C45685602%2Cnull%2C%5B%5D%5D%5D%5D%2C%5B95356071%2C%5B%5B45685601%2Cnull%2Cnull%2C%5B1%5D%5D%2C%5Bnull%2C45685602%2Cnull%2C%5Bnull%2C100%5D%5D%5D%5D%5D%5D%2C%5B1%2C%5B%5B95373378%2C%5B%5B792614055%2Cnull%2Cnull%2C%5B1%5D%5D%5D%5D%2C%5B95373379%2C%5B%5B45747172%2Cnull%2Cnull%2C%5B1%5D%5D%2C%5B781107959%2Cnull%2Cnull%2C%5B1%5D%5D%2C%5B792614055%2Cnull%2Cnull%2C%5B1%5D%5D%2C%5B781107957%2Cnull%2Cnull%2C%5B1%5D%5D%5D%5D%5D%5D%2C%5Bnull%2C%5B%5B95375930%5D%2C%5B95375931%2C%5B%5B45734716%2Cnull%2Cnull%2C%5B1%5D%5D%5D%5D%2C%5B95376520%2C%5B%5B45734716%2Cnull%2Cnull%2C%5B1%5D%5D%2C%5B45735891%2Cnull%2Cnull%2C%5B1%5D%5D%5D%5D%5D%5D%2C%5Bnull%2C%5B%5B95378095%5D%2C%5B95378096%2C%5B%5B45740207%2Cnull%2Cnull%2C%5B1%5D%5D%5D%5D%5D%5D%2C%5B10%2C%5B%5B95378629%5D%2C%5B95378630%2C%5B%5B45729602%2Cnull%2Cnull%2C%5B1%5D%5D%5D%5D%2C%5B95381582%2C%5B%5B45729602%2Cnull%2Cnull%2C%5B1%5D%5D%2C%5B45753603%2Cnull%2Cnull%2C%5B1%5D%5D%5D%5D%2C%5B95381583%2C%5B%5B45729602%2Cnull%2Cnull%2C%5B1%5D%5D%2C%5B45753604%2Cnull%2Cnull%2C%5B1%5D%5D%5D%5D%5D%5D%2C%5B10%2C%5B%5B95382403%5D%2C%5B95382404%2C%5B%5B45756824%2Cnull%2Cnull%2C%5B1%5D%5D%5D%5D%5D%5D%2C%5B10%2C%5B%5B95385117%5D%2C%5B95385118%2C%5B%5B45761044%2Cnull%2Cnull%2C%5B1%5D%5D%5D%5D%5D%5D%5D%5D%5D%2Cnull%2Cnull%2C%5Bnull%2C1000%2C1%2C1000%5D%5D%22%7D&imalib_experiments=%5B44752711%2C95322027%2C95331589%2C95332046%2C95345206%5D&is_eap_loader=false&managed_js_experiment_id=0&page_correlator=4433131717392451&pvsid=7846437608870338&top_accessible_page_url=%22https%3A%2F%2Fwww.calcalist.co.il%2Fworld_news%2Farticle%2Fbk4nt66twl%22",
+      "id": "goog_642717728",
+      "name": "",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "",
+      "id": "",
+      "name": "",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "",
+      "id": "trc-pixel-iframe-125",
+      "name": "trc-pixel-iframe-125",
+      "width": "0px",
+      "height": "0px"
+    },
+    {
+      "src": "https://www.google.com/recaptcha/api2/anchor?ar=1&k=6LcvjKYcAAAAAL5_vSEM7rONiJcMhGp_HYkpHRqR&co=aHR0cHM6Ly93d3cuY2FsY2FsaXN0LmNvLmlsOjQ0Mw..&hl=en&v=QvLuXwupqtKMva7GIh5eGl3U&size=invisible&anchor-ms=20000&execute-ms=30000&cb=hfze0f2fqfh9",
+      "id": "",
+      "name": "a-vowhjdhaxcv6",
+      "width": "256",
+      "height": "60"
+    },
+    {
+      "src": "",
+      "id": "",
+      "name": "",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "about:blank",
+      "id": "1c029a46eb6c7c8",
+      "name": "__pb_locator__",
+      "width": "0",
+      "height": "0"
+    },
+    {
+      "src": "https://event.dxmdp.com/rest/api/v1/dxc",
+      "id": "",
+      "name": "DMP_COOKIE_FRAME_NAME",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "",
+      "id": "",
+      "name": "googlefcPresent",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "https://imprammp.taboola.com/st?cijs=convusmp&ttype=0&cisd=convusmp&cipid=66361655&crid=-1&dast=V9TEoCABYDAMr4iBBFIpRWBADK-IgQRSKUVgUAAAAABgYAxwcAJLBaDpbD2cgtnJgGa9FitlgLV8blWrmyzSyrwcI2GNmGAEACq-VgOZyN3MKJabAWLWaLtXBlXK6VK9vMshosbIORbQoAG9Sw-P1mh0HNNBkUlNPTY3YZ1AJZ0-TyuwEgB02nw-e61-t-v7vGYfY4zE7P6a7x25Vmv-5vOZv8dZfv81dYTk-P2eWXeE1z0202-p3tAAAAAADwAPD___8PAQAAAAAQAQAAAAAgAQAAAABAARBQAfBvASBwAQAAAACAAfD___-vAQBwtgEgQA1yACDQy2xQ2J62fwAAAAAAgAAAAAAAkAAAHLg1lAAAvGgcnAD8_________8cADNBn3sgA_P___98AGPQAADz4AAA8CAEAAABkDQHMkQf42FFtnhMBAAiMNBYBOAKYBNAJABWARRXA__9_vxUAwBUAAEAAZ7bWiW8WgO6gxFsYAAAAwMAYwAI9LH6_2WHX-N0uA_j_________NwP4PwP4RwMQAuBKSQMQWpiZUQP4BQQAWAP4BQQAYAPQNoBxA_j_fwMYgAMIOwAAAACAO4D___9_PQCQm5kGu4lzt9qMZrvFxrHaDCYey2I5m60cJuNu4z0AwlZWgRZPOfQ-gA1qWPx-s8OgZpoMCsrp6TG7DGqBrGly-e0HMGGL0Woy2SyHs-ViMhiOhqPR_gAGYrQaIABFSxar5XC1myxGm8VistwNR5MJAlC0aDBZjUaTxWS4Gk1Ws-Vit9sgAEWrVrPRZjBczSaz3W41HAyXoxECTNhitJpMNsvhbLmYDIaj4Wg0RICYm602JotjtRYtRpO1aOObuIWz2Wit8i08E5dp5rKNBmvR62N6DBbOmctl2SKAYEDRXiRPi3SicM0MM-PIMptsTBvXbmRajQwzh8M23Gw8ho1xNhFLNCeLdCK77Hsz02A3ce5Wm9Fst9g4VpvBxGNZLGezlcNk3G38vdlqY7I4VmvRYjRZiza-iVs4m43WKt_CM3GZZi7baLAWvT6mx2DhnLlcln1jt9ssdpvBcrBv7HabxW4zWA72HTrDd_U5G6XDa9TjUu-0NeXOZj4oXAaLd606nbTd4cG5MhidMvVTWdAZ_X6_3-_3-_1-v9-g9RzMBoXvWZa6RiuPTXhWHw9ig8JzsBhMB4tBEUsEF-lE4zB7HGan5_TWOMweh9npOV3EEqXpIp3odX_L2eSvu3yfv8JyenrMLr_Ea5qbbrPR72wRSwSni3QiehlPF_UrAQAAAAAAAAAALAFsAgAAAABwAhjQcLacrNYJcDCD4Wy4Wi0XAIDi2UYX4Md0bZzt72d5F8BssY_xiCBO-BhgYhxmj8Ps9JzeGofZ4zA7PacrAwBAvOMxA2wG-AxAEGu1WtYAAAAAAtgAAAAAAdwAugF4AwhQg-MA_____vQAAAAAx_sAQFJszMzMzM3_AAACFGKtVqvbjbVarYCAghhsRoMJBPz___8jBAhsuwkBFAIehmj5u10GIcthMrs8ny8EZAgAAAAAAAAI2XEIALj2q0a0rXh9CAAACODM1jJhnQhAsMlmsxsIJqMI-P___68IKEgGhTGZRQDAtV-1IkRB_0UAAEAAZ7aWCTRGAAOO5pLJcK5ZzDWTAQ!&cmcv=&pix=undefined&cb=1773173119613&uv=3603&tms=1773173119613&abt=166721b_vA!206725b_vA!mprdctdt0val_vB!pl17.9.9_vA!rv2r_vB!strpl2_vA!strpl2_vB!strpl2_vC!t45&ft=0&su=4&unm=INLINE_INSTREAM&aure=false&agl=1&cirid=0590986d-8b40-4161-8e89-9e6f250a60d6&excid=e22lLINE_ITEM_ID_WILL_BE_HERE_ON_SERVINGc&tst=1&docw=0&cs=true&cias=1",
+      "id": "",
+      "name": "",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "https://am-match.taboola.com/sync?dast=V9TEoCABYDAMr4iBBFIpRWBADK-IgQRSKUVgUAAAAABgYAxwcAJLBaDpbD2cgtnJgGa9FitlgLV8blWrmyzSyrwcI2GNmGAEACq-VgOZyN3MKJabAWLWaLtXBlXK6VK9vMshosbIORbQoAG9Sw-P1mh0HNNBkUlNPTY3YZ1AJZ0-TyuwEgB02nw-e61-t-v7vGYfY4zE7P6a7x25Vmv-5vOZv8dZfv81dYTk-P2eWXeE1z0202-p3tAAAAAADwAPD___8PAQAAAAAQAQAAAAAgAQAAAABAARBQAfBvASBwAQAAAACAAfD___-vAQBwtgEgQA1yACDQy2xQ2J62fwAAAAAAgAAAAAAAkAAAHLg1lAAAvGgcnAD8_________8cADNBn3sgA_P___98AGPQAADz4AAA8CAEAAABkDQHMkQf42FFtnhMBAAiMNBYBOAKYBNAJABWARRXA__9_vxUAwBUAAEAAZ7bWiW8WgO6gxFsYAAAAwMAYwAI9LH6_2WHX-N0uA_j_________NwP4PwP4RwMQAuBKSQMQWpiZUQP4BQQAWAP4BQQAYAPQNoBxA_j_fwMYgAMIOwAAAACAO4D___9_PQCQm5kGu4lzt9qMZrvFxrHaDCYey2I5m60cJuNu4z0AwlZWgRZPOfQ-gA1qWPx-s8OgZpoMCsrp6TG7DGqBrGly-e0HMGGL0Woy2SyHs-ViMhiOhqPR_gAGYrQaIABFSxar5XC1myxGm8VistwNR5MJAlC0aDBZjUaTxWS4Gk1Ws-Vit9sgAEWrVrPRZjBczSaz3W41HAyXoxECTNhitJpMNsvhbLmYDIaj4Wg0RICYm602JotjtRYtRpO1aOObuIWz2Wit8i08E5dp5rKNBmvR62N6DBbOmctl2SKAYEDRXiRPi3SicM0MM-PIMptsTBvXbmRajQwzh8M23Gw8ho1xNhFLNCeLdCK77Hsz02A3ce5Wm9Fst9g4VpvBxGNZLGezlcNk3G38vdlqY7I4VmvRYjRZiza-iVs4m43WKt_CM3GZZi7baLAWvT6mx2DhnLlcln1jt9ssdpvBcrBv7HabxW4zWA72HTrDd_U5G6XDa9TjUu-0NeXOZj4oXAaLd606nbTd4cG5MhidMvVTWdAZ_X6_3-_3-_1-v9-g9RzMBoXvWZa6RiuPTXhWHw9ig8JzsBhMB4tBEUsEF-lE4zB7HGan5_TWOMweh9npOV3EEqXpIp3odX_L2eSvu3yfv8JyenrMLr_Ea5qbbrPR72wRSwSni3QiehlPF_UrAQAAAAAAAAAALAFsAgAAAABwAhjQcLacrNYJcDCD4Wy4Wi0XAIDi2UYX4Md0bZzt72d5F8BssY_xiCBO-BhgYhxmj8Ps9JzeGofZ4zA7PacrAwBAvOMxA2wG-AxAEGu1WtYAAAAAAtgAAAAAAdwAugF4AwhQg-MA_____vQAAAAAx_sAQFJszMzMzM3_AAACFGKtVqvbjbVarYCAghhsRoMJBPz___8jBAhsuwkBFAIehmj5u10GIcthMrs8ny8EZAgAAAAAAAAI2XEIALj2q0a0rXh9CAAACODM1jJhnQhAsMlmsxsIJqMI-P___68IKEgGhTGZRQDAtV-1IkRB_0UAAEAAZ7aWCTRGAAOO5pLJcK5ZzDWTAQ!&excid=22&docw=0&cijs=1&nlb=false",
+      "id": "",
+      "name": "",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "https://imprammp.taboola.com/st?cijs=convusmp&ttype=0&cisd=convusmp&cipid=66361655&crid=-1&dast=V9eGQCABYDAMr4iBBFIpRWBADK-IgQRSKUVgUAAAAABgYA9AcAJOQyrCyT0Wqtckw2btFmNVsrN76RWzYZjpar2WQy2eyGAEBCLsPKMhmt1irHZOMWbVaztXLjG7llk-FouZpNJpPNbgoAH8ZymQxqgYRl9vsOCsrp6TG7DKKi622xO5xmzxsActB0Onyue73u97trHGaPw-z0nO4av11p9uv-lrPJX3f5Pn-F5fT0mF1-idc0N91mo9_ZDgAAAAAADwD_____EAAAAAAAEQAAAAAAEgAAAAAAFAABFQD_FgACFwAAAAAAGAD_____GgAAZxsAAtQgBwACvcwGhe1p-wcAAAAAAAgAAAAAAAkAwIFbQwkAgEpf0gnA_________38MwAB95o0MwP____8NgEEPAMCDDwDAgxAAAABA1hCABHB9dz-VQBkRAIDACGMRgCOASQCdAFABWFQB_P__91sBAFwBAAAEcGZrnfRmAegOSryFAQAAAAyMASzQw-L3mx12jd_tMoD_________fzOA_zOAfzQAIQCulDQAoYWZGTWAX0AAgDWAX0AAADYAdQP4_38DGIADCDsAAAAAgDuA____fz0AkJuZBruJc7fajGa7xcax2gwmHstiOZutHCbjbuM9AMJWVoEWTzn0PoAQYZn9voOCcnp6zC6DqOh6W-wOp9lzEB80DMvJIJgfwIQtRqvJZLMczpaLyWA4Go5G-wMYiNFqgAAULVmslsPVbrIYbRaLyXI3HE0mCEDRosFkNRpNFpPhajRZzZaL3W6DABStWs1Gm8FwNZvMdrvVcDBcjkYIMGGL0Woy2SyHs-ViMhiOhqPREAFibrbamCyO1Vq0GE3Woo1v4hbOZqO1yrfwTFymmcs2GqxFr4_pMVg4Zy6XZYsAggFFe5E8LdKJwjUzzIwjy2yyMW1cu5FpNTLMHA7bcLPxGDbG2UQs0Zws0onssu_NTIPdxLlbbUaz3WLjWG0GE49lsZzNVg6Tcbfx92arjcniWK1Fi9FkLdr4Jm7hbDZaq3wLz8Rlmrlso8Fa9PqYHoOFc-ZyWfaN3W6z2G0Gy8G-sdttFrvNYDnYd-gM39XnbJQOr1GPS73T1pQ7m_mgcBks3rXqdNJ2hwfnymB0ytRPZUFn9Pv9fr_f7_f7_X6D1nMwGxS-Z1nqGq08NuFZfTyIDQrPwWIwHSwGRSwRXKQTjcPscZidntNb4zB7HGan53QRS5Smi3Si1_0tZ5O_7vJ9_grL6ekxu_wSr2luus1Gv7NFLBGcLtKJ6GU8XdSvBAAAAAAAAAAAsASwCQAAAADACWBAw9lyslonwIHshqPVcLVcAACKZxtdgJ9Yq2yRliDTXQCzxT7GI4I44WOAiXGYPQ6z03N6axxmj8Ps9JyuDAAA8Y7HDLAZ4DMAQazValkDAAAACGADAAAABHAD6AbgDSBADY4D_P__-9MDAAAA0O8DAFV9c6HUCz_-AwAIUIi1Wq1uN9ZqtQICCmKwGQ0mEPD___-PECCw7SYEUAh4GKLl73YZhCyHyezyfL4QkCEAAAAAAAAgZMchAODarxrRtuL1IQAAIIAzW8uEdSIAwSabzW4gmIwi4P___78ioCAZFMZkFgEA137VihAF_RcBAAABnNlaJtAYAQw4mksmw7lmMddMBg!&cmcv=&pix=undefined&cb=1773173119621&uv=3603&tms=1773173119621&abt=mprdctdt0val_vB!pl17.9.9_vA!rv2r_vB!strpl2_vA!strpl2_vB!strpl2_vC!t45!ufm_vC&ft=0&su=2&unm=FEED_MANAGER&aure=false&agl=1&cirid=de0e2245-e12c-4356-9c7d-628495622237&excid=e22lLINE_ITEM_ID_WILL_BE_HERE_ON_SERVINGc&tst=1&docw=0&cs=true&cias=1",
+      "id": "",
+      "name": "",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "https://am-match.taboola.com/sync?dast=V9eGQCABYDAMr4iBBFIpRWBADK-IgQRSKUVgUAAAAABgYA9AcAJOQyrCyT0Wqtckw2btFmNVsrN76RWzYZjpar2WQy2eyGAEBCLsPKMhmt1irHZOMWbVaztXLjG7llk-FouZpNJpPNbgoAH8ZymQxqgYRl9vsOCsrp6TG7DKKi622xO5xmzxsActB0Onyue73u97trHGaPw-z0nO4av11p9uv-lrPJX3f5Pn-F5fT0mF1-idc0N91mo9_ZDgAAAAAADwD_____EAAAAAAAEQAAAAAAEgAAAAAAFAABFQD_FgACFwAAAAAAGAD_____GgAAZxsAAtQgBwACvcwGhe1p-wcAAAAAAAgAAAAAAAkAwIFbQwkAgEpf0gnA_________38MwAB95o0MwP____8NgEEPAMCDDwDAgxAAAABA1hCABHB9dz-VQBkRAIDACGMRgCOASQCdAFABWFQB_P__91sBAFwBAAAEcGZrnfRmAegOSryFAQAAAAyMASzQw-L3mx12jd_tMoD_________fzOA_zOAfzQAIQCulDQAoYWZGTWAX0AAgDWAX0AAADYAdQP4_38DGIADCDsAAAAAgDuA____fz0AkJuZBruJc7fajGa7xcax2gwmHstiOZutHCbjbuM9AMJWVoEWTzn0PoAQYZn9voOCcnp6zC6DqOh6W-wOp9lzEB80DMvJIJgfwIQtRqvJZLMczpaLyWA4Go5G-wMYiNFqgAAULVmslsPVbrIYbRaLyXI3HE0mCEDRosFkNRpNFpPhajRZzZaL3W6DABStWs1Gm8FwNZvMdrvVcDBcjkYIMGGL0Woy2SyHs-ViMhiOhqPREAFibrbamCyO1Vq0GE3Woo1v4hbOZqO1yrfwTFymmcs2GqxFr4_pMVg4Zy6XZYsAggFFe5E8LdKJwjUzzIwjy2yyMW1cu5FpNTLMHA7bcLPxGDbG2UQs0Zws0onssu_NTIPdxLlbbUaz3WLjWG0GE49lsZzNVg6Tcbfx92arjcniWK1Fi9FkLdr4Jm7hbDZaq3wLz8Rlmrlso8Fa9PqYHoOFc-ZyWfaN3W6z2G0Gy8G-sdttFrvNYDnYd-gM39XnbJQOr1GPS73T1pQ7m_mgcBks3rXqdNJ2hwfnymB0ytRPZUFn9Pv9fr_f7_f7_X6D1nMwGxS-Z1nqGq08NuFZfTyIDQrPwWIwHSwGRSwRXKQTjcPscZidntNb4zB7HGan53QRS5Smi3Si1_0tZ5O_7vJ9_grL6ekxu_wSr2luus1Gv7NFLBGcLtKJ6GU8XdSvBAAAAAAAAAAAsASwCQAAAADACWBAw9lyslonwIHshqPVcLVcAACKZxtdgJ9Yq2yRliDTXQCzxT7GI4I44WOAiXGYPQ6z03N6axxmj8Ps9JyuDAAA8Y7HDLAZ4DMAQazValkDAAAACGADAAAABHAD6AbgDSBADY4D_P__-9MDAAAA0O8DAFV9c6HUCz_-AwAIUIi1Wq1uN9ZqtQICCmKwGQ0mEPD___-PECCw7SYEUAh4GKLl73YZhCyHyezyfL4QkCEAAAAAAAAgZMchAODarxrRtuL1IQAAIIAzW8uEdSIAwSabzW4gmIwi4P___78ioCAZFMZkFgEA137VihAF_RcBAAABnNlaJtAYAQw4mksmw7lmMddMBg!&excid=22&docw=0&cijs=1&nlb=false",
+      "id": "",
+      "name": "",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "about:blank",
+      "id": "_hjSafeContext_15690172",
+      "name": "",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "about:blank",
+      "id": "__bm_locator",
+      "name": "__bm_locator",
+      "width": "0",
+      "height": "0"
+    },
+    {
+      "src": "about:blank",
+      "id": "",
+      "name": "__tcfapiLocator",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "about:blank",
+      "id": "",
+      "name": "__uspapiLocator",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "about:blank",
+      "id": "",
+      "name": "__gppLocator",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "about:blank",
+      "id": "",
+      "name": "googlefcInactive",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "about:blank",
+      "id": "",
+      "name": "googlefcLoaded",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "https://aax-eu.amazon-adsystem.com/s/iu3?cm3ppd=1&d=dtb-pub&csif=t&dl=n-Beeswax_cnv_n-Outbrain",
+      "id": "",
+      "name": "",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "https://cm.g.doubleclick.net/partnerpixels?gdpr=0&us_privacy=1---&gpp_sid=-1&url=https%3A%2F%2Fwww.calcalist.co.il%2Fworld_news%2Farticle%2Fbk4nt66twl",
+      "id": "goog_plcm_frame",
+      "name": "",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "https://onetag-sys.com/usync/?redir=https%3A%2F%2Fadnpbs.com%2Fsetuid%3Fbidder%3Donetag%26gdpr%3D%26gdpr_consent%3D%26gpp%3D%26gpp_sid%3D%26f%3Db%26uid%3D%24%7BUSER_TOKEN%7D&gdpr=&gdpr_consent=&us_privacy=",
+      "id": "17403957f142c95",
+      "name": "",
+      "width": "0",
+      "height": "0"
+    },
+    {
+      "src": "https://ssp-sync.criteo.com/user-sync/iframe?gdprapplies=&gdpr=&ccpa=&gpp=&gpp_sid=&redir=https%3A%2F%2Fadnpbs.com%2Fsetuid%3Fbidder%3Dcriteo%26gdpr%3D%26gdpr_consent%3D%26gpp%3D%26gpp_sid%3D%26f%3Db%26uid%3D%24%7BCRITEO_USER_ID%7D&profile=230",
+      "id": "197c77f41cade83",
+      "name": "",
+      "width": "0",
+      "height": "0"
+    },
+    {
+      "src": "https://ads.pubmatic.com/AdServer/js/user_sync.html?gdpr=&gdpr_consent=&us_privacy=&predirect=https%3A%2F%2Fadnpbs.com%2Fsetuid%3Fbidder%3Dpubmatic%26gdpr%3D%26gdpr_consent%3D%26gpp%3D%26gpp_sid%3D%26f%3Db%26uid%3D",
+      "id": "20bc56ab3da3c8c",
+      "name": "",
+      "width": "0",
+      "height": "0"
+    },
+    {
+      "src": "https://1913a27c5a33943bf81eb572d4a4bcc8.safeframe.googlesyndication.com/safeframe/1-0-45/html/container.html",
+      "id": "google_ads_iframe_/6870/calcalist/desktop/ad/adx.interstitial_0",
+      "name": "",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "https://hb.trustedstack.com/checksync.php?vsSync=1&cs=6&cv=31&https=1&cid=TS14F7R31&prvid=99%2C2130%2C3074%2C3072%2C572%2C2118%2C2115%2C2114%2C544%2C599%2C589%2C601%2C548%2C516%2C517&itype=TRUSTED_STACK_NAB&purpose1=1&gdprconsent=1&gdpr=0&coppa=0&usp_status=0&usp_consent=1&dn=calcalist.co.il",
+      "id": "21f2b1e8c745742",
+      "name": "",
+      "width": "0",
+      "height": "0"
+    },
+    {
+      "src": "https://ads.pubmatic.com/AdServer/js/user_sync.html?kdntuid=1&p=166665",
+      "id": "22ddb5fbc7747ea8",
+      "name": "",
+      "width": "0",
+      "height": "0"
+    },
+    {
+      "src": "https://csync.smilewanted.com/",
+      "id": "239c67a523a8c938",
+      "name": "",
+      "width": "0",
+      "height": "0"
+    },
+    {
+      "src": "https://adnimation-d.openx.net/w/1.0/pd",
+      "id": "247426a90a963e5",
+      "name": "",
+      "width": "0",
+      "height": "0"
+    },
+    {
+      "src": "https://visitor.omnitagjs.com/visitor/isync?uid=19340f4f097d16f41f34fc0274981ca4",
+      "id": "25f213d03b596ce8",
+      "name": "",
+      "width": "0",
+      "height": "0"
+    },
+    {
+      "src": "https://sync.cootlogix.com/api/sync/iframe/?cid=&gdpr=0&gdpr_consent=&us_privacy=&coppa=0",
+      "id": "2612528b2f3335e",
+      "name": "",
+      "width": "0",
+      "height": "0"
+    },
+    {
+      "src": "https://gum.criteo.com/syncframe?origin=criteoPrebidAdapter&topUrl=www.calcalist.co.il&gpp=#{%22bundle%22:%22gfCnCF93Y05RcUR0QWIxdVFXdXloRjltd3FydHk0UkJQNSUyQjhJZG1EUzdSTTZ6MXRob2xka0JGZU9oayUyQmVodFF0cUNpb2g0QVBoZzluRTZlWjhyMThqNVZMJTJGMWxiM093VTc2QldydGU3Mkh6SyUyQlYlMkI2JTJGd0V3c1M1SnRTOVpFc1RQeTBwcSUyRm14TFVsaVRZJTJCZHRrU00xNURDOGdRJTNEJTNE%22,%22cw%22:true,%22lsw%22:true,%22origin%22:%22criteoPrebidAdapter%22,%22requestId%22:%220.04098337820404563%22,%22tld%22:%22www.calcalist.co.il%22,%22topUrl%22:%22www.calcalist.co.il%22,%22version%22:%2210_15_0%22}",
+      "id": "27255f6c09c134d",
+      "name": "",
+      "width": "0",
+      "height": "0"
+    },
+    {
+      "src": "https://sync.sparteo.com/sync/iframe.html?from=prebidjs",
+      "id": "280eb829f72a2118",
+      "name": "",
+      "width": "0",
+      "height": "0"
+    },
+    {
+      "src": "https://acdn.adnxs.com/dmp/async_usersync.html",
+      "id": "29ff30ac0b6fc5b",
+      "name": "",
+      "width": "0",
+      "height": "0"
+    },
+    {
+      "src": "https://onetag-sys.com/usync/?cb=1773173120254",
+      "id": "30f6fedfed313488",
+      "name": "",
+      "width": "0",
+      "height": "0"
+    },
+    {
+      "src": "https://sync.kueezrtb.com/api/sync/iframe/?cid=&gdpr=0&gdpr_consent=&us_privacy=&coppa=0",
+      "id": "31e3746dd8b48458",
+      "name": "",
+      "width": "0",
+      "height": "0"
+    },
+    {
+      "src": "https://eus.rubiconproject.com/usync.html",
+      "id": "32ea51bff4485748",
+      "name": "",
+      "width": "0",
+      "height": "0"
+    },
+    {
+      "src": "https://hbx.media.net/checksync.php?vsSync=1&cs=8&cv=31&https=1&cid=8CUAID4GW&prvid=2012%2C2034%2C2033%2C2055%2C2031%2C2030%2C590%2C2073%2C251%2C2009%2C233%2C3018%2C2027%2C3017%2C214%2C313%2C117%2C2123%2C70%2C319%2C99%2C77%2C20000%2C460%2C462%2C244%2C563%2C201%2C3007%2C246%2C203%2C404%2C80&itype=PREBID&purpose1=1&gdprconsent=1&gdpr=0&coppa=0&usp_status=0&usp_consent=1&dn=calcalist.co.il",
+      "id": "331969d41d5d4528",
+      "name": "",
+      "width": "0",
+      "height": "0"
+    },
+    {
+      "src": "https://js-sec.indexww.com/um/ixmatch.html",
+      "id": "34831c4cf8277fa8",
+      "name": "",
+      "width": "0",
+      "height": "0"
+    },
+    {
+      "src": "https://prebid.a-mo.net/isyn?gdpr_consent=&gdpr=0&us_privacy=&gpp=&gpp_sid=",
+      "id": "35fbece2e37a329",
+      "name": "",
+      "width": "0",
+      "height": "0"
+    },
+    {
+      "src": "https://cdn.taboola.com/scripts/prebid_iframe_sync.html",
+      "id": "360eea211c3c8db8",
+      "name": "",
+      "width": "0",
+      "height": "0"
+    }
+  ],
+  "iframe_count": 49
+}

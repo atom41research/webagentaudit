@@ -1,0 +1,16 @@
+{
+  "url": "https://www.perplexity.ai/",
+  "name": "perplexity",
+  "title": "Just a moment...",
+  "collected_at": "2026-03-10T20:04:03.274528+00:00",
+  "dom_length": 34634,
+  "scripts": [
+    "https://www.perplexity.ai/cdn-cgi/challenge-platform/h/g/orchestrate/chl_page/v1?ray=9da4ed00df01fc6b",
+    "https://challenges.cloudflare.com/turnstile/v0/g/ea2d291c0fdc/api.js?onload=MNurp8&render=explicit",
+    "https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015"
+  ],
+  "script_count": 3,
+  "inline_script_count": 1,
+  "iframes": [],
+  "iframe_count": 0
+}

@@ -15,3 +15,7 @@ htmlcov/
 .coverage
 *.log
 .DS_Store
+
+# Rendered page fixtures (large HTML + screenshots, collected locally)
+tests/fixtures/rendered/*/rendered_dom.html
+tests/fixtures/rendered/*/screenshot.png
