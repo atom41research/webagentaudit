@@ -102,8 +102,8 @@ ASSETS: list[KnownAsset] = [
         name="Grok",
         category=AssetCategory.DIRECT_LLM_APP,
         description="xAI's Grok assistant",
-        urls=["https://grok.x.ai", "https://x.ai"],
-        url_patterns=[r"grok\.x\.ai", r"x\.ai"],
+        urls=["https://grok.com", "https://x.ai"],
+        url_patterns=[r"grok\.com", r"x\.ai"],
         vendor_url="https://x.ai",
     ),
     KnownAsset(

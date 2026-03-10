@@ -38,7 +38,11 @@ ASSETS: list[KnownAsset] = [
         api_signatures=[
             ApiSignature(pattern=r"api\.botpress\.cloud", description="Botpress API"),
         ],
-        inline_script_patterns=[r"botpress", r"window\.botpressWebChat"],
+        dom_signatures=[
+            DomSignature(selector="iframe#webchat-root", description="Botpress webchat iframe"),
+            DomSignature(selector="iframe#fab-root", description="Botpress FAB iframe"),
+        ],
+        inline_script_patterns=[r"botpress", r"window\.botpressWebChat", r"window\.botpress"],
         vendor_url="https://botpress.com",
     ),
     KnownAsset(
@@ -48,7 +52,10 @@ ASSETS: list[KnownAsset] = [
         script_signatures=[
             ScriptSignature(url_fragment="static.ada.support", description="Ada SDK"),
         ],
-        inline_script_patterns=[r"adaEmbed", r"ada\.support"],
+        dom_signatures=[
+            DomSignature(selector='script#__ada[data-handle]', description="Ada embed script tag"),
+        ],
+        inline_script_patterns=[r"adaEmbed", r"adaSettings", r"ada\.support"],
         vendor_url="https://ada.cx",
     ),
     KnownAsset(
@@ -56,13 +63,15 @@ ASSETS: list[KnownAsset] = [
         category=AssetCategory.EMBEDDABLE_SDK,
         description="Chatbase custom GPT chatbot for websites",
         script_signatures=[
-            ScriptSignature(url_fragment="chatbase.co", description="Chatbase embed"),
-            ScriptSignature(url_fragment="www.chatbase.co/embed", description="Chatbase embed widget"),
+            ScriptSignature(url_fragment="chatbase.co/embed", description="Chatbase embed"),
+        ],
+        dom_signatures=[
+            DomSignature(selector="script[src*='chatbase.co/embed.min.js']", description="Chatbase embed script"),
         ],
         api_signatures=[
             ApiSignature(pattern=r"chatbase\.co/api", description="Chatbase API"),
         ],
-        inline_script_patterns=[r"chatbase", r"chatbotId"],
+        inline_script_patterns=[r"chatbase", r"chatbotId", r"window\.chatbase"],
         vendor_url="https://www.chatbase.co",
     ),
     KnownAsset(
