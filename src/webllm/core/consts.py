@@ -1,0 +1,12 @@
+"""Shared constants used across all modules."""
+
+VERSION = "0.1.0"
+
+DEFAULT_TIMEOUT_MS = 30_000
+MAX_RESPONSE_LENGTH = 50_000
+
+# Confidence thresholds for ConfidenceLevel derivation
+CONFIDENCE_CERTAIN_THRESHOLD = 0.9
+CONFIDENCE_HIGH_THRESHOLD = 0.7
+CONFIDENCE_MEDIUM_THRESHOLD = 0.4
+CONFIDENCE_LOW_THRESHOLD = 0.1
