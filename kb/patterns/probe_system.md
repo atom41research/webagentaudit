@@ -1,0 +1,56 @@
+# Probe System Pattern
+
+## Overview
+
+The probe system follows a pipeline: Probe → Channel → Detector → Result.
+
+Inspired by:
+- AgentSeal's probe-response loop with deterministic pattern matching
+- Garak's probe-detector coupling where probes declare their detectors
+
+## Components
+
+### BaseProbe (ABC)
+Defines what to send and what to look for:
+- `name`, `category`, `severity`, `description` (properties)
+- `get_prompts() -> list[str]`: attack payloads
+- `get_detector_patterns() -> list[str]`: regex patterns indicating success (vulnerability found)
+
+### ProbeRegistry
+Discovery and filtering:
+- `register(probe)`: add a probe instance
+- `get_all()`, `get_by_category(category)`, `get_by_name(name)`
+- `default()`: factory that auto-registers all built-in probes
+
+### BaseResultDetector (ABC)
+Analyzes responses:
+- `detect(probe, response_text) -> ProbeResult`
+
+### PatternDetector
+Concrete detector using deterministic regex matching:
+- Takes patterns from `probe.get_detector_patterns()`
+- Matches against response text
+- Returns `ProbeResult` with `vulnerability_detected`, `matched_patterns`, `confidence`
+
+### ProbeHarness
+Orchestrates the pipeline:
+```
+for prompt in probe.get_prompts():
+    response = await channel.send(ChannelMessage(text=prompt))
+    result = detector.detect(probe, response.text)
+    results.append(result)
+```
+
+## Design Decisions
+
+1. **Probe owns its patterns**: Each probe defines both attack prompts AND detection patterns. This keeps attack-detection logic co-located.
+2. **Deterministic detection**: No AI judge. Regex pattern matching ensures reproducibility across runs.
+3. **Registry pattern**: Probes are registered, not discovered via import magic. Explicit registration is more debuggable.
+4. **Harness as bridge**: ProbeHarness is the single point where assessment module touches llm_channel. This is the ONLY cross-module dependency.
+
+## Adding a New Probe
+
+1. Create a class extending `BaseProbe` in the appropriate `categories/` file
+2. Implement all abstract properties and methods
+3. Register in `ProbeRegistry.default()`
+4. Write tests with mock channel responses
