@@ -7,6 +7,7 @@ Technical knowledge about LLM detection on webpages and LLM attack/assessment ca
 - **llm_detection_techniques.md** — How to detect interactive LLMs on webpages: DOM patterns, CSS selectors, known provider scripts, API endpoint patterns, AI-assisted screenshot analysis
 - **llm_attack_categories.md** — Categories of LLM attacks used in assessment: prompt injection, extraction, jailbreak, system prompt leak, role confusion — with examples and detection patterns
 - **llm_vendor_registry.md** — Comprehensive registry of known LLM/AI chatbot services, their URLs, SDK patterns, API endpoints, DOM signatures, and global JS objects for detection
+- **llm_interface_analysis.md** — Data-driven structural analysis of real LLM interfaces: input types, container patterns, AI indicator icons (sparkle SVGs), CSS class conventions, positioning patterns, and detection heuristics derived from 16+ collected pages
 
 ## When to Use
 

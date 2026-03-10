@@ -1,0 +1,14 @@
+{
+  "url": "https://en.wikipedia.org/wiki/Large_language_model",
+  "name": "wikipedia_llm",
+  "title": "Large language model - Wikipedia",
+  "collected_at": "2026-03-10T20:00:23.343491+00:00",
+  "dom_length": 954434,
+  "scripts": [
+    "https://en.wikipedia.org/w/load.php?lang=en&modules=startup&only=scripts&raw=1&skin=vector-2022"
+  ],
+  "script_count": 1,
+  "inline_script_count": 4,
+  "iframes": [],
+  "iframe_count": 0
+}

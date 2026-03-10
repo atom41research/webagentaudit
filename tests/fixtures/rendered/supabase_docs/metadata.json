@@ -1,0 +1,63 @@
+{
+  "url": "https://supabase.com/docs",
+  "name": "supabase_docs",
+  "title": "Supabase Docs",
+  "collected_at": "2026-03-10T20:03:38.921458+00:00",
+  "dom_length": 298923,
+  "scripts": [
+    "https://ss.supabase.com/4icgbaujh/7wnp?1c28fa44=L2d0YWcvanM%2FaWQ9Ry1YVzE4S0dLR05SJmN4PWMmZ3RtPTRlNjM5MA%3D%3D",
+    "https://web.cmp.usercentrics.eu/ui/loader.js",
+    "https://web.cmp.usercentrics.eu/tcf/stub.js",
+    "https://ss.supabase.com/4icgbaujh.js?60a389s=aWQ9R1RNLVdDVlJMTU43&page=2",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/39cb007d-9045110c88301ea7.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/55960c63-c402cb404f028e74.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/7370-2023eab4954b204b.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/main-app-be1fa2fab662f038.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/921abc59-e711d23501de2697.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/5292-edc73b06df5484d2.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/518-7eae8bb6e5279077.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/5888-e6412763ce5999d0.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/444-36a7b814d73646ba.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/5425-c60c759fee451b41.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/3993-bb9a30d7e7c3af54.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/4775-2cd538a280c13e30.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/6003-87025c771319cf80.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/5835-a4c1d74cc5c03092.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/1207-dd4337d8a381c0cc.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/3048-46f0cacb0b557e3c.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/9973-b7df7f64d450cf5f.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/app/page-bee25825b235cd83.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/6000-f45487b2da182ff3.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/2601-06e829c360b06909.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/8251-4a3fe70c991510c6.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/app/layout-5b92502efe158d84.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/app/error-42f6b73c1ed18593.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/app/not-found-94229ae2d8a16426.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/app/global-error-efa7c8c59f2e77f1.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/polyfills-42372ed130431b0a.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex",
+    "https://web.cmp.usercentrics.eu/ui/v/3.106.0/WebSdk.lib.91f0d3cd.js",
+    "https://web.cmp.usercentrics.eu/ui/v/3.106.0/GdprCmpController.12632d8a.js",
+    "https://ph.supabase.com/static/surveys.js?v=1.357.0",
+    "https://ph.supabase.com/array/phc_q2wUqNSr9AsKvH56PBbg9RX5dGKypQZi1gxk3cuSXJ5/config.js",
+    "https://frontend-assets.supabase.com/docs/dcbaaad64e55/_next/static/chunks/webpack-f52f5c7d5f237d38.js?dpl=dpl_F2VyqYh9fVJYbP5v62Hc96rkV5ex"
+  ],
+  "script_count": 35,
+  "inline_script_count": 76,
+  "iframes": [
+    {
+      "src": "",
+      "id": "",
+      "name": "",
+      "width": "0",
+      "height": "0"
+    },
+    {
+      "src": "",
+      "id": "",
+      "name": "__tcfapiLocator",
+      "width": "",
+      "height": ""
+    }
+  ],
+  "iframe_count": 2
+}

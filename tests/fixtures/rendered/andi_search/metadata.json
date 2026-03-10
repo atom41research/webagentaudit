@@ -1,0 +1,18 @@
+{
+  "url": "https://andisearch.com/",
+  "name": "andi_search",
+  "title": "Andi - AI Search for the Next Generation",
+  "collected_at": "2026-03-10T20:00:32.701586+00:00",
+  "dom_length": 41195,
+  "scripts": [
+    "https://andisearch.com/static/error-handler.js",
+    "https://andisearch.com/assets/index-GnGJTICI.js",
+    "https://srv-app.andisearch.com/static/web-vitals.js?v=1.348.0",
+    "https://srv-app.andisearch.com/static/surveys.js?v=1.348.0",
+    "https://srv-app.andisearch.com/array/phc_qfFo1buj0GIw2nUN1SGAYMJK0xOBAgmWDNCU4HgzeME/config.js"
+  ],
+  "script_count": 5,
+  "inline_script_count": 5,
+  "iframes": [],
+  "iframe_count": 0
+}

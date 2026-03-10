@@ -1,0 +1,50 @@
+{
+  "url": "https://docs.stripe.com",
+  "name": "stripe_docs",
+  "title": "Stripe Documentation",
+  "collected_at": "2026-03-10T20:04:29.732516+00:00",
+  "dom_length": 1130677,
+  "scripts": [
+    "https://js.stripe.com/basil/stripe.js",
+    "https://b.stripecdn.com/docs-statics-srv/assets/intellisense.2a203c17990f2fb08235.js",
+    "https://b.stripecdn.com/docs-statics-srv/assets/common.c71ec8292e57e6ae55a4.js",
+    "https://b.stripecdn.com/docs-statics-srv/assets/sail.01dff6d35b104dd435aa.js",
+    "https://b.stripecdn.com/docs-statics-srv/assets/react.49042ff8244345899e30.js",
+    "https://b.stripecdn.com/docs-statics-srv/assets/runtime.258d25459d241695d176.js",
+    "https://b.stripecdn.com/docs-statics-srv/assets/docs.4b729f93290287c3235b.js",
+    "https://b.stripecdn.com/docs-statics-srv/assets/frontend.74ae89891dd562b356d9.js"
+  ],
+  "script_count": 8,
+  "inline_script_count": 1,
+  "iframes": [
+    {
+      "src": "https://b.stripecdn.com/stripethirdparty-srv/assets/v21.30/HCaptchaInvisible.html?id=e8582b07-a163-4f4a-a4bb-d4f90cdf0df9&origin=https%3A%2F%2Fdocs.stripe.com",
+      "id": "",
+      "name": "",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "https://b.stripecdn.com/stripethirdparty-srv/assets/v21.30/GoogleTagManager.html?id=012b08e7-7ce7-407a-ba6b-2bb1ccb69d77&origin=https%3A%2F%2Fdocs.stripe.com",
+      "id": "",
+      "name": "",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "https://js.stripe.com/v3/controller-with-preconnect-aff65088c48e81cf00c913eae548f338.html#__shared_params__[version]=basil&__shared_params__[light_experiment_assignments]=%7B%22token%22%3A%223dab754c-70ba-4d0f-9cba-ac6de2290926%22%2C%22assignments%22%3A%7B%22link_ewcs_prewarm_experiment_v2%22%3A%22control%22%7D%7D&apiKey=pk_test_51K1yvAK258Vuxm4DefLCmuJHyQole8qXDOAXoeOFlGAvvGeFwYlkeMutePA37wn4qcO7io15Zrs0KjD1m5qZiVtN00v35dmhXA&apiVersion=2025-03-31.basil&stripeJsId=3dab754c-70ba-4d0f-9cba-ac6de2290926&stripeObjId=sobj-8b965132-e96a-422d-9024-3e7c6ea2077d&firstStripeInstanceCreatedLatency=5&controllerCount=1&isCheckout=false&usingUuidV2ForStripeJsId=false&stripeJsLoadTime=1773173064608&manualBrowserDeprecationRollout=false&mids[guid]=NA&mids[muid]=4ce6ce2c-b4f1-4d08-a528-e82ab33aaa3434dee9&mids[sid]=e41cc3dd-de7d-457e-8842-48c9355dd3bb69a67e&referrer=https%3A%2F%2Fdocs.stripe.com%2F&controllerId=__privateStripeController2921",
+      "id": "",
+      "name": "__privateStripeController2921",
+      "width": "",
+      "height": ""
+    },
+    {
+      "src": "https://js.stripe.com/v3/m-outer-3437aaddcdf6922d623e172c2d6f9278.html#url=https%3A%2F%2Fdocs.stripe.com%2F&title=Stripe%20Documentation&referrer=&muid=4ce6ce2c-b4f1-4d08-a528-e82ab33aaa3434dee9&sid=e41cc3dd-de7d-457e-8842-48c9355dd3bb69a67e&version=6&preview=true&__shared_params__[version]=basil",
+      "id": "",
+      "name": "__privateStripeMetricsController2920",
+      "width": "",
+      "height": ""
+    }
+  ],
+  "iframe_count": 4
+}
