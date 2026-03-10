@@ -173,6 +173,27 @@ Vendor chat widgets inject globals:
 - `window.__whtvr` — whtvr.ai
 - `window.botpressWebChat` — Botpress
 
+## Icon Library Reference for Sparkle Detection
+
+Common icon libraries and their AI sparkle class names:
+
+| Library | Class Pattern | Ligature/Name |
+|---------|--------------|---------------|
+| Lucide | `lucide-sparkles`, `lucide-sparkle` | — |
+| Heroicons | `heroicon-sparkles` | — |
+| Bootstrap Icons | `bi-stars`, `bi-magic` | — |
+| Font Awesome | `fa-wand-magic-sparkles` | `\e2ca` |
+| Material Icons | `material-icons` | `auto_awesome` |
+| Tabler | `tabler-sparkles` | — |
+| Phosphor | `phosphor-sparkle` | — |
+
+### Common AI-related `data-testid` Patterns
+- `data-testid="ai-chat-input"` (QuillBot)
+- `data-testid="quill-chat-send-button"` (QuillBot)
+- `data-testid="send-button"` (ChatGPT)
+- `aria-controls="command-menu-dialog-content"` (Supabase cmdk)
+- `aria-haspopup="dialog"` on search buttons with AI (Supabase)
+
 ## Key Takeaways for Detection Rules
 
 1. **Input types are diverse**: textarea, contenteditable, and sometimes not rendered at all
@@ -185,3 +206,34 @@ Vendor chat widgets inject globals:
 8. **iframe-based chat widgets** use fixed positioning + high z-index
 9. **`aria-label`** values like "Ask AI", "Toggle assistant panel" are reliable signals
 10. **Negative signals**: `ai-center` CSS utility classes, article text mentioning AI
+
+## Proposed Data-Driven Detection Checkers
+
+Based on the observed patterns, these checkers should replace/supplement the existing top-down rules:
+
+### 1. AiIndicatorChecker (NEW — highest value)
+Scans for AI-specific UI indicators that aren't vendor-specific:
+- **Sparkle SVG icons**: CSS classes `lucide-sparkles`, `heroicon-sparkles`, `bi-stars`, `fa-wand-magic-sparkles`, Material `auto_awesome`; polygon elements with 8+ points; multi-path sparkle SVGs
+- **AI button text**: Buttons/links with text matching `Ask AI`, `AI Assistant`, `AI Chat`, `Generate with AI`, `Write with AI`
+- **AI aria-labels**: `aria-label` containing `Ask AI`, `Toggle assistant`, `AI`, `Copilot`
+- **AI CSS classes**: Classes containing `chat-assistant`, `ai-chat`, `ai-assistant`, `copilot`, `StripeAssistant`
+- **AI CSS variables**: `--assistant-width`, `--assistant-sheet-width`
+- **AI placeholder text**: textarea/input with placeholder matching `Ask.*` pattern
+- **AI disclaimer text**: "generated using AI", "may contain mistakes", "AI-powered"
+- **data-testid patterns**: `ai-chat-*`, `send-button`
+
+### 2. ChatWidgetContainerChecker (NEW)
+Detects chat widget containers regardless of vendor:
+- Fixed-position divs with z-index > 999999
+- iframes with title containing "chat", "widget", "messenger"
+- Known container patterns: `#tidio-chat`, `#intercom-container`, `#drift-widget`, `#hubspot-messages-iframe-container`
+- `aria-haspopup="dialog"` on search/AI buttons
+
+### 3. Existing Checkers (KEEP but reduce weight)
+- `KnownAssetsChecker` — vendor-specific lookup (still useful, lower confidence alone)
+- `KnownSignatureChecker` — script URL matching (keep as-is)
+- `ScriptAnalysisChecker` — inline JS globals (keep as-is)
+
+### Checkers to deprecate/merge:
+- `DomPatternChecker` — replace with AiIndicatorChecker (data-driven patterns)
+- `SelectorMatchingChecker` — merge into AiIndicatorChecker
