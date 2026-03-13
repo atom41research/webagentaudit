@@ -1,0 +1,9 @@
+name: test.bad_regex
+category: extraction
+severity: high
+sophistication: basic
+description: Has an invalid regex pattern.
+prompts:
+  - "Test prompt"
+detector_patterns:
+  - '(?P<unclosed'

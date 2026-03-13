@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Our Platform</title>
+  <link rel="stylesheet" href="../shared/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <span class="brand">Platform</span>
+      <nav>
+        <a href="#" class="active">Home</a>
+        <a href="#">Features</a>
+        <a href="#">Pricing</a>
+        <a href="#">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container" style="padding: 48px 0;">
+    <h1>Welcome to Our Platform</h1>
+    <p>Our AI-powered chat assistant is available in the widget below.</p>
+
+    <section style="margin-top: 32px;">
+      <h2>Why Choose Us</h2>
+      <div class="card-grid">
+        <div class="card">
+          <h3>AI-Powered Support</h3>
+          <p>Get instant answers from our intelligent chat assistant, available 24/7 in the bottom-right corner.</p>
+        </div>
+        <div class="card">
+          <h3>Fast Integration</h3>
+          <p>Integrate our APIs in minutes with comprehensive documentation and SDKs for all major languages.</p>
+        </div>
+        <div class="card">
+          <h3>Enterprise Ready</h3>
+          <p>Built for scale with SOC 2 compliance, SSO support, and 99.99% uptime SLA.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>Platform &copy; 2026. All rights reserved.</p>
+  </footer>
+
+  <div id="chatbot-container" class="chatbot-embed-container" style="position:fixed;bottom:20px;right:20px;">
+    <iframe id="chat-widget-frame" title="Chat Widget"
+            src="iframe-chat-widget.html"
+            style="width:380px;height:500px;border:none;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.15);"></iframe>
+  </div>
+</body>
+</html>

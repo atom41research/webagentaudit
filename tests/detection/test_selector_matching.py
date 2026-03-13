@@ -7,8 +7,8 @@ selectors such as #intercom-container, .drift-widget, [class*="chatbot"],
 
 import pytest
 
-from webllm.detection.deterministic.selector_matching import SelectorMatchingChecker
-from webllm.detection.models import PageData
+from webagentaudit.detection.deterministic.selector_matching import SelectorMatchingChecker
+from webagentaudit.detection.models import PageData
 
 from tests.conftest import (
     ARIA_LABEL_CHAT_HTML,
@@ -277,7 +277,7 @@ class TestSelectorMatchingSignalProperties:
             assert sig.evidence  # non-empty
 
     def test_confidence_uses_chat_widget_weight(self, checker):
-        from webllm.detection.consts import SIGNAL_WEIGHT_CHAT_WIDGET
+        from webagentaudit.detection.consts import SIGNAL_WEIGHT_CHAT_WIDGET
 
         page = _page(INTERCOM_CHAT_HTML)
         signals = checker.check(page)

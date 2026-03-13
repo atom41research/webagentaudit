@@ -6,9 +6,9 @@ HTML for known LLM provider script fragments (Intercom, Drift, Tidio, etc.).
 
 import pytest
 
-from webllm.detection.consts import SIGNAL_WEIGHT_KNOWN_PROVIDER
-from webllm.detection.deterministic.known_signatures import KnownSignatureChecker
-from webllm.detection.models import PageData
+from webagentaudit.detection.consts import SIGNAL_WEIGHT_KNOWN_PROVIDER
+from webagentaudit.detection.deterministic.known_signatures import KnownSignatureChecker
+from webagentaudit.detection.models import PageData
 
 from tests.conftest import (
     DRIFT_WIDGET_HTML,

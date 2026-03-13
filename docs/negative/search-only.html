@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forge Framework — Documentation</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    .docs-layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 32px;
+      padding: 32px 0;
+      min-height: 70vh;
+    }
+    @media (max-width: 768px) {
+      .docs-layout { grid-template-columns: 1fr; }
+    }
+    .doc-sidebar { border-right: 1px solid #e5e7eb; padding-right: 24px; }
+    .doc-sidebar h4 {
+      font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;
+      color: #9ca3af; margin-bottom: 8px; margin-top: 20px;
+    }
+    .doc-sidebar h4:first-child { margin-top: 0; }
+    .doc-sidebar ul { list-style: none; }
+    .doc-sidebar li { margin-bottom: 2px; }
+    .doc-sidebar li a {
+      display: block; padding: 5px 10px; border-radius: 4px;
+      font-size: 0.875rem; color: #4b5563;
+    }
+    .doc-sidebar li a:hover { background: #f3f4f6; color: #1a1a2e; text-decoration: none; }
+    .doc-sidebar li a.active { background: #eff6ff; color: #2563eb; font-weight: 500; }
+    .doc-search {
+      position: relative; margin-bottom: 24px;
+    }
+    .doc-search svg {
+      position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+      width: 16px; height: 16px; color: #9ca3af;
+    }
+    .doc-search-input {
+      width: 100%; border: 1px solid #d1d5db; border-radius: 6px;
+      padding: 8px 12px 8px 32px; font-family: inherit; font-size: 0.875rem;
+      background: #fff;
+    }
+    .doc-search-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .doc-content h1 { font-size: 1.75rem; margin-bottom: 8px; }
+    .doc-content .breadcrumb { font-size: 0.8rem; color: #9ca3af; margin-bottom: 24px; }
+    .doc-content .breadcrumb a { color: #6b7280; }
+    .doc-content h2 { font-size: 1.25rem; margin-top: 32px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #e5e7eb; }
+    .doc-content p { color: #374151; margin-bottom: 16px; }
+    .doc-content code {
+      background: #f3f4f6; padding: 2px 6px; border-radius: 4px;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.85em; color: #e11d48;
+    }
+    .doc-content pre {
+      background: #1a1a2e; color: #e5e7eb; padding: 16px 20px; border-radius: 8px;
+      overflow-x: auto; font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 0.85rem; line-height: 1.6; margin-bottom: 16px;
+    }
+    .doc-content .callout {
+      background: #eff6ff; border-left: 3px solid #2563eb; padding: 12px 16px;
+      border-radius: 0 6px 6px 0; margin-bottom: 16px;
+    }
+    .doc-content .callout p { color: #1e40af; margin: 0; font-size: 0.9rem; }
+    .topic-list { list-style: none; padding: 0; }
+    .topic-list li {
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;
+      padding: 16px 20px; margin-bottom: 12px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .topic-list li:hover { border-color: #2563eb; }
+    .topic-list li a { font-weight: 500; color: #1a1a2e; }
+    .topic-list li .topic-meta { font-size: 0.8rem; color: #9ca3af; }
+    .version-badge {
+      display: inline-block; background: #059669; color: #fff; font-size: 0.7rem;
+      padding: 2px 8px; border-radius: 4px; font-weight: 600; vertical-align: middle; margin-left: 8px;
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <span class="brand">Forge Framework <span class="version-badge">v3.2</span></span>
+      <nav>
+        <a href="#" class="active">Docs</a>
+        <a href="#">Guides</a>
+        <a href="#">API Reference</a>
+        <a href="#">Community</a>
+        <a href="#">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="docs-layout">
+      <aside class="doc-sidebar">
+        <div class="doc-search">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+          </svg>
+          <input type="search" placeholder="Search documentation..." class="doc-search-input">
+        </div>
+
+        <h4>Getting Started</h4>
+        <ul>
+          <li><a href="#" class="active">Introduction</a></li>
+          <li><a href="#">Installation</a></li>
+          <li><a href="#">Quick Start</a></li>
+          <li><a href="#">Project Structure</a></li>
+        </ul>
+
+        <h4>Core Concepts</h4>
+        <ul>
+          <li><a href="#">Routing</a></li>
+          <li><a href="#">Controllers</a></li>
+          <li><a href="#">Middleware</a></li>
+          <li><a href="#">Models &amp; ORM</a></li>
+          <li><a href="#">Views &amp; Templates</a></li>
+        </ul>
+
+        <h4>Database</h4>
+        <ul>
+          <li><a href="#">Connections</a></li>
+          <li><a href="#">Migrations</a></li>
+          <li><a href="#">Query Builder</a></li>
+          <li><a href="#">Seeding</a></li>
+        </ul>
+
+        <h4>Advanced</h4>
+        <ul>
+          <li><a href="#">Authentication</a></li>
+          <li><a href="#">Authorization</a></li>
+          <li><a href="#">Caching</a></li>
+          <li><a href="#">Events &amp; Listeners</a></li>
+          <li><a href="#">Task Scheduling</a></li>
+          <li><a href="#">Deployment</a></li>
+        </ul>
+      </aside>
+
+      <div class="doc-content">
+        <div class="breadcrumb">
+          <a href="#">Docs</a> / <a href="#">Getting Started</a> / Introduction
+        </div>
+        <h1>Introduction</h1>
+        <p>
+          Forge is a modern web application framework designed for developers who value
+          clarity and productivity. It provides a robust set of tools for building
+          database-driven applications with clean, maintainable code.
+        </p>
+
+        <div class="callout">
+          <p>
+            <strong>New to Forge?</strong> Start with the <a href="#">Quick Start guide</a>
+            to build your first application in under 10 minutes.
+          </p>
+        </div>
+
+        <h2>Installation</h2>
+        <p>
+          Forge requires Python 3.10 or higher. Install it using pip:
+        </p>
+        <pre>pip install forge-framework</pre>
+        <p>
+          Create a new project with the CLI scaffolding tool:
+        </p>
+        <pre>forge new my-project
+cd my-project
+forge serve</pre>
+        <p>
+          Your application will be running at <code>http://localhost:8000</code>.
+        </p>
+
+        <h2>Key Features</h2>
+        <p>
+          Forge ships with everything you need to build production-grade web applications:
+        </p>
+        <ul class="topic-list">
+          <li>
+            <a href="#">Expressive Routing</a>
+            <span class="topic-meta">Define URL patterns with type-safe parameters</span>
+          </li>
+          <li>
+            <a href="#">Built-in ORM</a>
+            <span class="topic-meta">Active Record pattern with migration support</span>
+          </li>
+          <li>
+            <a href="#">Template Engine</a>
+            <span class="topic-meta">Jinja2-based templates with layout inheritance</span>
+          </li>
+          <li>
+            <a href="#">Middleware Pipeline</a>
+            <span class="topic-meta">Composable request/response processing</span>
+          </li>
+          <li>
+            <a href="#">Authentication System</a>
+            <span class="topic-meta">Session and token-based auth out of the box</span>
+          </li>
+          <li>
+            <a href="#">Task Scheduler</a>
+            <span class="topic-meta">Cron-like scheduling for background jobs</span>
+          </li>
+        </ul>
+
+        <h2>Configuration</h2>
+        <p>
+          All configuration lives in <code>config/settings.py</code>. Environment-specific
+          overrides are loaded from <code>.env</code> files. Here is a minimal configuration:
+        </p>
+        <pre>DATABASE_URL = "postgresql://localhost/myapp"
+SECRET_KEY = "your-secret-key-here"
+DEBUG = True
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"]</pre>
+        <p>
+          See the <a href="#">Configuration Reference</a> for the complete list of available settings.
+        </p>
+
+        <h2>Community &amp; Support</h2>
+        <p>
+          Join the Forge community on <a href="#">Discord</a> or browse
+          <a href="#">discussions on GitHub</a>. For bug reports and feature requests,
+          use the <a href="#">issue tracker</a>.
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      &copy; 2026 Forge Framework. Released under the MIT License.
+    </div>
+  </footer>
+</body>
+</html>

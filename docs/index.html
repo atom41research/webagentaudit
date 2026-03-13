@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebAgentAudit — Test Fixture Suite</title>
+    <link rel="stylesheet" href="shared/style.css">
+    <style>
+        .section-title {
+            font-size: 1.25rem;
+            margin: 32px 0 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .badge {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .badge-positive { background: #dcfce7; color: #166534; }
+        .badge-negative { background: #fee2e2; color: #991b1b; }
+        .badge-interactive { background: #dbeafe; color: #1e40af; }
+        .card .signals { margin-top: 8px; font-size: 0.8rem; color: #9ca3af; }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <span class="brand">WebAgentAudit Fixtures</span>
+            <nav>
+                <a href="#detection">Detection</a>
+                <a href="#negative">Negative</a>
+                <a href="#interactive">Interactive</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="page-hero">
+            <h1>Test Fixture Suite</h1>
+            <p>Simulated web pages for testing LLM/chatbot detection, channel interaction, and security assessment.</p>
+        </div>
+
+        <!-- Detection (Positive) -->
+        <h2 class="section-title" id="detection">Detection — Positive Cases <span class="badge badge-positive">should detect</span></h2>
+        <div class="card-grid">
+            <a href="detection/intercom-widget.html" class="card">
+                <h3>Intercom Widget</h3>
+                <p>SaaS help center with Intercom-style floating chat widget.</p>
+                <div class="signals">SelectorMatching, KnownSignature, DomPattern, AiIndicator</div>
+            </a>
+            <a href="detection/docs-ai-panel.html" class="card">
+                <h3>Docs AI Panel</h3>
+                <p>Documentation site with hidden AI side panel (Mintlify/Vercel style). Sparkle icon trigger.</p>
+                <div class="signals">AiIndicator (trigger ID, sparkle icon, CSS var, disclaimer, button text)</div>
+            </a>
+            <a href="detection/full-page-chat.html" class="card">
+                <h3>Full-Page Chat</h3>
+                <p>ChatGPT-like full-page LLM chat interface with data-testid patterns.</p>
+                <div class="signals">DomPattern, AiIndicator, ScriptAnalysis, NetworkHints</div>
+            </a>
+            <a href="detection/sdk-embed.html" class="card">
+                <h3>SDK Embed</h3>
+                <p>Marketing site with Botpress + Voiceflow SDK embeds and iframe widget.</p>
+                <div class="signals">KnownSignature (botpress, voiceflow), AiIndicator (iframe), SelectorMatching</div>
+            </a>
+            <a href="detection/ai-disclaimers.html" class="card">
+                <h3>AI Disclaimers</h3>
+                <p>Knowledge base with AI assistant sidebar, CSS variables, and disclaimer text.</p>
+                <div class="signals">AiIndicator (CSS var, disclaimer, class, aria-label), DomPattern</div>
+            </a>
+            <a href="detection/generic-chatbot.html" class="card">
+                <h3>Generic Chatbot</h3>
+                <p>Customer support page with .chatbot-wrapper floating widget.</p>
+                <div class="signals">SelectorMatching, AiIndicator (class), DomPattern</div>
+            </a>
+            <a href="detection/multi-provider.html" class="card">
+                <h3>Multi-Provider</h3>
+                <p>Digital agency page with Intercom + Drift + Tidio scripts simultaneously.</p>
+                <div class="signals">KnownSignature (3x), SelectorMatching (3x)</div>
+            </a>
+            <a href="detection/script-analysis.html" class="card">
+                <h3>Script Analysis</h3>
+                <p>Tech startup with inline scripts containing OpenAI, Anthropic, LangChain SDK patterns.</p>
+                <div class="signals">ScriptAnalysis (SDK, WebSocket, SSE, fetch), NetworkHints</div>
+            </a>
+        </div>
+
+        <!-- Negative -->
+        <h2 class="section-title" id="negative">Detection — Negative Cases <span class="badge badge-negative">should not detect</span></h2>
+        <div class="card-grid">
+            <a href="negative/simple-blog.html" class="card">
+                <h3>Simple Blog</h3>
+                <p>Personal blog with articles and sidebar. No chat, no AI, no forms.</p>
+                <div class="signals">Expected: zero signals, llm_detected=False</div>
+            </a>
+            <a href="negative/contact-form.html" class="card">
+                <h3>Contact Form</h3>
+                <p>Corporate contact page with standard web form. Textarea with non-AI placeholder.</p>
+                <div class="signals">Expected: zero signals, llm_detected=False</div>
+            </a>
+            <a href="negative/ecommerce.html" class="card">
+                <h3>E-Commerce</h3>
+                <p>Product listing with search bar, prices, and "Add to Cart" buttons.</p>
+                <div class="signals">Expected: zero signals, llm_detected=False</div>
+            </a>
+            <a href="negative/search-only.html" class="card">
+                <h3>Search Only</h3>
+                <p>Documentation search page with type="search" input. Excluded by AI placeholder checker.</p>
+                <div class="signals">Expected: zero signals, llm_detected=False</div>
+            </a>
+        </div>
+
+        <!-- Interactive -->
+        <h2 class="section-title" id="interactive">Interactive — Channel & Assessment Testing <span class="badge badge-interactive">working chat</span></h2>
+        <div class="card-grid">
+            <a href="interactive/echo-llm.html" class="card">
+                <h3>Echo LLM</h3>
+                <p>Echoes user input back as "Echo: {input}". Basic channel connectivity test.</p>
+                <div class="signals">Mode: echo | Delay: 200ms</div>
+            </a>
+            <a href="interactive/safe-llm.html" class="card">
+                <h3>Safe LLM</h3>
+                <p>Responds with generic safe messages. Assessment should find zero vulnerabilities.</p>
+                <div class="signals">Mode: safe | Assessment: 0 vulns expected</div>
+            </a>
+            <a href="interactive/vulnerable-llm.html" class="card">
+                <h3>Vulnerable LLM</h3>
+                <p>Responds "PWNED" to injection prompts. Assessment should detect vulnerabilities.</p>
+                <div class="signals">Mode: vulnerable | Assessment: vulns expected</div>
+            </a>
+            <a href="interactive/delayed-response-llm.html" class="card">
+                <h3>Delayed Response</h3>
+                <p>Streams response character-by-character. Tests response stability detection.</p>
+                <div class="signals">Mode: delayed | Stream: 30ms/char</div>
+            </a>
+            <a href="interactive/trigger-panel-llm.html" class="card">
+                <h3>Trigger Panel</h3>
+                <p>Hidden AI panel revealed by sparkle button click. Tests auto-config pipeline.</p>
+                <div class="signals">TriggerFinder &rarr; InputFinder &rarr; SubmitFinder &rarr; ResponseFinder</div>
+            </a>
+            <a href="interactive/iframe-chat.html" class="card">
+                <h3>Iframe Chat</h3>
+                <p>Chat widget embedded inside an iframe. Tests FrameFinder and iframe context switching.</p>
+                <div class="signals">FrameFinder: iframe[title*="chat"]</div>
+            </a>
+        </div>
+    </div>
+
+    <footer class="site-footer">
+        <p>WebAgentAudit Test Fixtures &mdash; For automated testing only</p>
+    </footer>
+</body>
+</html>

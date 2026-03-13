@@ -7,8 +7,8 @@ containers (message lists, conversation logs, etc.).
 
 import pytest
 
-from webllm.detection.deterministic.dom_patterns import DomPatternChecker
-from webllm.detection.models import PageData
+from webagentaudit.detection.deterministic.dom_patterns import DomPatternChecker
+from webagentaudit.detection.models import PageData
 
 from tests.conftest import (
     CHATBOT_WRAPPER_HTML,

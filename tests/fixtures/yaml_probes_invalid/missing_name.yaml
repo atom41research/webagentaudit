@@ -1,0 +1,8 @@
+category: extraction
+severity: high
+sophistication: basic
+description: Missing the name field.
+prompts:
+  - "Test prompt"
+detector_patterns:
+  - 'test'

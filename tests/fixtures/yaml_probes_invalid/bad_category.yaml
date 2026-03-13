@@ -1,0 +1,9 @@
+name: test.bad_category
+category: nonexistent_category
+severity: high
+sophistication: basic
+description: Has an invalid category value.
+prompts:
+  - "Test prompt"
+detector_patterns:
+  - 'test'

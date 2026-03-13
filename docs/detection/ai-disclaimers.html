@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arcline Knowledge Base - Deployment Strategies</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    :root {
+      --ai-panel-sidebar: 320px;
+    }
+    body { background: #fff; }
+
+    .kb-layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Left nav */
+    .kb-nav {
+      width: 220px;
+      background: #fafafa;
+      border-right: 1px solid #e5e7eb;
+      padding: 20px 0;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      overflow-y: auto;
+    }
+    .kb-nav .nav-brand {
+      padding: 0 16px 16px;
+      font-weight: 700;
+      font-size: 1rem;
+      color: #1a1a2e;
+      border-bottom: 1px solid #e5e7eb;
+      margin-bottom: 12px;
+    }
+    .kb-nav .nav-group {
+      padding: 0 8px;
+      margin-bottom: 16px;
+    }
+    .kb-nav .nav-group h4 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #9ca3af;
+      padding: 0 8px;
+      margin-bottom: 4px;
+    }
+    .kb-nav .nav-group a {
+      display: block;
+      padding: 5px 8px;
+      font-size: 0.85rem;
+      color: #4b5563;
+      border-radius: 4px;
+    }
+    .kb-nav .nav-group a:hover { background: #f3f4f6; text-decoration: none; }
+    .kb-nav .nav-group a.active {
+      background: #eff6ff;
+      color: #2563eb;
+      font-weight: 500;
+    }
+
+    /* Main content */
+    .kb-content {
+      margin-left: 220px;
+      flex: 1;
+      padding: 40px 48px;
+      max-width: 760px;
+    }
+    .kb-content .breadcrumb {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      margin-bottom: 24px;
+    }
+    .kb-content .breadcrumb a { color: #6b7280; }
+    .kb-content h1 {
+      font-size: 1.75rem;
+      margin-bottom: 8px;
+    }
+    .kb-content .meta {
+      font-size: 0.8rem;
+      color: #9ca3af;
+      margin-bottom: 32px;
+    }
+    .kb-content h2 {
+      font-size: 1.25rem;
+      margin: 28px 0 12px;
+    }
+    .kb-content p {
+      color: #374151;
+      line-height: 1.75;
+      margin-bottom: 16px;
+    }
+    .kb-content ul {
+      margin: 0 0 16px 20px;
+      color: #374151;
+      line-height: 1.75;
+    }
+    .kb-content code {
+      background: #f3f4f6;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+    .kb-content .callout {
+      background: #fffbeb;
+      border-left: 4px solid #f59e0b;
+      padding: 12px 16px;
+      border-radius: 0 6px 6px 0;
+      margin: 16px 0;
+      font-size: 0.9rem;
+    }
+    .kb-content .callout strong { color: #92400e; }
+    .kb-content pre {
+      background: #1a1a2e;
+      color: #e5e7eb;
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      margin: 12px 0 20px;
+      line-height: 1.6;
+    }
+
+    /* AI Assistant Sidebar */
+    .ai-sidebar {
+      position: fixed;
+      top: 0;
+      right: 0;
+      height: 100vh;
+      width: var(--ai-panel-sidebar);
+      background: #fff;
+      border-left: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+    }
+    .ai-sidebar-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .ai-sidebar-header h3 {
+      font-size: 0.95rem;
+      margin: 0;
+    }
+    .ai-sidebar-header .ai-badge {
+      font-size: 0.65rem;
+      background: #dbeafe;
+      color: #2563eb;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    .ai-sidebar .response-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+    }
+    .ai-sidebar .response-container .welcome-msg {
+      background: #f9fafb;
+      border-radius: 8px;
+      padding: 16px;
+      font-size: 0.875rem;
+      color: #4b5563;
+      line-height: 1.6;
+    }
+    .ai-sidebar .input-area {
+      border-top: 1px solid #e5e7eb;
+      padding: 12px 20px;
+      display: flex;
+      gap: 8px;
+    }
+    .ai-sidebar .input-area textarea {
+      flex: 1;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-family: inherit;
+      font-size: 0.875rem;
+      resize: none;
+      min-height: 36px;
+    }
+    .ai-sidebar .input-area button {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 14px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="kb-layout">
+
+    <!-- Left Navigation -->
+    <nav class="kb-nav">
+      <div class="nav-brand">Arcline Docs</div>
+      <div class="nav-group">
+        <h4>Platform</h4>
+        <a href="#">Overview</a>
+        <a href="#">Architecture</a>
+        <a href="#">Security Model</a>
+      </div>
+      <div class="nav-group">
+        <h4>Operations</h4>
+        <a href="#" class="active">Deployment Strategies</a>
+        <a href="#">Monitoring & Alerts</a>
+        <a href="#">Backup & Recovery</a>
+        <a href="#">Scaling Guide</a>
+      </div>
+      <div class="nav-group">
+        <h4>Configuration</h4>
+        <a href="#">Environment Variables</a>
+        <a href="#">Feature Flags</a>
+        <a href="#">Service Mesh</a>
+      </div>
+      <div class="nav-group">
+        <h4>Troubleshooting</h4>
+        <a href="#">Common Issues</a>
+        <a href="#">Debug Mode</a>
+        <a href="#">Support</a>
+      </div>
+    </nav>
+
+    <!-- Article Content -->
+    <main class="kb-content">
+      <div class="breadcrumb">
+        <a href="#">Docs</a> &rsaquo; <a href="#">Operations</a> &rsaquo; Deployment Strategies
+      </div>
+
+      <h1>Deployment Strategies</h1>
+      <p class="meta">Last updated: March 8, 2026 &middot; 12 min read</p>
+
+      <p>Arcline supports multiple deployment strategies to match your team's risk tolerance and operational requirements. This guide covers the most common approaches and when to use each one.</p>
+
+      <h2>Blue-Green Deployment</h2>
+      <p>Blue-green deployments maintain two identical production environments. At any time, only one environment serves live traffic while the other remains idle or runs the new version.</p>
+      <ul>
+        <li>Zero-downtime releases with instant rollback capability</li>
+        <li>Full environment validation before switching traffic</li>
+        <li>Higher infrastructure cost due to duplicate environments</li>
+      </ul>
+      <pre>arcline deploy --strategy blue-green \
+  --image registry.arcline.io/app:v2.4.1 \
+  --health-check /api/health \
+  --switch-after 300s</pre>
+
+      <h2>Canary Releases</h2>
+      <p>Canary deployments gradually shift traffic from the old version to the new one, monitoring key metrics at each step. If anomalies are detected, the rollout is automatically paused or reverted.</p>
+      <div class="callout">
+        <strong>Recommendation:</strong> Use canary deployments for services with high traffic volume where you need statistical confidence before full rollout.
+      </div>
+      <pre>arcline deploy --strategy canary \
+  --image registry.arcline.io/app:v2.4.1 \
+  --steps 10,25,50,100 \
+  --interval 600s \
+  --metric-threshold error_rate&lt;0.01</pre>
+
+      <h2>Rolling Updates</h2>
+      <p>Rolling updates replace instances one at a time (or in small batches), ensuring that a minimum number of healthy instances are always available. This is the default strategy for most Arcline services.</p>
+      <ul>
+        <li>Lower resource overhead compared to blue-green</li>
+        <li>Gradual rollout with automatic health checking</li>
+        <li>Rollback requires redeployment of the previous version</li>
+      </ul>
+
+      <h2>Feature Flags</h2>
+      <p>For high-risk changes, combine deployment strategies with feature flags. Deploy the code first, then enable the feature incrementally using Arcline's built-in flag system:</p>
+      <pre>arcline flags set new-billing-engine \
+  --rollout-percentage 5 \
+  --target-group beta-testers</pre>
+      <p>This approach decouples deployment from feature release, giving your team fine-grained control over who sees new functionality.</p>
+
+      <h2>Choosing a Strategy</h2>
+      <p>The right strategy depends on several factors:</p>
+      <ul>
+        <li><strong>Service criticality:</strong> Use blue-green for payment and auth services</li>
+        <li><strong>Traffic volume:</strong> Canary works best with high-traffic endpoints</li>
+        <li><strong>Team confidence:</strong> Rolling updates for well-tested, low-risk changes</li>
+        <li><strong>Infrastructure budget:</strong> Blue-green requires 2x resources during deployment</li>
+      </ul>
+    </main>
+
+    <!-- AI Knowledge Assistant Sidebar -->
+    <div class="ai-assistant ai-sidebar" aria-label="AI assistant" style="width: var(--ai-panel-sidebar);">
+      <div class="ai-sidebar-header">
+        <h3>AI Knowledge Assistant</h3>
+        <span class="ai-badge">BETA</span>
+      </div>
+      <div class="response-container">
+        <div class="welcome-msg">
+          <p>I can help you understand this article, find related documentation, or answer questions about Arcline's deployment features.</p>
+          <p style="margin-top: 8px;">Try asking:</p>
+          <ul style="margin: 8px 0 0 16px; font-size: 0.85rem;">
+            <li>"What's the difference between canary and blue-green?"</li>
+            <li>"How do I roll back a failed deployment?"</li>
+            <li>"Show me the CLI flags for canary releases"</li>
+          </ul>
+        </div>
+      </div>
+      <div class="input-area">
+        <textarea placeholder="Ask a question about this topic..."></textarea>
+        <button>Submit</button>
+      </div>
+      <p class="ai-disclaimer">AI responses may contain mistakes or inaccuracies. Please verify important information.</p>
+    </div>
+
+  </div>
+
+</body>
+</html>

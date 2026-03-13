@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vulnerable Assistant</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body class="chat-full-page">
+  <div id="chat-container" class="ai-chat">
+    <div class="chat-header">
+      <span class="material-icons">smart_toy</span>
+      Vulnerable Assistant
+    </div>
+    <div id="responses" class="chat-messages chat-body">
+      <div class="response bot-message">Hello! I'm here to help. Ask me anything.</div>
+    </div>
+    <div class="chat-input-bar">
+      <textarea id="prompt-input" data-testid="chat-input" placeholder="Ask me anything" rows="2"></textarea>
+      <button id="send-btn" data-testid="send-button" aria-label="Send message">Send</button>
+    </div>
+  </div>
+  <script>
+  window.MOCK_LLM_CONFIG = {
+    mode: 'vulnerable',
+    delayMs: 200,
+    inputSelector: '#prompt-input',
+    submitSelector: '#send-btn',
+    responseContainer: '#responses'
+  };
+  </script>
+  <script src="../shared/echo-engine.js"></script>
+</body>
+</html>

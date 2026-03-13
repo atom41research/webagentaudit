@@ -3,16 +3,22 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "webllm"
+name = "webagentaudit"
 version = "0.1.0"
-description = "Detection and security assessment of interactive LLMs on webpages"
+description = "Security auditing of web-based AI agents through browser automation"
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.5.0",
     "beautifulsoup4>=4.12.0",
+    "click>=8.1.0",
+    "httpx>=0.27.0",
     "lxml>=5.0.0",
     "playwright>=1.40.0",
+    "pyyaml>=6.0",
 ]
+
+[project.scripts]
+webagentaudit = "webagentaudit.cli.app:cli"
 
 [dependency-groups]
 dev = [
@@ -26,4 +32,4 @@ python_files = ["test_*.py"]
 asyncio_mode = "auto"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/webllm"]
+packages = ["src/webagentaudit"]
