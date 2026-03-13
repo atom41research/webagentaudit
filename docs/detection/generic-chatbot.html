@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prism Electronics - Customer Support</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    .support-hero {
+      background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+      color: #fff;
+      padding: 60px 0 48px;
+      text-align: center;
+    }
+    .support-hero h1 { font-size: 2rem; margin-bottom: 8px; }
+    .support-hero p { color: #99f6e4; font-size: 1.05rem; }
+
+    .support-channels {
+      padding: 48px 0;
+    }
+    .support-channels h2 {
+      text-align: center;
+      margin-bottom: 32px;
+      font-size: 1.5rem;
+    }
+    .channel-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 28px;
+      text-align: center;
+    }
+    .channel-card .channel-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 1.5rem;
+    }
+    .channel-card h3 { margin-bottom: 8px; }
+    .channel-card p { color: #6b7280; font-size: 0.875rem; line-height: 1.6; margin-bottom: 16px; }
+    .channel-card a {
+      display: inline-block;
+      padding: 8px 20px;
+      border: 1px solid #0f766e;
+      color: #0f766e;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+    .channel-card a:hover { background: #f0fdfa; text-decoration: none; }
+
+    .faq-section {
+      background: #f9fafb;
+      padding: 48px 0;
+    }
+    .faq-section h2 {
+      text-align: center;
+      margin-bottom: 32px;
+      font-size: 1.5rem;
+    }
+    .faq-list {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    .faq-item {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+    .faq-item summary {
+      padding: 16px 20px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 0.95rem;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .faq-item summary::after {
+      content: "+";
+      font-size: 1.25rem;
+      color: #9ca3af;
+    }
+    .faq-item[open] summary::after { content: "-"; }
+    .faq-item .faq-answer {
+      padding: 0 20px 16px;
+      color: #6b7280;
+      font-size: 0.9rem;
+      line-height: 1.7;
+    }
+
+    .contact-info {
+      padding: 48px 0;
+    }
+    .contact-info h2 {
+      text-align: center;
+      margin-bottom: 32px;
+      font-size: 1.5rem;
+    }
+    .contact-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      max-width: 720px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .contact-grid .contact-item h4 {
+      margin-bottom: 4px;
+      font-size: 0.95rem;
+    }
+    .contact-grid .contact-item p {
+      color: #6b7280;
+      font-size: 0.85rem;
+    }
+
+    /* Chatbot floating widget */
+    .chatbot-wrapper {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 380px;
+      max-height: 520px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+      display: flex;
+      flex-direction: column;
+      z-index: 9999;
+      overflow: hidden;
+    }
+    .chatbot-header {
+      background: #0f766e;
+      color: #fff;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .chatbot-title { font-weight: 600; font-size: 0.95rem; }
+    .chatbot-close {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 1.25rem;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .chatbot-conversation-log {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      min-height: 200px;
+      max-height: 320px;
+    }
+    .chatbot-message {
+      margin-bottom: 12px;
+    }
+    .chatbot-message.bot p {
+      background: #f3f4f6;
+      display: inline-block;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: #1a1a2e;
+    }
+    .chatbot-message.user p {
+      background: #0f766e;
+      color: #fff;
+      display: inline-block;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      margin-left: auto;
+      text-align: right;
+    }
+    .chatbot-input-area {
+      border-top: 1px solid #e5e7eb;
+      padding: 12px;
+      display: flex;
+      gap: 8px;
+    }
+    .chatbot-textarea {
+      flex: 1;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      resize: none;
+      min-height: 38px;
+    }
+    .chatbot-send-btn {
+      background: #0f766e;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .chatbot-send-btn:hover { background: #115e59; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container">
+      <span class="brand">Prism Electronics</span>
+      <nav>
+        <a href="#">Products</a>
+        <a href="#">Solutions</a>
+        <a href="#" class="active">Support</a>
+        <a href="#">Community</a>
+        <a href="#">Account</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Support Hero -->
+  <section class="support-hero">
+    <div class="container">
+      <h1>How Can We Help?</h1>
+      <p>Get answers to your questions about Prism products and services.</p>
+    </div>
+  </section>
+
+  <!-- Support Channels -->
+  <section class="support-channels">
+    <div class="container">
+      <h2>Get Support</h2>
+      <div class="card-grid">
+        <div class="channel-card">
+          <div class="channel-icon" style="background: #d1fae5;">&#128214;</div>
+          <h3>Knowledge Base</h3>
+          <p>Browse tutorials, guides, and troubleshooting articles for all Prism products.</p>
+          <a href="#">Browse Articles</a>
+        </div>
+        <div class="channel-card">
+          <div class="channel-icon" style="background: #dbeafe;">&#128172;</div>
+          <h3>Live Chat</h3>
+          <p>Chat with our support team in real time. Available Monday through Friday, 9am-6pm EST.</p>
+          <a href="#">Start Chat</a>
+        </div>
+        <div class="channel-card">
+          <div class="channel-icon" style="background: #ede9fe;">&#128231;</div>
+          <h3>Email Support</h3>
+          <p>Send us a detailed message and we'll get back to you within 24 business hours.</p>
+          <a href="#">Send Email</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="faq-section">
+    <div class="container">
+      <h2>Frequently Asked Questions</h2>
+      <div class="faq-list">
+        <details class="faq-item">
+          <summary>How do I return or exchange a product?</summary>
+          <div class="faq-answer">
+            You can initiate a return or exchange within 30 days of purchase through your account dashboard. Go to Order History, select the order, and click "Request Return." You'll receive a prepaid shipping label via email.
+          </div>
+        </details>
+        <details class="faq-item">
+          <summary>What is covered under the warranty?</summary>
+          <div class="faq-answer">
+            All Prism products come with a 2-year limited warranty covering manufacturing defects. This does not cover damage from misuse, accidents, or unauthorized modifications. Extended warranty plans are available at checkout.
+          </div>
+        </details>
+        <details class="faq-item">
+          <summary>How do I update firmware on my device?</summary>
+          <div class="faq-answer">
+            Download the Prism Connect app on your phone or computer. Connect your device via USB or Bluetooth, and the app will automatically check for available updates. Follow the on-screen instructions to install.
+          </div>
+        </details>
+        <details class="faq-item">
+          <summary>Do you ship internationally?</summary>
+          <div class="faq-answer">
+            Yes, we ship to over 40 countries worldwide. International shipping rates and delivery times vary by destination. You can check availability and estimated delivery at checkout.
+          </div>
+        </details>
+        <details class="faq-item">
+          <summary>How do I cancel my subscription?</summary>
+          <div class="faq-answer">
+            Log in to your account, go to Settings > Subscription, and click "Cancel Plan." Your access will continue until the end of your current billing period. No refunds are issued for partial months.
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact Info -->
+  <section class="contact-info">
+    <div class="container">
+      <h2>Other Ways to Reach Us</h2>
+      <div class="contact-grid">
+        <div class="contact-item">
+          <h4>Phone</h4>
+          <p>1-800-PRISM-HELP<br>Mon-Fri, 9am-6pm EST</p>
+        </div>
+        <div class="contact-item">
+          <h4>Email</h4>
+          <p>support@prism.example.com<br>24-hour response time</p>
+        </div>
+        <div class="contact-item">
+          <h4>Community Forum</h4>
+          <p>community.prism.example.com<br>Peer-to-peer help</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; 2026 Prism Electronics, Inc. All rights reserved. &middot; <a href="#">Privacy</a> &middot; <a href="#">Terms</a> &middot; <a href="#">Accessibility</a></p>
+    </div>
+  </footer>
+
+  <!-- Chatbot Widget -->
+  <div class="chatbot-wrapper" data-chatbot-id="support">
+    <div class="chatbot-header">
+      <span class="chatbot-title">Support Assistant</span>
+      <button class="chatbot-close">&times;</button>
+    </div>
+    <div class="chatbot-conversation-log chat-log-area">
+      <div class="chatbot-message bot"><p>Hello! How can I help you today?</p></div>
+      <div class="chatbot-message bot"><p>I can assist with product questions, returns, warranty claims, and account issues. Just type your question below.</p></div>
+    </div>
+    <div class="chatbot-input-area">
+      <textarea placeholder="Ask me anything about our products..." class="chatbot-textarea"></textarea>
+      <button class="chatbot-send-btn">Send</button>
+    </div>
+  </div>
+
+</body>
+</html>

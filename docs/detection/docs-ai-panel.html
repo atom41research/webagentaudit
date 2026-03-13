@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexus API Documentation</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    :root {
+      --assistant-sheet-width: 0px;
+      --sidebar-width: 240px;
+    }
+    body { background: #fff; }
+
+    .docs-layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar navigation */
+    .docs-sidebar {
+      width: var(--sidebar-width);
+      background: #fafafa;
+      border-right: 1px solid #e5e7eb;
+      padding: 20px 0;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      overflow-y: auto;
+    }
+    .docs-sidebar .sidebar-brand {
+      padding: 0 20px 20px;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #1a1a2e;
+      border-bottom: 1px solid #e5e7eb;
+      margin-bottom: 16px;
+    }
+    .docs-sidebar .sidebar-brand span {
+      font-size: 0.7rem;
+      background: #dbeafe;
+      color: #2563eb;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+    .sidebar-section {
+      padding: 0 12px;
+      margin-bottom: 20px;
+    }
+    .sidebar-section h4 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #9ca3af;
+      padding: 0 8px;
+      margin-bottom: 6px;
+    }
+    .sidebar-section a {
+      display: block;
+      padding: 6px 8px;
+      font-size: 0.875rem;
+      color: #4b5563;
+      border-radius: 4px;
+    }
+    .sidebar-section a:hover { background: #f3f4f6; text-decoration: none; }
+    .sidebar-section a.active {
+      background: #eff6ff;
+      color: #2563eb;
+      font-weight: 500;
+    }
+
+    /* Main content */
+    .docs-content {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      padding: 40px 60px;
+      max-width: 820px;
+    }
+    .docs-content h1 {
+      font-size: 1.75rem;
+      margin-bottom: 8px;
+    }
+    .docs-content .subtitle {
+      color: #6b7280;
+      font-size: 1rem;
+      margin-bottom: 32px;
+    }
+    .docs-content h2 {
+      font-size: 1.25rem;
+      margin: 32px 0 12px;
+      padding-top: 24px;
+      border-top: 1px solid #f3f4f6;
+    }
+    .docs-content h2:first-of-type { border-top: none; padding-top: 0; }
+    .docs-content p {
+      color: #374151;
+      margin-bottom: 16px;
+      line-height: 1.7;
+    }
+    .docs-content code {
+      background: #f3f4f6;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      color: #b91c1c;
+    }
+    .code-block {
+      background: #1a1a2e;
+      color: #e5e7eb;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 16px 0;
+      overflow-x: auto;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.85rem;
+      line-height: 1.6;
+    }
+    .code-block .comment { color: #6b7280; }
+    .code-block .string { color: #34d399; }
+    .code-block .keyword { color: #818cf8; }
+
+    .param-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+    }
+    .param-table th {
+      text-align: left;
+      padding: 8px 12px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .param-table td {
+      padding: 8px 12px;
+      border: 1px solid #e5e7eb;
+      font-size: 0.85rem;
+    }
+    .param-table td code {
+      font-size: 0.8rem;
+    }
+
+    .method-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .method-badge.post { background: #d1fae5; color: #065f46; }
+    .method-badge.get { background: #dbeafe; color: #1e40af; }
+    .method-badge.required { background: #fee2e2; color: #991b1b; }
+  </style>
+</head>
+<body>
+
+  <div class="docs-layout">
+
+    <!-- Sidebar -->
+    <aside class="docs-sidebar">
+      <div class="sidebar-brand">Nexus <span>v3.2</span></div>
+
+      <div class="sidebar-section">
+        <h4>Getting Started</h4>
+        <a href="#">Introduction</a>
+        <a href="#">Authentication</a>
+        <a href="#">Rate Limits</a>
+        <a href="#">Errors</a>
+      </div>
+
+      <div class="sidebar-section">
+        <h4>Core Resources</h4>
+        <a href="#">Users</a>
+        <a href="#">Organizations</a>
+        <a href="#" class="active">Messages</a>
+        <a href="#">Channels</a>
+        <a href="#">Webhooks</a>
+      </div>
+
+      <div class="sidebar-section">
+        <h4>Advanced</h4>
+        <a href="#">Batch Operations</a>
+        <a href="#">Streaming</a>
+        <a href="#">Pagination</a>
+        <a href="#">Idempotency</a>
+      </div>
+
+      <div class="sidebar-section">
+        <h4>SDKs</h4>
+        <a href="#">Python</a>
+        <a href="#">Node.js</a>
+        <a href="#">Go</a>
+        <a href="#">Ruby</a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="docs-content">
+      <h1>Messages</h1>
+      <p class="subtitle">Send, retrieve, and manage messages across channels.</p>
+
+      <h2>Create a Message</h2>
+      <p>Send a message to a specific channel. The message will be delivered to all subscribed members of that channel in real-time.</p>
+
+      <div style="margin-bottom: 8px;">
+        <span class="method-badge post">POST</span>
+        <code style="background: none; color: #374151; font-weight: 500;">/v3/messages</code>
+      </div>
+
+      <div class="code-block">
+        <span class="keyword">curl</span> -X POST https://api.nexus.dev/v3/messages \<br>
+        &nbsp;&nbsp;-H <span class="string">"Authorization: Bearer sk_live_..."</span> \<br>
+        &nbsp;&nbsp;-H <span class="string">"Content-Type: application/json"</span> \<br>
+        &nbsp;&nbsp;-d <span class="string">'{<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;"channel_id": "ch_abc123",<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;"content": "Hello, world!",<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;"type": "text"<br>
+        &nbsp;&nbsp;}'</span>
+      </div>
+
+      <h3 style="font-size: 1rem; margin: 20px 0 8px;">Request Body</h3>
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>Parameter</th>
+            <th>Type</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>channel_id</code> <span class="method-badge required">required</span></td>
+            <td>string</td>
+            <td>The ID of the channel to send the message to.</td>
+          </tr>
+          <tr>
+            <td><code>content</code> <span class="method-badge required">required</span></td>
+            <td>string</td>
+            <td>The message content. Supports Markdown formatting.</td>
+          </tr>
+          <tr>
+            <td><code>type</code></td>
+            <td>string</td>
+            <td>Message type: <code>text</code>, <code>image</code>, or <code>file</code>. Defaults to <code>text</code>.</td>
+          </tr>
+          <tr>
+            <td><code>metadata</code></td>
+            <td>object</td>
+            <td>Arbitrary key-value pairs attached to the message.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>List Messages</h2>
+      <p>Retrieve a paginated list of messages for a given channel. Messages are returned in reverse chronological order.</p>
+
+      <div style="margin-bottom: 8px;">
+        <span class="method-badge get">GET</span>
+        <code style="background: none; color: #374151; font-weight: 500;">/v3/channels/{channel_id}/messages</code>
+      </div>
+
+      <div class="code-block">
+        <span class="keyword">curl</span> https://api.nexus.dev/v3/channels/ch_abc123/messages \<br>
+        &nbsp;&nbsp;-H <span class="string">"Authorization: Bearer sk_live_..."</span>
+      </div>
+
+      <h3 style="font-size: 1rem; margin: 20px 0 8px;">Query Parameters</h3>
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>Parameter</th>
+            <th>Type</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>limit</code></td>
+            <td>integer</td>
+            <td>Number of messages to return (1-100). Default: 25.</td>
+          </tr>
+          <tr>
+            <td><code>before</code></td>
+            <td>string</td>
+            <td>Cursor for backward pagination. Returns messages before this ID.</td>
+          </tr>
+          <tr>
+            <td><code>after</code></td>
+            <td>string</td>
+            <td>Cursor for forward pagination. Returns messages after this ID.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Response Format</h2>
+      <p>All message endpoints return a standard envelope with the message object:</p>
+      <div class="code-block">
+        {<br>
+        &nbsp;&nbsp;<span class="string">"id"</span>: <span class="string">"msg_xyz789"</span>,<br>
+        &nbsp;&nbsp;<span class="string">"channel_id"</span>: <span class="string">"ch_abc123"</span>,<br>
+        &nbsp;&nbsp;<span class="string">"content"</span>: <span class="string">"Hello, world!"</span>,<br>
+        &nbsp;&nbsp;<span class="string">"type"</span>: <span class="string">"text"</span>,<br>
+        &nbsp;&nbsp;<span class="string">"created_at"</span>: <span class="string">"2026-03-13T10:30:00Z"</span>,<br>
+        &nbsp;&nbsp;<span class="string">"author"</span>: {<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"id"</span>: <span class="string">"usr_def456"</span>,<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="string">"name"</span>: <span class="string">"Jane Smith"</span><br>
+        &nbsp;&nbsp;}<br>
+        }
+      </div>
+    </main>
+
+  </div>
+
+  <!-- AI Assistant Trigger Button -->
+  <button id="mintlify-assistant-trigger" aria-label="Toggle assistant" class="ai-trigger-btn">
+    <svg class="lucide-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/>
+    </svg>
+    Ask AI
+  </button>
+
+  <!-- Side Panel (hidden by default via 0px width) -->
+  <div class="assistant-panel" style="width: var(--assistant-sheet-width);">
+    <div class="panel-header">
+      <h3>AI Assistant</h3>
+    </div>
+    <div class="panel-messages"></div>
+    <div class="panel-input">
+      <textarea placeholder="Ask a question..." class="chat-assistant-input"></textarea>
+      <button data-testid="send-button" aria-label="Send message">Send</button>
+    </div>
+    <p class="ai-disclaimer">Responses are generated using AI and may contain mistakes.</p>
+  </div>
+
+</body>
+</html>

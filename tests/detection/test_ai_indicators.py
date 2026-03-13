@@ -12,8 +12,8 @@ Test HTML patterns are derived from real pages in our corpus:
 
 import pytest
 
-from webllm.detection.deterministic.ai_indicators import AiIndicatorChecker
-from webllm.detection.models import PageData
+from webagentaudit.detection.deterministic.ai_indicators import AiIndicatorChecker
+from webagentaudit.detection.models import PageData
 
 
 def make_page(html: str, url: str = "https://example.com") -> PageData:

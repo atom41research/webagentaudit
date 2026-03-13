@@ -2,10 +2,10 @@
 
 import pytest
 
-from webllm.detection.known_assets import KnownAssetsRegistry, AssetCategory, KnownAsset, ScriptSignature
-from webllm.detection.known_assets.models import ApiSignature, DomSignature
-from webllm.detection.known_assets.checker import KnownAssetsChecker
-from webllm.detection.models import PageData
+from webagentaudit.detection.known_assets import KnownAssetsRegistry, AssetCategory, KnownAsset, ScriptSignature
+from webagentaudit.detection.known_assets.models import ApiSignature, DomSignature
+from webagentaudit.detection.known_assets.checker import KnownAssetsChecker
+from webagentaudit.detection.models import PageData
 
 
 def make_page_data(html="<html><body></body></html>", url="https://example.com", scripts=None, inline_scripts=None):

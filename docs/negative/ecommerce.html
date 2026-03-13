@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oakwood Supply Co. — Quality Goods</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    .store-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 0; flex-wrap: wrap; gap: 12px;
+    }
+    .store-toolbar .result-count { color: #6b7280; font-size: 0.875rem; }
+    .search-bar {
+      display: flex; align-items: center; gap: 8px;
+      background: #fff; border: 1px solid #d1d5db; border-radius: 6px;
+      padding: 6px 12px; width: 280px;
+    }
+    .search-bar svg { width: 18px; height: 18px; color: #9ca3af; flex-shrink: 0; }
+    .search-bar input {
+      border: none; outline: none; font-family: inherit;
+      font-size: 0.875rem; width: 100%; background: transparent;
+    }
+    .filter-bar { display: flex; gap: 12px; padding-bottom: 16px; flex-wrap: wrap; }
+    .filter-bar select {
+      border: 1px solid #d1d5db; border-radius: 6px; padding: 6px 12px;
+      font-family: inherit; font-size: 0.85rem; background: #fff; color: #374151;
+    }
+    .product-image-placeholder {
+      width: 100%; height: 180px; border-radius: 4px; margin-bottom: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; color: #9ca3af;
+    }
+    .product-card .product-name { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; color: #1a1a2e; }
+    .product-card .product-desc { font-size: 0.8rem; color: #6b7280; margin-bottom: 8px; }
+    .product-card .price { font-weight: 700; color: #059669; margin: 8px 0; font-size: 1.1rem; }
+    .product-card .old-price { text-decoration: line-through; color: #9ca3af; font-size: 0.85rem; margin-left: 6px; font-weight: 400; }
+    .product-card button {
+      background: #2563eb; color: #fff; border: none; border-radius: 6px;
+      padding: 8px 20px; cursor: pointer; font-size: 0.85rem; width: 100%;
+    }
+    .product-card button:hover { background: #1d4ed8; }
+    .rating { font-size: 0.8rem; color: #f59e0b; margin-bottom: 4px; }
+    .pagination { display: flex; justify-content: center; gap: 8px; padding: 32px 0; }
+    .pagination a, .pagination span {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; border-radius: 6px; font-size: 0.875rem;
+      border: 1px solid #e5e7eb; color: #374151;
+    }
+    .pagination span.current { background: #2563eb; color: #fff; border-color: #2563eb; }
+    .cart-indicator { position: relative; }
+    .cart-indicator .cart-count {
+      position: absolute; top: -6px; right: -8px; background: #ef4444; color: #fff;
+      font-size: 0.65rem; width: 18px; height: 18px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <span class="brand">Oakwood Supply Co.</span>
+      <nav>
+        <a href="#" class="active">Shop</a>
+        <a href="#">About</a>
+        <a href="#">Shipping</a>
+        <a href="#" class="cart-indicator">
+          Cart
+          <span class="cart-count">3</span>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="page-hero">
+    <h1>Our Products</h1>
+    <p>Handcrafted goods made with sustainable materials.</p>
+  </div>
+
+  <main class="container">
+    <div class="store-toolbar">
+      <span class="result-count">Showing 8 of 42 products</span>
+      <div class="search-bar">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+        </svg>
+        <input type="text" placeholder="Search products...">
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <select aria-label="Filter by category">
+        <option>All Categories</option>
+        <option>Kitchen</option>
+        <option>Living Room</option>
+        <option>Office</option>
+        <option>Outdoor</option>
+      </select>
+      <select aria-label="Sort by">
+        <option>Sort by: Featured</option>
+        <option>Price: Low to High</option>
+        <option>Price: High to Low</option>
+        <option>Newest First</option>
+      </select>
+    </div>
+
+    <div class="product-grid">
+      <div class="product-card">
+        <div class="product-image-placeholder" style="background: #d4a373;">Walnut Cutting Board</div>
+        <div class="rating">&#9733;&#9733;&#9733;&#9733;&#9733; (47)</div>
+        <div class="product-name">Black Walnut Cutting Board</div>
+        <div class="product-desc">End-grain construction, food-safe mineral oil finish. 16&quot; x 12&quot;.</div>
+        <div class="price">$89.00</div>
+        <button>Add to Cart</button>
+      </div>
+
+      <div class="product-card">
+        <div class="product-image-placeholder" style="background: #a8dadc;">Ceramic Mug Set</div>
+        <div class="rating">&#9733;&#9733;&#9733;&#9733;&#9734; (32)</div>
+        <div class="product-name">Stoneware Mug Set (4 pc)</div>
+        <div class="product-desc">Hand-thrown ceramic mugs, dishwasher safe. 12 oz capacity each.</div>
+        <div class="price">$64.00</div>
+        <button>Add to Cart</button>
+      </div>
+
+      <div class="product-card">
+        <div class="product-image-placeholder" style="background: #e9c46a;">Beeswax Candle</div>
+        <div class="rating">&#9733;&#9733;&#9733;&#9733;&#9733; (89)</div>
+        <div class="product-name">Pure Beeswax Pillar Candle</div>
+        <div class="product-desc">Hand-poured, 60-hour burn time. Unscented, natural honey aroma.</div>
+        <div class="price">$24.00</div>
+        <button>Add to Cart</button>
+      </div>
+
+      <div class="product-card">
+        <div class="product-image-placeholder" style="background: #264653;">Cast Iron Skillet</div>
+        <div class="rating">&#9733;&#9733;&#9733;&#9733;&#9733; (156)</div>
+        <div class="product-name">12&quot; Lodge Cast Iron Skillet</div>
+        <div class="product-desc">Pre-seasoned, oven safe to 500&deg;F. Made in the USA.</div>
+        <div class="price">$44.00 <span class="old-price">$52.00</span></div>
+        <button>Add to Cart</button>
+      </div>
+
+      <div class="product-card">
+        <div class="product-image-placeholder" style="background: #f4a261;">Wool Throw Blanket</div>
+        <div class="rating">&#9733;&#9733;&#9733;&#9733;&#9734; (28)</div>
+        <div class="product-name">Merino Wool Throw</div>
+        <div class="product-desc">Lightweight and warm. Machine washable. 50&quot; x 70&quot;.</div>
+        <div class="price">$128.00</div>
+        <button>Add to Cart</button>
+      </div>
+
+      <div class="product-card">
+        <div class="product-image-placeholder" style="background: #2a9d8f;">Desk Organizer</div>
+        <div class="rating">&#9733;&#9733;&#9733;&#9733;&#9734; (19)</div>
+        <div class="product-name">Bamboo Desk Organizer</div>
+        <div class="product-desc">5 compartments, cable management slot. Sustainable bamboo.</div>
+        <div class="price">$36.00</div>
+        <button>Add to Cart</button>
+      </div>
+
+      <div class="product-card">
+        <div class="product-image-placeholder" style="background: #e76f51;">Leather Journal</div>
+        <div class="rating">&#9733;&#9733;&#9733;&#9733;&#9733; (63)</div>
+        <div class="product-name">Full-Grain Leather Journal</div>
+        <div class="product-desc">200 pages of acid-free paper. Refillable. 5&quot; x 7&quot;.</div>
+        <div class="price">$42.00</div>
+        <button>Add to Cart</button>
+      </div>
+
+      <div class="product-card">
+        <div class="product-image-placeholder" style="background: #606c38;">Plant Pot Set</div>
+        <div class="rating">&#9733;&#9733;&#9733;&#9733;&#9734; (41)</div>
+        <div class="product-name">Terracotta Planter Set (3 pc)</div>
+        <div class="product-desc">Drainage holes included. Sizes: 4&quot;, 6&quot;, and 8&quot; diameter.</div>
+        <div class="price">$38.00</div>
+        <button>Add to Cart</button>
+      </div>
+    </div>
+
+    <div class="pagination">
+      <span class="current">1</span>
+      <a href="#">2</a>
+      <a href="#">3</a>
+      <a href="#">4</a>
+      <a href="#">5</a>
+      <a href="#">&raquo;</a>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      &copy; 2026 Oakwood Supply Co. All rights reserved. &middot; Free shipping on orders over $75.
+    </div>
+  </footer>
+</body>
+</html>

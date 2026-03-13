@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SynapseAI - Intelligent Infrastructure for Modern Apps</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    .synapse-hero {
+      background: linear-gradient(160deg, #020617 0%, #0f172a 40%, #1e293b 100%);
+      color: #fff;
+      padding: 100px 0 80px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .synapse-hero::before {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle at 60% 40%, rgba(99,102,241,0.08) 0%, transparent 50%);
+    }
+    .synapse-hero h1 {
+      font-size: 2.75rem;
+      max-width: 680px;
+      margin: 0 auto 16px;
+      line-height: 1.15;
+      position: relative;
+    }
+    .synapse-hero .gradient-text {
+      background: linear-gradient(90deg, #818cf8, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .synapse-hero p {
+      font-size: 1.1rem;
+      color: #94a3b8;
+      max-width: 520px;
+      margin: 0 auto 36px;
+      position: relative;
+    }
+    .synapse-hero .cta-group {
+      display: inline-flex;
+      gap: 12px;
+      position: relative;
+    }
+    .synapse-hero .cta-group a {
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .synapse-hero .cta-group .primary {
+      background: #6366f1;
+      color: #fff;
+    }
+    .synapse-hero .cta-group .ghost {
+      color: #e2e8f0;
+      border: 1px solid #334155;
+    }
+
+    .code-showcase {
+      background: #0f172a;
+      padding: 48px 0;
+      border-bottom: 1px solid #1e293b;
+    }
+    .code-showcase .container {
+      max-width: 800px;
+    }
+    .code-showcase h2 {
+      color: #e2e8f0;
+      text-align: center;
+      font-size: 1.25rem;
+      margin-bottom: 24px;
+    }
+    .code-window {
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .code-window-bar {
+      background: #0f172a;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border-bottom: 1px solid #1e293b;
+    }
+    .code-window-bar .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    .code-window-bar .dot.red { background: #ef4444; }
+    .code-window-bar .dot.yellow { background: #eab308; }
+    .code-window-bar .dot.green { background: #22c55e; }
+    .code-window-bar .filename {
+      margin-left: 12px;
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+    .code-window pre {
+      padding: 20px;
+      color: #e2e8f0;
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 0.85rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 0;
+    }
+    .code-window .kw { color: #c084fc; }
+    .code-window .fn { color: #38bdf8; }
+    .code-window .str { color: #4ade80; }
+    .code-window .cmt { color: #475569; }
+    .code-window .num { color: #fb923c; }
+
+    .features-grid-section {
+      padding: 64px 0;
+    }
+    .features-grid-section h2 {
+      text-align: center;
+      font-size: 1.75rem;
+      margin-bottom: 8px;
+    }
+    .features-grid-section .sub {
+      text-align: center;
+      color: #6b7280;
+      margin-bottom: 40px;
+    }
+    .feature-tile {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 28px;
+    }
+    .feature-tile .tile-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      margin-bottom: 14px;
+    }
+    .feature-tile h3 { margin-bottom: 8px; font-size: 1rem; }
+    .feature-tile p { color: #6b7280; font-size: 0.875rem; line-height: 1.6; }
+
+    .pricing-section {
+      background: #f8fafc;
+      padding: 64px 0;
+      border-top: 1px solid #e5e7eb;
+    }
+    .pricing-section h2 {
+      text-align: center;
+      font-size: 1.75rem;
+      margin-bottom: 8px;
+    }
+    .pricing-section .sub {
+      text-align: center;
+      color: #6b7280;
+      margin-bottom: 40px;
+    }
+    .pricing-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .pricing-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 32px 24px;
+      text-align: center;
+    }
+    .pricing-card.featured {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 1px #6366f1;
+      position: relative;
+    }
+    .pricing-card.featured::before {
+      content: "Most Popular";
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #6366f1;
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 2px 12px;
+      border-radius: 4px;
+    }
+    .pricing-card h3 { font-size: 1.1rem; margin-bottom: 8px; }
+    .pricing-card .price {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .pricing-card .price span {
+      font-size: 0.9rem;
+      font-weight: 400;
+      color: #9ca3af;
+    }
+    .pricing-card .price-desc {
+      font-size: 0.85rem;
+      color: #6b7280;
+      margin-bottom: 20px;
+    }
+    .pricing-card ul {
+      list-style: none;
+      text-align: left;
+      margin-bottom: 24px;
+    }
+    .pricing-card ul li {
+      padding: 6px 0;
+      font-size: 0.85rem;
+      color: #374151;
+    }
+    .pricing-card ul li::before {
+      content: "\2713 ";
+      color: #22c55e;
+      font-weight: 700;
+      margin-right: 6px;
+    }
+    .pricing-card a {
+      display: block;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+    .pricing-card a.outline { border: 1px solid #d1d5db; color: #374151; }
+    .pricing-card a.filled { background: #6366f1; color: #fff; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container">
+      <span class="brand">SynapseAI</span>
+      <nav>
+        <a href="#">Platform</a>
+        <a href="#">Docs</a>
+        <a href="#">Pricing</a>
+        <a href="#">Blog</a>
+        <a href="#">Sign In</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="synapse-hero">
+    <div class="container">
+      <h1>Build <span class="gradient-text">Intelligent Apps</span> in Minutes</h1>
+      <p>SynapseAI provides the infrastructure layer for adding AI capabilities to any application. One API, every model.</p>
+      <div class="cta-group">
+        <a href="#" class="primary">Get API Key</a>
+        <a href="#" class="ghost">Read the Docs</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Code Showcase -->
+  <section class="code-showcase">
+    <div class="container">
+      <h2>Ship your first AI feature in 5 lines</h2>
+      <div class="code-window">
+        <div class="code-window-bar">
+          <span class="dot red"></span>
+          <span class="dot yellow"></span>
+          <span class="dot green"></span>
+          <span class="filename">app.py</span>
+        </div>
+        <pre><span class="kw">from</span> synapse <span class="kw">import</span> SynapseClient
+
+client = SynapseClient(<span class="str">"sk-..."</span>)
+response = client.chat.completions.create(
+    model=<span class="str">"synapse-pro"</span>,
+    messages=[{<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: <span class="str">"Hello!"</span>}]
+)
+<span class="fn">print</span>(response.choices[<span class="num">0</span>].message.content)</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features-grid-section">
+    <div class="container">
+      <h2>Built for Production</h2>
+      <p class="sub">Enterprise-grade infrastructure with developer-friendly APIs.</p>
+      <div class="card-grid">
+        <div class="feature-tile">
+          <div class="tile-icon" style="background: #ede9fe;">&#9889;</div>
+          <h3>Low Latency Inference</h3>
+          <p>Sub-100ms response times with global edge deployment. Automatic model routing for optimal performance.</p>
+        </div>
+        <div class="feature-tile">
+          <div class="tile-icon" style="background: #dbeafe;">&#128256;</div>
+          <h3>Streaming Responses</h3>
+          <p>Server-sent events for real-time token streaming. Build responsive chat interfaces with minimal buffering.</p>
+        </div>
+        <div class="feature-tile">
+          <div class="tile-icon" style="background: #d1fae5;">&#128274;</div>
+          <h3>Enterprise Security</h3>
+          <p>SOC 2 Type II, HIPAA eligible, with data encryption at rest and in transit. Custom data residency options.</p>
+        </div>
+        <div class="feature-tile">
+          <div class="tile-icon" style="background: #fef3c7;">&#128202;</div>
+          <h3>Usage Analytics</h3>
+          <p>Real-time dashboards for token usage, latency metrics, and cost tracking across all your applications.</p>
+        </div>
+        <div class="feature-tile">
+          <div class="tile-icon" style="background: #fce7f3;">&#128640;</div>
+          <h3>Multi-Model Gateway</h3>
+          <p>Access GPT-4, Claude, Gemini, and open-source models through a single unified API endpoint.</p>
+        </div>
+        <div class="feature-tile">
+          <div class="tile-icon" style="background: #ccfbf1;">&#128736;</div>
+          <h3>Function Calling</h3>
+          <p>Define tools and let models call your APIs. Built-in validation, retry logic, and parallel execution.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section class="pricing-section">
+    <div class="container">
+      <h2>Simple, Transparent Pricing</h2>
+      <p class="sub">Pay for what you use. No hidden fees. Scale as you grow.</p>
+      <div class="pricing-cards">
+        <div class="pricing-card">
+          <h3>Starter</h3>
+          <div class="price">Free</div>
+          <div class="price-desc">Up to 100K tokens/month</div>
+          <ul>
+            <li>All base models</li>
+            <li>Community support</li>
+            <li>Basic analytics</li>
+            <li>1 API key</li>
+          </ul>
+          <a href="#" class="outline">Get Started</a>
+        </div>
+        <div class="pricing-card featured">
+          <h3>Pro</h3>
+          <div class="price">$49<span>/mo</span></div>
+          <div class="price-desc">Up to 10M tokens/month</div>
+          <ul>
+            <li>All models including premium</li>
+            <li>Priority support</li>
+            <li>Advanced analytics</li>
+            <li>10 API keys</li>
+            <li>Streaming & webhooks</li>
+          </ul>
+          <a href="#" class="filled">Start Free Trial</a>
+        </div>
+        <div class="pricing-card">
+          <h3>Enterprise</h3>
+          <div class="price">Custom</div>
+          <div class="price-desc">Unlimited tokens</div>
+          <ul>
+            <li>Everything in Pro</li>
+            <li>Dedicated support</li>
+            <li>Custom models</li>
+            <li>SLA guarantee</li>
+            <li>Data residency</li>
+          </ul>
+          <a href="#" class="outline">Contact Sales</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; 2026 SynapseAI, Inc. All rights reserved. &middot; <a href="#">Privacy</a> &middot; <a href="#">Terms</a> &middot; <a href="#">Status</a> &middot; <a href="#">Security</a></p>
+    </div>
+  </footer>
+
+  <!-- Script Analysis Targets -->
+  <script>
+    // AI Integration Module
+    // Dependencies: openai, anthropic, langchain
+    var chatbot = {};
+    var aiAssistant = {};
+    var llmClient = {};
+
+    async function initChat() {
+      var ws = new WebSocket('wss://api.example.com/ai-chat');
+      var es = new EventSource('/api/chat/completions');
+
+      var response = await fetch('/api/chat/completions', {
+        method: 'POST',
+        headers: { 'Accept': 'text/event-stream' },
+        body: JSON.stringify({ model: 'gpt-4' })
+      });
+      var reader = response.body.getReader(); // ReadableStream
+
+      // Anthropic alternative
+      await fetch('/v1/messages', {
+        method: 'POST',
+        body: JSON.stringify({ model: 'claude-3' })
+      });
+    }
+
+    // LangChain integration
+    // import { ChatOpenAI } from "langchain/chat_models/openai";
+  </script>
+
+</body>
+</html>

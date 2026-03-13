@@ -2,8 +2,8 @@
 
 import pytest
 
-from webllm.core.enums import ConfidenceLevel, Severity
-from webllm.core.models import ConfidenceScore, Finding
+from webagentaudit.core.enums import ConfidenceLevel, Severity
+from webagentaudit.core.models import ConfidenceScore, Finding
 
 
 class TestConfidenceScoreLevel:

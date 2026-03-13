@@ -1,0 +1,5 @@
+name: test.bad_syntax
+category: extraction
+  severity: high  # wrong indentation
+prompts:
+  - "Test"

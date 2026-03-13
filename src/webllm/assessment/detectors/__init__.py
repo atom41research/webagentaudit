@@ -1,1 +1,0 @@
-"""Response detectors for assessment."""

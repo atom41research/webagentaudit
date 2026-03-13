@@ -1,0 +1,339 @@
+/* Shared base styles for webagentaudit test fixture pages */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  color: #1a1a2e;
+  background: #f8f9fa;
+}
+
+a { color: #2563eb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* Layout */
+.container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+/* Header */
+.site-header {
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 16px 0;
+}
+.site-header .container { display: flex; align-items: center; justify-content: space-between; }
+.site-header .brand { font-weight: 700; font-size: 1.25rem; color: #1a1a2e; }
+.site-header nav a { margin-left: 24px; color: #6b7280; font-size: 0.9rem; }
+.site-header nav a:hover, .site-header nav a.active { color: #2563eb; }
+
+/* Hero / page heading */
+.page-hero { padding: 48px 0 32px; text-align: center; }
+.page-hero h1 { font-size: 2rem; margin-bottom: 8px; }
+.page-hero p { color: #6b7280; font-size: 1.1rem; }
+
+/* Cards */
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding: 24px 0; }
+.card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 20px;
+  transition: box-shadow 0.15s;
+}
+.card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.card h3 { margin-bottom: 8px; font-size: 1rem; }
+.card p { color: #6b7280; font-size: 0.875rem; }
+
+/* Footer */
+.site-footer {
+  border-top: 1px solid #e5e7eb;
+  padding: 24px 0;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 0.8rem;
+  margin-top: 48px;
+}
+
+/* Floating chat widget (reusable) */
+.chat-widget-floating {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 380px;
+  max-height: 520px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.chat-widget-header {
+  background: #2563eb;
+  color: #fff;
+  padding: 14px 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.chat-widget-header button {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+
+.chat-widget-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  min-height: 200px;
+  max-height: 320px;
+}
+
+.chat-widget-input {
+  border-top: 1px solid #e5e7eb;
+  padding: 12px;
+  display: flex;
+  gap: 8px;
+}
+.chat-widget-input textarea {
+  flex: 1;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: none;
+  min-height: 38px;
+}
+.chat-widget-input button {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.chat-widget-input button:hover { background: #1d4ed8; }
+
+/* Chat launcher bubble */
+.chat-launcher {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 12px rgba(37,99,235,0.4);
+  z-index: 9998;
+}
+.chat-launcher svg { width: 24px; height: 24px; fill: currentColor; }
+
+/* Message bubbles */
+.msg { margin-bottom: 12px; max-width: 80%; }
+.msg.user-message { margin-left: auto; }
+.msg p, .msg span {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.msg.bot-message p, .msg.bot-message span { background: #f3f4f6; color: #1a1a2e; }
+.msg.user-message p, .msg.user-message span { background: #2563eb; color: #fff; }
+
+/* Full-page chat layout */
+.chat-full-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+.chat-full-page .chat-header {
+  background: #1a1a2e;
+  color: #fff;
+  padding: 14px 24px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.chat-full-page .chat-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  background: #fff;
+}
+.chat-full-page .chat-input-bar {
+  border-top: 1px solid #e5e7eb;
+  padding: 16px 24px;
+  background: #fff;
+  display: flex;
+  gap: 12px;
+}
+.chat-full-page .chat-input-bar textarea,
+.chat-full-page .chat-input-bar [contenteditable] {
+  flex: 1;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  resize: none;
+  min-height: 44px;
+}
+.chat-full-page .chat-input-bar button {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Side panel (docs AI style) */
+.assistant-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  background: #fff;
+  border-left: 1px solid #e5e7eb;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  z-index: 10000;
+  transition: width 0.2s ease;
+  overflow: hidden;
+}
+.assistant-panel .panel-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.assistant-panel .panel-header h3 { font-size: 1rem; }
+.assistant-panel .panel-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+.assistant-panel .panel-input {
+  border-top: 1px solid #e5e7eb;
+  padding: 12px 20px;
+  display: flex;
+  gap: 8px;
+}
+.assistant-panel .panel-input textarea {
+  flex: 1;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: none;
+}
+.assistant-panel .panel-input button {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+/* Sparkle trigger button */
+.ai-trigger-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  color: #4b5563;
+  z-index: 9998;
+}
+.ai-trigger-btn:hover { background: #e5e7eb; }
+.ai-trigger-btn svg { width: 16px; height: 16px; }
+
+/* Disclaimer text */
+.ai-disclaimer {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  padding: 8px 20px;
+  text-align: center;
+}
+
+/* Product grid (ecommerce) */
+.product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 24px; padding: 24px 0; }
+.product-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+}
+.product-card img { width: 100%; height: 180px; object-fit: cover; background: #f3f4f6; border-radius: 4px; margin-bottom: 12px; }
+.product-card .price { font-weight: 700; color: #059669; margin: 8px 0; }
+.product-card button {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 20px;
+  cursor: pointer;
+}
+
+/* Form styles */
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-weight: 500; margin-bottom: 4px; font-size: 0.9rem; }
+.form-group input, .form-group textarea, .form-group select {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+.form-group textarea { resize: vertical; min-height: 100px; }
+.btn-primary {
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 24px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+/* Response (for interactive pages) */
+.response {
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  max-width: 80%;
+}
+.response.bot-message { background: #f3f4f6; color: #1a1a2e; }
+.response.user-message { background: #2563eb; color: #fff; margin-left: auto; }

@@ -1,4 +1,4 @@
-# webllm
+# webagentaudit
 
 Python project for detecting and assessing interactive LLMs on webpages.
 
@@ -6,10 +6,10 @@ Python project for detecting and assessing interactive LLMs on webpages.
 
 Three independent modules + shared core:
 
-- `src/webllm/core/` — Shared models, enums, exceptions, constants (no external deps except pydantic)
-- `src/webllm/detection/` — Detect interactive LLMs on webpages (deterministic + AI-assisted)
-- `src/webllm/assessment/` — Assess LLM security via probes (like AgentSeal/Garak)
-- `src/webllm/llm_channel/` — Interface for sending/receiving messages to web-based LLMs
+- `src/webagentaudit/core/` — Shared models, enums, exceptions, constants (no external deps except pydantic)
+- `src/webagentaudit/detection/` — Detect interactive LLMs on webpages (deterministic + AI-assisted)
+- `src/webagentaudit/assessment/` — Assess LLM security via probes (like AgentSeal/Garak)
+- `src/webagentaudit/llm_channel/` — Interface for sending/receiving messages to web-based LLMs
 
 Dependency graph: `core` ← `detection`, `llm_channel`, `assessment`. Assessment takes `BaseLlmChannel` via constructor injection (Dependency Inversion).
 
@@ -107,7 +107,7 @@ All research, design decisions, and reference material lives in `kb/`. See `kb/_
 ## Project Structure
 
 ```
-webllm/
+webagentaudit/
 ├── CLAUDE.md
 ├── pyproject.toml
 ├── kb/                          # Knowledgebase (research, design, domain knowledge)
@@ -116,7 +116,7 @@ webllm/
 │   ├── architecture/            # Architecture and design docs
 │   ├── patterns/                # Design patterns used
 │   └── domain/                  # Domain knowledge
-├── src/webllm/
+├── src/webagentaudit/
 │   ├── core/                    # Shared models, enums, exceptions, constants
 │   ├── detection/               # LLM detection on webpages
 │   │   ├── deterministic/       # DOM patterns, selectors, signatures

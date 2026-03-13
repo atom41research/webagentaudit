@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Wandering Pixel — A Personal Blog</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    .blog-layout {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 32px;
+      padding: 32px 0;
+    }
+    @media (max-width: 768px) {
+      .blog-layout { grid-template-columns: 1fr; }
+    }
+    .blog-post { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 32px; }
+    .blog-post h2 { font-size: 1.5rem; margin-bottom: 8px; color: #1a1a2e; }
+    .blog-post .post-meta { color: #9ca3af; font-size: 0.85rem; margin-bottom: 20px; }
+    .blog-post p { margin-bottom: 16px; color: #374151; }
+    .blog-post .read-more { display: inline-block; margin-top: 8px; font-weight: 500; }
+    .sidebar-section { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+    .sidebar-section h3 { font-size: 1rem; margin-bottom: 12px; color: #1a1a2e; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; }
+    .sidebar-section ul { list-style: none; }
+    .sidebar-section li { padding: 6px 0; border-bottom: 1px solid #f3f4f6; }
+    .sidebar-section li:last-child { border-bottom: none; }
+    .sidebar-section li a { color: #4b5563; font-size: 0.875rem; }
+    .sidebar-section li a:hover { color: #2563eb; }
+    .tag { display: inline-block; background: #eff6ff; color: #2563eb; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px; margin-right: 6px; }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <span class="brand">The Wandering Pixel</span>
+      <nav>
+        <a href="#" class="active">Home</a>
+        <a href="#">About</a>
+        <a href="#">Archive</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="blog-layout">
+      <div class="blog-content">
+        <article class="blog-post">
+          <h2>Rebuilding My Workshop: Lessons in Woodworking</h2>
+          <div class="post-meta">Published on February 18, 2026 &middot; 6 min read</div>
+          <p>
+            After years of cramming tools into a single-car garage, I finally took the plunge
+            and built a dedicated workshop in the backyard. The process took three months, a lot
+            of lumber, and more trips to the hardware store than I can count.
+          </p>
+          <p>
+            The biggest lesson was in planning. I spent two full weeks sketching layouts on graph
+            paper before cutting a single board. Where does the table saw go relative to the dust
+            collector? How much clearance does the bandsaw need? These questions seem obvious in
+            hindsight, but getting them wrong would have meant tearing everything out and starting over.
+          </p>
+          <p>
+            I opted for a French cleat system on the walls, which lets me rearrange tool holders
+            without drilling new holes. The electrical plan was another beast entirely — I ran a
+            dedicated 60-amp sub-panel with 20-amp circuits for each major tool. No more tripping
+            breakers mid-cut.
+          </p>
+          <p>
+            The dust collection system deserves its own post (coming soon). For now, I will just say
+            that a 4-inch trunk line with blast gates at each station has been a game changer. My
+            lungs thank me.
+          </p>
+          <div>
+            <span class="tag">Woodworking</span>
+            <span class="tag">DIY</span>
+            <span class="tag">Workshop</span>
+          </div>
+          <a href="#" class="read-more">Continue reading &rarr;</a>
+        </article>
+
+        <article class="blog-post" style="margin-top: 24px;">
+          <h2>Five Underrated National Parks for Spring Hiking</h2>
+          <div class="post-meta">Published on February 3, 2026 &middot; 4 min read</div>
+          <p>
+            Everyone flocks to Yosemite and Yellowstone, but some of the best spring hiking happens
+            in lesser-known parks. Congaree in South Carolina offers boardwalk trails through
+            old-growth floodplain forest, and in April the fireflies put on a show that rivals
+            anything you have seen.
+          </p>
+          <p>
+            Great Basin in Nevada is another hidden gem. Lehman Caves alone are worth the drive, but
+            the alpine trails above 10,000 feet offer solitude that is hard to find elsewhere. Just
+            bring layers — temperatures can swing 40 degrees in a single day.
+          </p>
+          <div>
+            <span class="tag">Travel</span>
+            <span class="tag">Hiking</span>
+            <span class="tag">National Parks</span>
+          </div>
+          <a href="#" class="read-more">Continue reading &rarr;</a>
+        </article>
+      </div>
+
+      <aside>
+        <div class="sidebar-section">
+          <h3>Recent Posts</h3>
+          <ul>
+            <li><a href="#">Rebuilding My Workshop: Lessons in Woodworking</a></li>
+            <li><a href="#">Five Underrated National Parks for Spring Hiking</a></li>
+            <li><a href="#">Sourdough Starter: Month Three Update</a></li>
+            <li><a href="#">Book Review: The Art of Doing Science and Engineering</a></li>
+            <li><a href="#">Why I Switched from Drip to Pour-Over Coffee</a></li>
+          </ul>
+        </div>
+
+        <div class="sidebar-section">
+          <h3>About Me</h3>
+          <p style="color: #6b7280; font-size: 0.875rem;">
+            I write about woodworking, travel, cooking, and whatever else catches my interest.
+            Based in Portland, Oregon.
+          </p>
+        </div>
+
+        <div class="sidebar-section">
+          <h3>Categories</h3>
+          <ul>
+            <li><a href="#">Woodworking (12)</a></li>
+            <li><a href="#">Travel (8)</a></li>
+            <li><a href="#">Cooking (15)</a></li>
+            <li><a href="#">Books (6)</a></li>
+            <li><a href="#">Photography (4)</a></li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      &copy; 2026 The Wandering Pixel. All rights reserved.
+    </div>
+  </footer>
+</body>
+</html>

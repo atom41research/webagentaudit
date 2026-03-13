@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Documentation</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>:root { --assistant-sheet-width: 0px; }</style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <span class="brand">DevDocs</span>
+      <nav>
+        <a href="#" class="active">API Reference</a>
+        <a href="#">Guides</a>
+        <a href="#">SDKs</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="docs-content container" style="padding: 48px 0;">
+    <h1>API Documentation</h1>
+    <p>Welcome to our API docs. Click the sparkle button to ask our AI assistant.</p>
+
+    <section style="margin-top: 32px;">
+      <h2>Authentication</h2>
+      <p>All API requests require a Bearer token in the Authorization header. You can generate tokens from your dashboard settings page.</p>
+      <pre style="background: #f3f4f6; padding: 16px; border-radius: 8px; margin: 16px 0; overflow-x: auto;"><code>curl -H "Authorization: Bearer YOUR_TOKEN" \
+     https://api.example.com/v1/resources</code></pre>
+    </section>
+
+    <section style="margin-top: 32px;">
+      <h2>Endpoints</h2>
+
+      <div class="card" style="margin-top: 16px;">
+        <h3><code>GET /v1/resources</code></h3>
+        <p>List all resources in your account. Supports pagination via <code>page</code> and <code>per_page</code> query parameters.</p>
+      </div>
+
+      <div class="card" style="margin-top: 16px;">
+        <h3><code>POST /v1/resources</code></h3>
+        <p>Create a new resource. Requires a JSON body with <code>name</code> (string) and <code>type</code> (enum: standard, premium).</p>
+      </div>
+
+      <div class="card" style="margin-top: 16px;">
+        <h3><code>GET /v1/resources/:id</code></h3>
+        <p>Retrieve a single resource by its unique identifier.</p>
+      </div>
+
+      <div class="card" style="margin-top: 16px;">
+        <h3><code>DELETE /v1/resources/:id</code></h3>
+        <p>Delete a resource. This action is irreversible.</p>
+      </div>
+    </section>
+
+    <section style="margin-top: 32px;">
+      <h2>Rate Limits</h2>
+      <p>The API enforces rate limits of 100 requests per minute per token. Exceeding this limit returns a <code>429 Too Many Requests</code> response.</p>
+    </section>
+  </main>
+
+  <!-- Trigger button -->
+  <button id="ai-assistant-trigger"
+          aria-label="Ask AI"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          class="ai-trigger-btn">
+    <svg class="lucide-sparkles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 2L9 9l-7 3 7 3 3 7 3-7 7-3-7-3z"/>
+    </svg>
+    Ask AI
+  </button>
+
+  <!-- Hidden panel -->
+  <div id="assistant-panel" class="assistant-panel" style="width: 0px; display: none;">
+    <div class="panel-header">
+      <h3>AI Assistant</h3>
+      <button id="panel-close" aria-label="Close panel">&times;</button>
+    </div>
+    <div id="panel-messages" class="panel-messages chat-messages"></div>
+    <div class="panel-input">
+      <textarea id="panel-input-field" placeholder="Ask a question..." class="chat-assistant-input"></textarea>
+      <button id="panel-send" aria-label="Send message">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+      </button>
+    </div>
+    <p class="ai-disclaimer">Responses are generated using AI</p>
+  </div>
+
+  <footer class="site-footer">
+    <p>DevDocs &copy; 2026. All rights reserved.</p>
+  </footer>
+
+  <!-- Panel open/close logic -->
+  <script>
+  (function () {
+    var trigger = document.getElementById('ai-assistant-trigger');
+    var panel = document.getElementById('assistant-panel');
+    var closeBtn = document.getElementById('panel-close');
+    var inputField = document.getElementById('panel-input-field');
+
+    trigger.addEventListener('click', function () {
+      panel.style.display = 'flex';
+      panel.style.width = '400px';
+      document.documentElement.style.setProperty('--assistant-sheet-width', '400px');
+      trigger.setAttribute('aria-expanded', 'true');
+      inputField.focus();
+    });
+
+    closeBtn.addEventListener('click', function () {
+      panel.style.display = 'none';
+      panel.style.width = '0px';
+      document.documentElement.style.setProperty('--assistant-sheet-width', '0px');
+      trigger.setAttribute('aria-expanded', 'false');
+    });
+  })();
+  </script>
+
+  <!-- Echo chat via shared engine -->
+  <script>
+    window.MOCK_LLM_CONFIG = {
+      mode: 'echo',
+      delayMs: 200,
+      inputSelector: '#panel-input-field',
+      submitSelector: '#panel-send',
+      responseContainer: '#panel-messages',
+    };
+  </script>
+  <script src="../shared/echo-engine.js"></script>
+</body>
+</html>

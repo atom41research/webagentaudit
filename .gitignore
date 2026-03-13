@@ -19,3 +19,19 @@ htmlcov/
 # Rendered page fixtures (large HTML + screenshots, collected locally)
 tests/fixtures/rendered/*/rendered_dom.html
 tests/fixtures/rendered/*/screenshot.png
+
+# Developer-internal files
+kb/
+CLAUDE.md
+ARSENAL_SUBMISSION.md
+tasks/
+output/
+scripts/
+workflow-rules.md
+.claude/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

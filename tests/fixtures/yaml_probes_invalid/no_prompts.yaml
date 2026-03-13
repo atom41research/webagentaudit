@@ -1,0 +1,7 @@
+name: test.no_prompts
+category: extraction
+severity: high
+sophistication: basic
+description: Has neither prompts nor conversations.
+detector_patterns:
+  - 'test'

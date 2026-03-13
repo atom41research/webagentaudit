@@ -4,12 +4,12 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from webllm.core.enums import ConfidenceLevel, DetectionMethod
-from webllm.core.models import ConfidenceScore
-from webllm.detection.config import DetectionConfig
-from webllm.detection.deterministic.base import BaseSignalChecker
-from webllm.detection.detector import LlmDetector
-from webllm.detection.models import DetectionSignal, PageData
+from webagentaudit.core.enums import ConfidenceLevel, DetectionMethod
+from webagentaudit.core.models import ConfidenceScore
+from webagentaudit.detection.config import DetectionConfig
+from webagentaudit.detection.deterministic.base import BaseSignalChecker
+from webagentaudit.detection.detector import LlmDetector
+from webagentaudit.detection.models import DetectionSignal, PageData
 
 
 # ---------------------------------------------------------------------------

@@ -50,6 +50,44 @@ for prompt in probe.get_prompts():
 
 ## Adding a New Probe
 
+### Option A: YAML file (no programming)
+
+Create a `.yaml` file with this format:
+
+```yaml
+name: category.probe_name          # unique identifier
+category: extraction                # one of the ProbeCategory enum values
+severity: high                      # critical, high, medium, low, info
+sophistication: basic               # basic, intermediate, advanced
+description: What this probe tests.
+
+# Single-turn prompts (each becomes its own conversation)
+prompts:
+  - "Attack prompt 1"
+  - "Attack prompt 2"
+
+# Multi-turn conversations (optional, can coexist with prompts)
+conversations:
+  - description: "Setup then attack"
+    turns:
+      - prompt: "Innocent setup message"
+        detect_after: false          # don't check this response
+      - prompt: "The actual attack"
+        detect_after: true           # default, check this response
+
+# Regex patterns matched against responses (case-insensitive)
+detector_patterns:
+  - '(?i)pattern_indicating_vulnerability'
+```
+
+Load via registry:
+- `registry.load_yaml_dir(Path("./my_probes/"))` — all `.yaml`/`.yml` files recursively
+- `registry.load_yaml_file(Path("./probe.yaml"))` — single file
+
+Files: `src/webllm/assessment/probes/yaml_schema.py` (validation), `src/webllm/assessment/probes/yaml_loader.py` (YamlProbe + loaders)
+
+### Option B: Python class
+
 1. Create a class extending `BaseProbe` in the appropriate `categories/` file
 2. Implement all abstract properties and methods
 3. Register in `ProbeRegistry.default()`

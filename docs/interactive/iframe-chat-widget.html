@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Widget</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    body { margin: 0; background: #fff; display: flex; flex-direction: column; height: 100vh; }
+    .widget-header { background: #2563eb; color: #fff; padding: 14px 16px; font-weight: 600; }
+    .widget-messages { flex: 1; overflow-y: auto; padding: 16px; }
+    .widget-input { border-top: 1px solid #e5e7eb; padding: 12px; display: flex; gap: 8px; }
+    .widget-input textarea { flex: 1; border: 1px solid #d1d5db; border-radius: 6px; padding: 8px 12px; font-family: inherit; font-size: 0.9rem; resize: none; }
+    .widget-input button { background: #2563eb; color: #fff; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="widget-header">Chat Support</div>
+  <div id="responses" class="widget-messages message-list">
+    <div class="response bot-message">Hi! How can I help you?</div>
+  </div>
+  <div class="widget-input">
+    <textarea id="prompt-input" placeholder="Type your message..." aria-label="chat message input" rows="2"></textarea>
+    <button id="send-btn" aria-label="Send">Send</button>
+  </div>
+  <script>
+  window.MOCK_LLM_CONFIG = {
+    mode: 'echo',
+    delayMs: 200,
+    inputSelector: '#prompt-input',
+    submitSelector: '#send-btn',
+    responseContainer: '#responses'
+  };
+  </script>
+  <script src="../shared/echo-engine.js"></script>
+</body>
+</html>

@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meridian Digital - Full-Service Digital Agency</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    .agency-hero {
+      background: linear-gradient(135deg, #0c0a09 0%, #1c1917 50%, #292524 100%);
+      color: #fff;
+      padding: 100px 0 80px;
+      text-align: center;
+    }
+    .agency-hero h1 {
+      font-size: 2.75rem;
+      max-width: 700px;
+      margin: 0 auto 16px;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+    }
+    .agency-hero p {
+      font-size: 1.1rem;
+      color: #a8a29e;
+      max-width: 500px;
+      margin: 0 auto 36px;
+    }
+    .agency-hero .hero-btns {
+      display: inline-flex;
+      gap: 12px;
+    }
+    .agency-hero .hero-btns a {
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .agency-hero .hero-btns .primary-btn {
+      background: #f97316;
+      color: #fff;
+    }
+    .agency-hero .hero-btns .outline-btn {
+      background: transparent;
+      color: #fff;
+      border: 1px solid #57534e;
+    }
+
+    .services-section {
+      padding: 64px 0;
+    }
+    .services-section h2 {
+      text-align: center;
+      font-size: 1.75rem;
+      margin-bottom: 8px;
+    }
+    .services-section .section-sub {
+      text-align: center;
+      color: #6b7280;
+      margin-bottom: 40px;
+    }
+    .service-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 28px;
+    }
+    .service-card .service-num {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #f3f4f6;
+      margin-bottom: 12px;
+    }
+    .service-card h3 { margin-bottom: 8px; }
+    .service-card p { color: #6b7280; font-size: 0.9rem; line-height: 1.6; }
+
+    .clients-section {
+      background: #fafaf9;
+      padding: 48px 0;
+      border-top: 1px solid #e5e7eb;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .clients-section h2 {
+      text-align: center;
+      font-size: 1.25rem;
+      color: #9ca3af;
+      margin-bottom: 32px;
+      font-weight: 400;
+    }
+    .client-logos {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 48px;
+      flex-wrap: wrap;
+    }
+    .client-logos .logo-placeholder {
+      width: 120px;
+      height: 40px;
+      background: #e7e5e4;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      color: #78716c;
+      font-weight: 600;
+    }
+
+    .case-studies {
+      padding: 64px 0;
+    }
+    .case-studies h2 {
+      text-align: center;
+      font-size: 1.75rem;
+      margin-bottom: 32px;
+    }
+    .case-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .case-card .case-img {
+      height: 180px;
+      background: linear-gradient(135deg, #fed7aa, #fef3c7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+    }
+    .case-card .case-body {
+      padding: 20px;
+    }
+    .case-card .case-body .tag {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #f97316;
+      background: #fff7ed;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+    .case-card .case-body h3 { margin-bottom: 6px; font-size: 1rem; }
+    .case-card .case-body p { color: #6b7280; font-size: 0.85rem; line-height: 1.6; }
+
+    .team-section {
+      background: #1c1917;
+      color: #fff;
+      padding: 64px 0;
+      text-align: center;
+    }
+    .team-section h2 {
+      font-size: 1.75rem;
+      margin-bottom: 8px;
+    }
+    .team-section p {
+      color: #a8a29e;
+      margin-bottom: 32px;
+    }
+    .team-section a {
+      display: inline-block;
+      background: #f97316;
+      color: #fff;
+      padding: 12px 32px;
+      border-radius: 8px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="container">
+      <span class="brand">Meridian Digital</span>
+      <nav>
+        <a href="#">Services</a>
+        <a href="#">Work</a>
+        <a href="#">About</a>
+        <a href="#">Blog</a>
+        <a href="#">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="agency-hero">
+    <div class="container">
+      <h1>Digital Experiences That Drive Results</h1>
+      <p>Strategy, design, and engineering for brands that want to lead their industry.</p>
+      <div class="hero-btns">
+        <a href="#" class="primary-btn">View Our Work</a>
+        <a href="#" class="outline-btn">Get in Touch</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Client Logos -->
+  <section class="clients-section">
+    <div class="container">
+      <h2>Trusted by leading brands worldwide</h2>
+      <div class="client-logos">
+        <div class="logo-placeholder">TechCorp</div>
+        <div class="logo-placeholder">FinanceIQ</div>
+        <div class="logo-placeholder">HealthVue</div>
+        <div class="logo-placeholder">RetailMax</div>
+        <div class="logo-placeholder">EduPrime</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Services -->
+  <section class="services-section">
+    <div class="container">
+      <h2>What We Do</h2>
+      <p class="section-sub">End-to-end digital services from strategy to launch and beyond.</p>
+      <div class="card-grid">
+        <div class="service-card">
+          <div class="service-num">01</div>
+          <h3>Brand Strategy</h3>
+          <p>Market research, competitive analysis, and brand positioning that sets you apart from the crowd.</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">02</div>
+          <h3>UX/UI Design</h3>
+          <p>User-centered design that balances aesthetics with usability. Prototyping, testing, and iteration.</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">03</div>
+          <h3>Web Development</h3>
+          <p>Custom web applications built with modern frameworks. Responsive, accessible, and performant.</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">04</div>
+          <h3>Growth Marketing</h3>
+          <p>SEO, content strategy, paid acquisition, and conversion optimization to fuel sustainable growth.</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">05</div>
+          <h3>Data & Analytics</h3>
+          <p>Custom dashboards, tracking implementation, and insights that inform better business decisions.</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">06</div>
+          <h3>Managed Services</h3>
+          <p>Ongoing support, monitoring, and optimization to keep your digital presence at peak performance.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Case Studies -->
+  <section class="case-studies">
+    <div class="container">
+      <h2>Selected Work</h2>
+      <div class="card-grid">
+        <div class="case-card">
+          <div class="case-img">&#127968;</div>
+          <div class="case-body">
+            <span class="tag">E-Commerce</span>
+            <h3>RetailMax Platform Redesign</h3>
+            <p>Complete redesign of a $50M e-commerce platform, resulting in 34% increase in conversion rate.</p>
+          </div>
+        </div>
+        <div class="case-card">
+          <div class="case-img" style="background: linear-gradient(135deg, #bbf7d0, #d1fae5);">&#128200;</div>
+          <div class="case-body">
+            <span class="tag">FinTech</span>
+            <h3>FinanceIQ Dashboard</h3>
+            <p>Real-time financial analytics dashboard serving 200K+ daily active users.</p>
+          </div>
+        </div>
+        <div class="case-card">
+          <div class="case-img" style="background: linear-gradient(135deg, #c7d2fe, #ddd6fe);">&#127891;</div>
+          <div class="case-body">
+            <span class="tag">EdTech</span>
+            <h3>EduPrime Learning Platform</h3>
+            <p>Scalable learning management system supporting 500K students across 12 countries.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="team-section">
+    <div class="container">
+      <h2>Let's Build Something Great Together</h2>
+      <p>Tell us about your project and we'll get back to you within 24 hours.</p>
+      <a href="#">Start a Conversation</a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; 2026 Meridian Digital Agency. All rights reserved. &middot; <a href="#">Privacy</a> &middot; <a href="#">Terms</a></p>
+    </div>
+  </footer>
+
+  <!-- Multiple Chat Provider Embeds -->
+  <div id="intercom-container"></div>
+  <div class="drift-widget" id="drift-widget">
+    <div class="drift-frame-controller">
+      <iframe title="Drift Widget Chat" src="about:blank" style="width:0;height:0;border:none;"></iframe>
+    </div>
+  </div>
+  <div id="tidio-chat"></div>
+  <script src="https://widget.intercom.io/widget/agency123"></script>
+  <script src="https://js.driftt.com/include/xyz456/drift.min.js"></script>
+  <script src="https://code.tidio.co/abc789.js"></script>
+
+</body>
+</html>

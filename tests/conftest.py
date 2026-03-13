@@ -1,10 +1,10 @@
-"""Shared fixtures and HTML constants for webllm tests."""
+"""Shared fixtures and HTML constants for webagentaudit tests."""
 
 from typing import Optional
 
 import pytest
 
-from webllm.detection.models import PageData
+from webagentaudit.detection.models import PageData
 
 
 @pytest.fixture
