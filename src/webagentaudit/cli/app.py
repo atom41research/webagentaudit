@@ -554,9 +554,10 @@ def _print_assessment_result(result) -> None:
                            f"  {pr.probe_name}")
                 if pr.matched_patterns:
                     click.echo(f"       matched: {', '.join(pr.matched_patterns)}")
-                if pr.responses:
-                    preview = pr.responses[-1][:200].replace("\n", " ")
-                    click.echo(f"       response: {preview}")
+                if pr.exchanges:
+                    last = pr.exchanges[-1]
+                    click.echo(f"       prompt:   {last.prompt[:200].replace(chr(10), ' ')}")
+                    click.echo(f"       response: {last.response[:200].replace(chr(10), ' ')}")
             else:
                 click.echo(f"  {_style('PASS', fg='green')}  {pr.probe_name}")
 

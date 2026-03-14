@@ -9,7 +9,7 @@ from webagentaudit.llm_channel.models import ChannelMessage
 
 from .config import AssessmentConfig
 from .detectors.pattern_detector import PatternDetector
-from .models import AssessmentResult, AssessmentSummary, ProbeResult
+from .models import AssessmentResult, AssessmentSummary, ProbeExchange, ProbeResult
 from .probes.base import BaseProbe
 from .probes.registry import ProbeRegistry
 
@@ -140,7 +140,7 @@ class LlmAssessor:
         conversations = probe.get_conversations()
         patterns = probe.get_detector_patterns()
         all_matched: list[str] = []
-        all_responses: list[str] = []
+        all_exchanges: list[ProbeExchange] = []
         conversations_run = 0
 
         for conversation in conversations:
@@ -148,11 +148,15 @@ class LlmAssessor:
             for turn in conversation.turns:
                 try:
                     response = await channel.send(ChannelMessage(text=turn.prompt))
-                    all_responses.append(response.text)
-
+                    turn_matched: list[str] = []
                     if turn.detect_after:
-                        matched = self._detector.detect(response.text, patterns)
-                        all_matched.extend(matched)
+                        turn_matched = self._detector.detect(response.text, patterns)
+                        all_matched.extend(turn_matched)
+                    all_exchanges.append(ProbeExchange(
+                        prompt=turn.prompt,
+                        response=response.text,
+                        matched_patterns=turn_matched,
+                    ))
                 except Exception:
                     logger.warning(
                         "Error during probe '%s' conversation turn",
@@ -165,5 +169,5 @@ class LlmAssessor:
             conversations_run=conversations_run,
             vulnerability_detected=len(all_matched) > 0,
             matched_patterns=list(set(all_matched)),
-            responses=all_responses,
+            exchanges=all_exchanges,
         )

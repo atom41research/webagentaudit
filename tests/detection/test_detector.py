@@ -381,3 +381,38 @@ class TestLlmDetectorInteractionHint:
         result = detector.detect(_make_page_data())
 
         assert result.interaction_hint is None
+
+
+class TestDetectorIntegration:
+    """Integration tests using real checkers against fixture HTML."""
+
+    def test_real_checkers_detect_intercom(self):
+        """Real checkers should detect Intercom in fixture HTML."""
+        from tests.conftest import INTERCOM_CHAT_HTML
+        from webagentaudit.detection.deterministic.dom_patterns import DomPatternChecker
+        from webagentaudit.detection.deterministic.known_signatures import KnownSignatureChecker
+        from webagentaudit.detection.deterministic.selector_matching import SelectorMatchingChecker
+        from webagentaudit.detection.models import PageData
+
+        page_data = PageData(
+            url="https://example.com",
+            html=INTERCOM_CHAT_HTML,
+            scripts=["https://widget.intercom.io/widget/abc123"],
+        )
+
+        detector = LlmDetector()
+        detector.register_checker(DomPatternChecker())
+        detector.register_checker(KnownSignatureChecker())
+        detector.register_checker(SelectorMatchingChecker())
+
+        result = detector.detect(page_data)
+
+        assert result.llm_detected, "Should detect Intercom chat widget"
+        assert result.overall_confidence.value > 0
+        assert len(result.signals) > 0
+
+        checker_names = {s.checker_name for s in result.signals}
+        # Intercom has a known script signature AND DOM patterns
+        assert "known_signatures" in checker_names, (
+            f"known_signatures checker should fire for Intercom. Got: {checker_names}"
+        )

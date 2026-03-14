@@ -6,6 +6,14 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 
+class ProbeExchange(BaseModel):
+    """A single prompt-response exchange during probe execution."""
+
+    prompt: str
+    response: str
+    matched_patterns: list[str] = Field(default_factory=list)
+
+
 class ProbeResult(BaseModel):
     """Result of running a single probe against an LLM."""
 
@@ -13,7 +21,7 @@ class ProbeResult(BaseModel):
     conversations_run: int = 0
     vulnerability_detected: bool = False
     matched_patterns: list[str] = Field(default_factory=list)
-    responses: list[str] = Field(default_factory=list)
+    exchanges: list[ProbeExchange] = Field(default_factory=list)
     timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 

@@ -91,6 +91,37 @@ class TestDetectionPositive:
         assert result.llm_detected, f"Should detect LLM on {desc}: {url}"
         assert result.overall_confidence.value > 0, "Should have non-zero confidence"
         assert len(result.signals) > 0, "Should have at least one signal"
+        assert result.url == url
+        REGISTERED_CHECKERS = {
+            "dom_patterns", "selector_matching", "known_signatures",
+            "script_analysis", "ai_indicators", "network_hints",
+            "known_assets",
+        }
+        for signal in result.signals:
+            assert signal.checker_name in REGISTERED_CHECKERS, (
+                f"Unknown checker: {signal.checker_name}"
+            )
+            assert signal.signal_type, "Signal must have a type"
+            assert signal.description, "Signal must have a description"
+            assert signal.confidence.value > 0, "Signal confidence must be positive"
+
+    async def test_echo_page_detects_specific_checkers(self, page, demo_server):
+        """Echo page should fire DOM pattern and AI indicator checkers."""
+        url = f"{demo_server}/interactive/echo-llm.html"
+        await page.goto(url, wait_until="domcontentloaded")
+        await page.wait_for_timeout(500)
+
+        page_data = await _collect_page_data(page, url)
+        detector = _create_detector()
+        result = detector.detect(page_data)
+
+        checker_names = {s.checker_name for s in result.signals}
+        # Echo page has a textarea with placeholder "Ask me anything",
+        # chat-related classes, and data-testid — DOM patterns and AI indicators
+        # should fire.
+        assert len(checker_names) >= 2, (
+            f"Expected multiple checkers to fire, got: {checker_names}"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -120,6 +151,10 @@ class TestDetectionNegative:
 
         assert not result.llm_detected, (
             f"Should NOT detect LLM on {desc}: {url}"
+        )
+        assert len(result.signals) == 0, (
+            f"Negative page should produce no signals, got: "
+            f"{[s.checker_name + ':' + s.signal_type for s in result.signals]}"
         )
 
 
@@ -157,6 +192,15 @@ class TestDetectionResultStructure:
         assert "llm_detected" in data
         assert "signals" in data
         assert isinstance(data["signals"], list)
+        assert data["url"] == url
+        assert data["llm_detected"] is True
+        assert isinstance(data["overall_confidence"]["value"], (int, float))
+        assert data["overall_confidence"]["value"] > 0
+        for signal in data["signals"]:
+            assert "checker_name" in signal
+            assert "signal_type" in signal
+            assert "confidence" in signal
+            assert signal["confidence"]["value"] > 0
 
     async def test_signals_have_checker_name(self, page, demo_server):
         url = f"{demo_server}/interactive/echo-llm.html"
@@ -167,7 +211,12 @@ class TestDetectionResultStructure:
         detector = _create_detector()
         result = detector.detect(page_data)
 
+        REGISTERED_CHECKERS = {
+            "dom_patterns", "selector_matching", "known_signatures",
+            "script_analysis", "ai_indicators", "network_hints",
+            "known_assets",
+        }
         for signal in result.signals:
-            assert signal.checker_name
+            assert signal.checker_name in REGISTERED_CHECKERS
             assert signal.signal_type
             assert signal.description
