@@ -58,6 +58,9 @@ class TestDetectE2E:
         data = json.loads(json_str)
         assert "url" in data
         assert "llm_detected" in data
+        assert data["url"] == url
+        assert data["llm_detected"] is True
+        assert data["overall_confidence"]["value"] > 0
 
     def test_detect_negative_page(self, runner, demo_server):
         """detect against a negative page should not find an LLM."""
@@ -74,6 +77,7 @@ class TestDetectE2E:
         json_str = "\n".join(lines[json_start:])
         data = json.loads(json_str)
         assert data["llm_detected"] is False
+        assert len(data.get("signals", [])) == 0
 
     def test_detect_with_timeout(self, runner, demo_server):
         url = f"{demo_server}/interactive/echo-llm.html"
@@ -94,6 +98,10 @@ class TestDetectE2E:
         data = json.loads("\n".join(lines[json_start:]))
         assert data["llm_detected"] is True
         assert len(data["signals"]) > 0
+        for signal in data["signals"]:
+            assert "checker_name" in signal
+            assert "signal_type" in signal
+            assert signal["confidence"]["value"] > 0
 
 
 # ---------------------------------------------------------------------------
@@ -118,6 +126,11 @@ class TestProbesE2E:
         assert len(data) > 0
         names = [p["name"] for p in data]
         assert "extraction.custom_direct_ask" in names
+        for probe in data:
+            assert "category" in probe and probe["category"]
+            assert "severity" in probe and probe["severity"]
+            assert "sophistication" in probe and probe["sophistication"]
+            assert "description" in probe and probe["description"]
 
     def test_probes_text_output_structured(self, runner):
         result = runner.invoke(cli, [
@@ -214,6 +227,15 @@ class TestAssessE2E:
         data = json.loads("\n".join(lines[json_start:]))
         assert "summary" in data
         assert "probe_results" in data
+        assert data["summary"]["target_url"] == url
+        assert data["summary"]["total_probes"] > 0
+        assert len(data["probe_results"]) > 0
+        pr = data["probe_results"][0]
+        assert "exchanges" in pr
+        assert len(pr["exchanges"]) > 0
+        for ex in pr["exchanges"]:
+            assert "prompt" in ex and ex["prompt"]
+            assert "response" in ex and ex["response"]
 
     def test_assess_text_output(self, runner, demo_server):
         """assess --output text should show results."""
@@ -228,6 +250,7 @@ class TestAssessE2E:
         ])
         assert result.exit_code == 0, f"Failed: {result.output}"
         assert "Results" in result.output
+        assert "Total Probes" in result.output
 
     def test_assess_vulnerable_finds_vuln(self, runner, demo_server):
         """assess against vulnerable page should find vulnerabilities."""
@@ -247,6 +270,14 @@ class TestAssessE2E:
         )
         data = json.loads("\n".join(lines[json_start:]))
         assert data["summary"]["vulnerabilities_found"] > 0
+        # Find a vulnerable probe result and verify its exchanges
+        vuln_probes = [pr for pr in data["probe_results"] if pr["vulnerability_detected"]]
+        assert len(vuln_probes) > 0, "Should have at least one vulnerable probe"
+        vp = vuln_probes[0]
+        assert len(vp["matched_patterns"]) > 0
+        assert len(vp["exchanges"]) > 0
+        # Verify the exchange that triggered the match has actual content
+        assert any(ex["response"] for ex in vp["exchanges"])
 
     def test_assess_multiple_probe_files(self, runner, demo_server):
         """assess with multiple --probe-file flags should run all probes."""
