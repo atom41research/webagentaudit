@@ -8,6 +8,7 @@ must be regular (non-async) functions to avoid nested event loop issues.
 
 from __future__ import annotations
 
+import glob
 import json
 from pathlib import Path
 
@@ -152,3 +153,132 @@ class TestProbesE2E:
         data = json.loads("\n".join(lines[json_start:]))
         for probe in data:
             assert probe["sophistication"] == "basic"
+
+
+# ---------------------------------------------------------------------------
+# assess command e2e
+# ---------------------------------------------------------------------------
+
+
+class TestAssessE2E:
+    """End-to-end tests for the assess command."""
+
+    def test_assess_explicit_selectors(self, runner, demo_server):
+        """assess with explicit selectors against echo page should succeed."""
+        url = f"{demo_server}/interactive/echo-llm.html"
+        result = runner.invoke(cli, [
+            "assess", url,
+            "--input-selector", "#prompt-input",
+            "--response-selector", ".bot-message:last-child",
+            "--submit-selector", "#send-btn",
+            "--probe-dir", YAML_PROBES_DIR,
+            "--output", "text",
+        ])
+        assert result.exit_code == 0, f"Failed: {result.output}"
+        assert "Results" in result.output
+
+    def test_assess_with_probe_file(self, runner, demo_server):
+        """assess with --probe-file should succeed."""
+        url = f"{demo_server}/interactive/echo-llm.html"
+        probe_file = str(FIXTURES_DIR / "yaml_probes" / "single_turn.yaml")
+        result = runner.invoke(cli, [
+            "assess", url,
+            "--input-selector", "#prompt-input",
+            "--response-selector", ".bot-message:last-child",
+            "--submit-selector", "#send-btn",
+            "--probe-file", probe_file,
+            "--output", "text",
+        ])
+        assert result.exit_code == 0, f"Failed: {result.output}"
+
+    def test_assess_json_output(self, runner, demo_server):
+        """assess --output json should produce valid JSON."""
+        url = f"{demo_server}/interactive/echo-llm.html"
+        result = runner.invoke(cli, [
+            "assess", url,
+            "--input-selector", "#prompt-input",
+            "--response-selector", ".bot-message:last-child",
+            "--submit-selector", "#send-btn",
+            "--probe-dir", YAML_PROBES_DIR,
+            "--output", "json",
+        ])
+        assert result.exit_code == 0, f"Failed: {result.output}"
+        # Find JSON in output
+        lines = result.output.strip().split("\n")
+        json_start = None
+        for i, line in enumerate(lines):
+            if line.strip().startswith("{"):
+                json_start = i
+                break
+        assert json_start is not None, f"No JSON in output: {result.output}"
+        data = json.loads("\n".join(lines[json_start:]))
+        assert "summary" in data
+        assert "probe_results" in data
+
+    def test_assess_text_output(self, runner, demo_server):
+        """assess --output text should show results."""
+        url = f"{demo_server}/interactive/echo-llm.html"
+        result = runner.invoke(cli, [
+            "assess", url,
+            "--input-selector", "#prompt-input",
+            "--response-selector", ".bot-message:last-child",
+            "--submit-selector", "#send-btn",
+            "--probe-dir", YAML_PROBES_DIR,
+            "--output", "text",
+        ])
+        assert result.exit_code == 0, f"Failed: {result.output}"
+        assert "Results" in result.output
+
+    def test_assess_vulnerable_finds_vuln(self, runner, demo_server):
+        """assess against vulnerable page should find vulnerabilities."""
+        url = f"{demo_server}/interactive/vulnerable-llm.html"
+        result = runner.invoke(cli, [
+            "assess", url,
+            "--input-selector", "#prompt-input",
+            "--response-selector", ".bot-message:last-child",
+            "--submit-selector", "#send-btn",
+            "--probe-dir", YAML_PROBES_DIR,
+            "--output", "json",
+        ])
+        assert result.exit_code == 0, f"Failed: {result.output}"
+        lines = result.output.strip().split("\n")
+        json_start = next(
+            i for i, line in enumerate(lines) if line.strip().startswith("{")
+        )
+        data = json.loads("\n".join(lines[json_start:]))
+        assert data["summary"]["vulnerabilities_found"] > 0
+
+    def test_assess_multiple_probe_files(self, runner, demo_server):
+        """assess with multiple --probe-file flags should run all probes."""
+        url = f"{demo_server}/interactive/echo-llm.html"
+        probe_file_1 = str(FIXTURES_DIR / "yaml_probes" / "single_turn.yaml")
+        # Check if there's a second probe file to use
+        yaml_files = sorted(glob.glob(str(FIXTURES_DIR / "yaml_probes" / "*.yaml")))
+        if len(yaml_files) < 2:
+            pytest.skip("Need at least 2 YAML probe files")
+        probe_file_2 = yaml_files[1] if yaml_files[0] == probe_file_1 else yaml_files[0]
+
+        result = runner.invoke(cli, [
+            "assess", url,
+            "--input-selector", "#prompt-input",
+            "--response-selector", ".bot-message:last-child",
+            "--submit-selector", "#send-btn",
+            "--probe-file", probe_file_1,
+            "--probe-file", probe_file_2,
+            "--output", "json",
+        ])
+        assert result.exit_code == 0, f"Failed: {result.output}"
+
+    def test_assess_iframe_chat(self, runner, demo_server):
+        """assess with --iframe-selector should work against iframe page."""
+        url = f"{demo_server}/interactive/iframe-chat.html"
+        result = runner.invoke(cli, [
+            "assess", url,
+            "--iframe-selector", "#chat-widget-frame",
+            "--input-selector", "#prompt-input",
+            "--response-selector", ".bot-message:last-child",
+            "--submit-selector", "#send-btn",
+            "--probe-dir", YAML_PROBES_DIR,
+            "--output", "text",
+        ])
+        assert result.exit_code == 0, f"Failed: {result.output}"

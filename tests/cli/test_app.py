@@ -354,3 +354,34 @@ class TestEdgeCases:
         """Version in CLI should match VERSION in core.consts."""
         result = runner.invoke(cli, ["--version"])
         assert VERSION in result.output
+
+
+# ---------------------------------------------------------------------------
+# Assess command validation
+# ---------------------------------------------------------------------------
+
+
+class TestAssessValidation:
+    """Validation tests for assess command options."""
+
+    def test_assess_invalid_category(self, runner):
+        """assess with invalid --category should fail gracefully."""
+        result = runner.invoke(cli, [
+            "assess", "http://example.com",
+            "--input-selector", "#input",
+            "--response-selector", "#resp",
+            "--category", "bogus_category",
+        ])
+        assert result.exit_code != 0
+        assert "Invalid category" in result.output or "Error" in result.output
+
+    def test_assess_invalid_sophistication(self, runner):
+        """assess with invalid --sophistication should fail gracefully."""
+        result = runner.invoke(cli, [
+            "assess", "http://example.com",
+            "--input-selector", "#input",
+            "--response-selector", "#resp",
+            "--sophistication", "mega_advanced",
+        ])
+        assert result.exit_code != 0
+        assert "Invalid sophistication" in result.output or "Error" in result.output

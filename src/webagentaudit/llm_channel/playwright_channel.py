@@ -1,6 +1,6 @@
 """LLM channel that communicates via browser automation."""
 
-from playwright.async_api import Browser, BrowserContext, Page, async_playwright
+from playwright.async_api import Browser, BrowserContext, Frame, Page, async_playwright
 
 from webagentaudit.core.exceptions import (
     ChannelError,
@@ -27,6 +27,7 @@ class PlaywrightChannel(BaseLlmChannel):
         self._browser: Browser | None = None
         self._context: BrowserContext | None = None
         self._page: Page | None = None
+        self._interaction_target: Page | Frame | None = None
 
     async def connect(self, url: str) -> None:
         self._playwright = await async_playwright().start()
@@ -59,30 +60,56 @@ class PlaywrightChannel(BaseLlmChannel):
 
         await self._page.goto(url, wait_until="domcontentloaded")
 
-    async def send(self, message: ChannelMessage) -> ChannelResponse:
-        if not self._page:
+        # Resolve iframe if strategy specifies one
+        iframe_sel = getattr(self._strategy, "iframe_selector", None)
+        if iframe_sel:
+            try:
+                iframe_el = self._page.locator(iframe_sel)
+                await iframe_el.wait_for(timeout=self._config.timeout_ms)
+                frame = await iframe_el.element_handle()
+                content_frame = await frame.content_frame()
+                if content_frame is None:
+                    raise ChannelError(
+                        f"Could not access content frame of '{iframe_sel}'"
+                    )
+                self._interaction_target = content_frame
+            except ChannelError:
+                raise
+            except Exception as exc:
+                raise ChannelError(
+                    f"Failed to resolve iframe '{iframe_sel}': {exc}"
+                ) from exc
+        else:
+            self._interaction_target = self._page
+
+    @property
+    def _target(self) -> Page | Frame:
+        """The page or frame to interact with."""
+        if self._interaction_target is None:
             raise ChannelNotReadyError("Channel not connected")
-        await self._strategy.send_message(self._page, message.text)
+        return self._interaction_target
+
+    async def send(self, message: ChannelMessage) -> ChannelResponse:
+        target = self._target
+        await self._strategy.send_message(target, message.text)
         text = await self._strategy.get_response(
-            self._page, self._config.timeout_ms
+            target, self._config.timeout_ms
         )
         if text is None:
             raise ChannelTimeoutError("No response received within timeout")
         return ChannelResponse(text=text)
 
     async def write(self, text: str) -> None:
-        if not self._page:
-            raise ChannelNotReadyError("Channel not connected")
-        input_sel = await self._strategy.find_input(self._page)
+        target = self._target
+        input_sel = await self._strategy.find_input(target)
         if not input_sel:
             raise ChannelNotReadyError("Input element not found")
-        await self._page.fill(input_sel, text)
+        await target.fill(input_sel, text)
 
     async def read(self, timeout_ms: int | None = None) -> ChannelResponse:
-        if not self._page:
-            raise ChannelNotReadyError("Channel not connected")
+        target = self._target
         timeout = timeout_ms or self._config.timeout_ms
-        text = await self._strategy.get_response(self._page, timeout)
+        text = await self._strategy.get_response(target, timeout)
         if text is None:
             raise ChannelTimeoutError("No response received within timeout")
         return ChannelResponse(text=text)

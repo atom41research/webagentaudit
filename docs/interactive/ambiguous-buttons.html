@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Support Chat</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    /*
+     * Newsletter bar sits just below the chat input bar.
+     * The gap between them is small enough (~80px) that the newsletter
+     * "Send" button falls within SUBMIT_MAX_DISTANCE_PX (200px) of the
+     * chat textarea, making it a viable (and misleading) candidate.
+     */
+    .newsletter-strip {
+      background: #1a1a2e;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .newsletter-strip .newsletter-label {
+      color: #d1d5db;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+    .newsletter-strip .newsletter-email {
+      border: 1px solid #4b5563;
+      background: #2d2d44;
+      color: #fff;
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      width: 240px;
+    }
+    .newsletter-strip .newsletter-email::placeholder {
+      color: #9ca3af;
+    }
+    .newsletter-strip .newsletter-send-btn {
+      background: #059669;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 20px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 0.85rem;
+    }
+    .newsletter-strip .newsletter-send-btn:hover {
+      background: #047857;
+    }
+
+    /* Icon-only send button — no text content, only SVG */
+    .xk-action-trigger {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      width: 44px;
+      height: 44px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      padding: 0;
+    }
+    .xk-action-trigger:hover {
+      background: #1d4ed8;
+    }
+    .xk-action-trigger svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+  </style>
+</head>
+<body class="chat-full-page">
+  <div id="chat-container" class="ai-chat" style="display:flex;flex-direction:column;height:100vh;">
+    <div class="chat-header">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Support Chat
+    </div>
+
+    <div id="responses" class="chat-messages chat-body">
+      <div class="response bot-message">Hi there! How can I help you today?</div>
+    </div>
+
+    <!-- Chat input bar: textarea + icon-only SVG send button (the REAL submit) -->
+    <div class="chat-input-bar">
+      <textarea id="prompt-input" class="chat-input" placeholder="Ask me anything" rows="2"></textarea>
+      <button class="xk-action-trigger">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+
+    <!-- Newsletter strip: positioned right below chat input bar.
+         The "Send" button here is the DECOY — it has keyword text "Send"
+         which gives it a higher label score than the icon-only real button
+         above (no text, no label keywords, no class keywords).
+         Without --submit-hint, auto-discovery picks the wrong one. -->
+    <div class="newsletter-strip">
+      <span class="newsletter-label">Get AI tips in your inbox:</span>
+      <input type="email" class="newsletter-email" placeholder="Enter your email">
+      <button class="newsletter-send-btn">Send</button>
+    </div>
+  </div>
+
+  <script>
+  window.MOCK_LLM_CONFIG = {
+    mode: 'echo',
+    delayMs: 200,
+    inputSelector: '#prompt-input',
+    submitSelector: '.xk-action-trigger',
+    responseContainer: '#responses'
+  };
+  </script>
+  <script src="../shared/echo-engine.js"></script>
+</body>
+</html>

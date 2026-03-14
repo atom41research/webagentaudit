@@ -274,9 +274,9 @@ async def _detect(url: str, headful: bool, browser: str,
 @click.option("--probe-dir", type=click.Path(exists=True, file_okay=False),
               help="Directory of custom YAML probes.")
 @click.option("--probe-file", type=click.Path(exists=True, dir_okay=False),
-              help="Single custom YAML probe file.")
+              multiple=True, help="Single custom YAML probe file.")
 @click.option("--screenshots", is_flag=True,
-              help="Save screenshots during assessment.")
+              help="Save screenshots during auto-discovery.")
 @click.option("-v", "--verbose", is_flag=True, help="Enable verbose debug logging.")
 @click.option("--output", "output_format", type=click.Choice(["text", "json"]),
               default="text", help="Output format.")
@@ -288,7 +288,7 @@ def assess(
     submit_hint: str | None, response_hint: str | None,
     iframe_selector: str | None, wait_for_selector: str | None,
     category: str | None, sophistication: str | None, probes: str | None,
-    probe_dir: str | None, probe_file: str | None, screenshots: bool,
+    probe_dir: str | None, probe_file: tuple[str, ...], screenshots: bool,
     verbose: bool, output_format: str,
 ) -> None:
     """Assess AI agent security on a webpage.
@@ -316,7 +316,7 @@ def assess(
 def _load_registry(
     *,
     probe_dir: str | None,
-    probe_file: str | None,
+    probe_file: tuple[str, ...],
     category: str | None,
     sophistication: str | None,
     probes: str | None,
@@ -328,19 +328,27 @@ def _load_registry(
     if probe_dir:
         loaded = registry.load_yaml_dir(Path(probe_dir))
         click.echo(f"Loaded {loaded} custom probe(s) from {probe_dir}")
-    if probe_file:
-        registry.load_yaml_file(Path(probe_file))
-        click.echo(f"Loaded custom probe from {probe_file}")
+    for pf in probe_file:
+        registry.load_yaml_file(Path(pf))
+        click.echo(f"Loaded custom probe from {pf}")
 
     filter_kwargs: dict = {}
     if category:
-        filter_kwargs["categories"] = [
-            ProbeCategory(c.strip()) for c in category.split(",")
-        ]
+        try:
+            filter_kwargs["categories"] = [
+                ProbeCategory(c.strip()) for c in category.split(",")
+            ]
+        except ValueError as e:
+            valid = ", ".join(v.value for v in ProbeCategory)
+            raise click.BadParameter(f"Invalid category. Valid: {valid}") from e
     if sophistication:
-        filter_kwargs["sophistication_levels"] = [
-            Sophistication(s.strip()) for s in sophistication.split(",")
-        ]
+        try:
+            filter_kwargs["sophistication_levels"] = [
+                Sophistication(s.strip()) for s in sophistication.split(",")
+            ]
+        except ValueError as e:
+            valid = ", ".join(v.value for v in Sophistication)
+            raise click.BadParameter(f"Invalid sophistication. Valid: {valid}") from e
     if probes:
         filter_kwargs["names"] = [n.strip() for n in probes.split(",")]
 
@@ -420,7 +428,7 @@ async def _assess(
     submit_hint: str | None, response_hint: str | None,
     iframe_selector: str | None, wait_for_selector: str | None,
     category: str | None, sophistication: str | None, probes: str | None,
-    probe_dir: str | None, probe_file: str | None,
+    probe_dir: str | None, probe_file: tuple[str, ...],
     screenshots: bool, output_format: str,
 ) -> None:
     from playwright.async_api import async_playwright
@@ -489,6 +497,7 @@ async def _assess(
             input_selector=_inp,
             response_selector=_resp,
             submit_selector=_sub,
+            iframe_selector=iframe_selector,
         )
         return PlaywrightChannel(config=channel_config, strategy=strategy)
 
@@ -580,10 +589,18 @@ def probes(category: str | None, sophistication: str | None,
     all_probes = registry.get_all()
 
     if category:
-        cats = {ProbeCategory(c.strip()) for c in category.split(",")}
+        try:
+            cats = {ProbeCategory(c.strip()) for c in category.split(",")}
+        except ValueError as e:
+            valid = ", ".join(v.value for v in ProbeCategory)
+            raise click.BadParameter(f"Invalid category. Valid: {valid}") from e
         all_probes = [p for p in all_probes if p.category in cats]
     if sophistication:
-        sophs = {Sophistication(s.strip()) for s in sophistication.split(",")}
+        try:
+            sophs = {Sophistication(s.strip()) for s in sophistication.split(",")}
+        except ValueError as e:
+            valid = ", ".join(v.value for v in Sophistication)
+            raise click.BadParameter(f"Invalid sophistication. Valid: {valid}") from e
         all_probes = [p for p in all_probes if p.sophistication in sophs]
 
     all_probes.sort(key=lambda p: (p.category.value, p.name))
