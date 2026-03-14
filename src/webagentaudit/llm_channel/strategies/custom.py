@@ -25,6 +25,7 @@ class CustomStrategy(BaseInteractionStrategy):
         input_selector: str,
         response_selector: str,
         submit_selector: str | None = None,
+        iframe_selector: str | None = None,
     ) -> None:
         if not input_selector:
             raise ValueError("input_selector is required for CustomStrategy")
@@ -34,6 +35,11 @@ class CustomStrategy(BaseInteractionStrategy):
         self._input_selector = input_selector
         self._submit_selector = submit_selector
         self._response_selector = response_selector
+        self._iframe_selector = iframe_selector
+
+    @property
+    def iframe_selector(self) -> str | None:
+        return self._iframe_selector
 
     async def find_input(self, page: Page | Frame) -> bool:
         """Check that the user-provided input selector matches a visible element."""

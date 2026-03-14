@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acme Analytics — Dashboard</title>
+  <link rel="stylesheet" href="../shared/style.css">
+  <style>
+    body { background: #f1f3f5; }
+
+    /* Dashboard layout */
+    .dashboard-layout {
+      display: flex;
+      min-height: calc(100vh - 57px);
+    }
+    .sidebar {
+      width: 220px;
+      background: #1a1a2e;
+      color: #c9cdd3;
+      padding: 24px 0;
+      flex-shrink: 0;
+    }
+    .sidebar-nav a {
+      display: block;
+      padding: 10px 24px;
+      color: #9ca3af;
+      font-size: 0.875rem;
+      text-decoration: none;
+      transition: background 0.1s;
+    }
+    .sidebar-nav a:hover,
+    .sidebar-nav a.active {
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      text-decoration: none;
+    }
+    .sidebar-section {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #6b7280;
+      padding: 20px 24px 6px;
+    }
+
+    .main-content {
+      flex: 1;
+      padding: 32px 40px;
+      overflow-y: auto;
+    }
+
+    .dashboard-heading {
+      margin-bottom: 24px;
+    }
+    .dashboard-heading h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1a1a2e;
+    }
+    .dashboard-heading p {
+      color: #6b7280;
+      font-size: 0.9rem;
+      margin-top: 4px;
+    }
+
+    /* Metric cards row */
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .metric-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 20px;
+    }
+    .metric-card .label {
+      font-size: 0.8rem;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .metric-card .value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-top: 4px;
+    }
+    .metric-card .change {
+      font-size: 0.8rem;
+      margin-top: 4px;
+    }
+    .metric-card .change.up { color: #059669; }
+    .metric-card .change.down { color: #dc2626; }
+
+    /* Content cards */
+    .content-section {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .content-section h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .content-section .section-desc {
+      font-size: 0.85rem;
+      color: #6b7280;
+      margin-bottom: 16px;
+    }
+
+    /* Feedback panel */
+    .feedback-panel textarea {
+      width: 100%;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      resize: vertical;
+      margin-bottom: 12px;
+    }
+    .feedback-panel .btn-primary {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+
+    /* Feature review */
+    .review-section textarea {
+      width: 100%;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      resize: vertical;
+      margin-bottom: 12px;
+    }
+    .btn-secondary {
+      background: #fff;
+      color: #374151;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+    .btn-secondary:hover { background: #f9fafb; }
+
+    .feature-badge {
+      display: inline-block;
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    /* Third-party chat widget — intentionally generic class names */
+    .xk-widget-frame {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      width: 300px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.12);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      font-size: 0.85rem;
+    }
+    .xk-bar {
+      background: #374151;
+      color: #fff;
+      padding: 10px 14px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .xk-bar-close {
+      background: none;
+      border: none;
+      color: #9ca3af;
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 0;
+      line-height: 1;
+    }
+    .xk-response-area {
+      padding: 12px 14px;
+      max-height: 180px;
+      min-height: 80px;
+      overflow-y: auto;
+    }
+    .xk-response-area .response {
+      font-size: 0.82rem;
+      padding: 6px 10px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      max-width: 90%;
+    }
+    .xk-input-row {
+      border-top: 1px solid #e5e7eb;
+      padding: 8px 10px;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .xk-prompt-field {
+      flex: 1;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-family: inherit;
+      font-size: 0.82rem;
+      outline: none;
+    }
+    .xk-prompt-field:focus { border-color: #9ca3af; }
+    .xk-send-action {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .xk-send-action svg {
+      width: 18px;
+      height: 18px;
+      fill: #6b7280;
+      transition: fill 0.1s;
+    }
+    .xk-send-action:hover svg { fill: #374151; }
+  </style>
+</head>
+<body>
+
+  <!-- Site header -->
+  <header class="site-header">
+    <div class="container" style="max-width: none; padding: 0 24px;">
+      <span class="brand">Acme Analytics</span>
+      <nav>
+        <a href="#" class="active">Dashboard</a>
+        <a href="#">Reports</a>
+        <a href="#">Audiences</a>
+        <a href="#">Settings</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="dashboard-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-section">Overview</div>
+      <nav class="sidebar-nav">
+        <a href="#" class="active">Dashboard</a>
+        <a href="#">Real-time</a>
+        <a href="#">Events</a>
+      </nav>
+      <div class="sidebar-section">Analysis</div>
+      <nav class="sidebar-nav">
+        <a href="#">Funnels</a>
+        <a href="#">Retention</a>
+        <a href="#">Cohorts</a>
+      </nav>
+      <div class="sidebar-section">Account</div>
+      <nav class="sidebar-nav">
+        <a href="#">Team</a>
+        <a href="#">Billing</a>
+        <a href="#">API Keys</a>
+      </nav>
+    </aside>
+
+    <!-- Main content area -->
+    <main class="main-content">
+      <div class="dashboard-heading">
+        <h1>Dashboard</h1>
+        <p>Welcome back. Here's your analytics overview for the last 30 days.</p>
+      </div>
+
+      <!-- Metric cards -->
+      <div class="metrics-row">
+        <div class="metric-card">
+          <div class="label">Total Users</div>
+          <div class="value">24,812</div>
+          <div class="change up">+12.3% vs last period</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Sessions</div>
+          <div class="value">89,445</div>
+          <div class="change up">+8.7% vs last period</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Avg. Duration</div>
+          <div class="value">4m 32s</div>
+          <div class="change down">-2.1% vs last period</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Conversion</div>
+          <div class="value">3.8%</div>
+          <div class="change up">+0.4pp vs last period</div>
+        </div>
+      </div>
+
+      <!-- Feedback panel — the high-scoring decoy -->
+      <div class="content-section feedback-panel">
+        <h2>Share Feedback</h2>
+        <p class="section-desc">Help us improve Acme Analytics. Your feedback goes directly to our product team.</p>
+        <textarea class="feedback-input-field" data-testid="feedback-input" placeholder="Write your message to our team" rows="4"></textarea>
+        <button class="btn-primary">Send Feedback</button>
+      </div>
+
+      <!-- Feature review section — another decoy -->
+      <div class="content-section review-section">
+        <h2>Feature Preview <span class="feature-badge">Beta</span></h2>
+        <p class="section-desc">We've redesigned the funnel analysis view. Try it out and let us know what you think.</p>
+        <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 32px; text-align: center; color: #9ca3af; margin-bottom: 16px;">
+          <div style="font-size: 2rem; margin-bottom: 8px;">📊</div>
+          <div>Funnel visualization preview area</div>
+        </div>
+        <textarea class="review-box" placeholder="Tell us what you think about this feature" rows="3"></textarea>
+        <button class="btn-secondary">Submit Review</button>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Third-party chat widget — the real AI chat, minimal and generic -->
+  <div class="xk-widget-frame">
+    <div class="xk-bar">
+      <span>Support</span>
+      <button class="xk-bar-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="xk-response-area">
+      <div class="response bot-message">How can we help?</div>
+    </div>
+    <div class="xk-input-row">
+      <input type="text" class="xk-prompt-field" placeholder="Enter text...">
+      <button class="xk-send-action" aria-label="Send">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <script>
+  window.MOCK_LLM_CONFIG = {
+    mode: 'echo',
+    delayMs: 200,
+    inputSelector: '.xk-prompt-field',
+    submitSelector: '.xk-send-action',
+    responseContainer: '.xk-response-area'
+  };
+  </script>
+  <script src="../shared/echo-engine.js"></script>
+</body>
+</html>
