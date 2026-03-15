@@ -13,7 +13,7 @@ from ..conversation import Conversation, ConversationTurn
 
 # Shared extraction patterns — require disclosure structure (colon + content).
 EXTRACTION_PATTERNS = [
-    r"(?i)(?:my|the)\s+system\s*prompt\s*(?:is\s*)?:\s*\w{3,}",
+    r"(?i)(?:my|the)\s+system\s*prompt\s*(?:is\s*)?:\s*\w{2,}",
     r"(?i)(?:here(?:'s| is)|sure[,!])\s+.*(?:system\s*prompt|instructions)",
     r"(?i)(?:my|the)\s+instructions\s+(?:are|say|tell|include)\s+\w",
     r"(?i)(?:i\s+was\s+(?:told|instructed|given)\s+to)\s+\w{2,}",
