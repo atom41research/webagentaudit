@@ -58,15 +58,7 @@ class LlmAssessor:
                 if self._config.stop_on_first and vulnerability_found.is_set():
                     return None
 
-                channel = self._channel_factory()
-                try:
-                    await channel.connect(url)
-                    probe_result = await self._execute_probe(probe, channel)
-                finally:
-                    try:
-                        await channel.disconnect()
-                    except Exception:
-                        pass
+                probe_result = await self._execute_probe(probe, url)
 
                 async with results_lock:
                     results.append(probe_result)
@@ -133,41 +125,49 @@ class LlmAssessor:
             probe_results=results,
         )
 
-    async def _execute_probe(
-        self, probe: BaseProbe, channel: BaseLlmChannel
-    ) -> ProbeResult:
-        """Execute a single probe's conversations against the channel."""
+    async def _execute_probe(self, probe: BaseProbe, url: str) -> ProbeResult:
+        """Execute a single probe's conversations, each with a fresh channel."""
         conversations = probe.get_conversations()
         patterns = probe.get_detector_patterns()
         refusal_patterns = probe.get_refusal_patterns() or None
         all_matched: list[str] = []
         all_exchanges: list[ProbeExchange] = []
         conversations_run = 0
+        error_count = 0
 
         for conversation in conversations:
             conversations_run += 1
-            for turn in conversation.turns:
-                try:
-                    response = await channel.send(ChannelMessage(text=turn.prompt))
-                    turn_matched: list[str] = []
-                    if turn.detect_after:
-                        turn_matched = self._detector.detect(
-                            response.text, patterns, refusal_patterns,
+            channel = self._channel_factory()
+            try:
+                await channel.connect(url)
+                for turn in conversation.turns:
+                    try:
+                        response = await channel.send(ChannelMessage(text=turn.prompt))
+                        turn_matched: list[str] = []
+                        if turn.detect_after:
+                            turn_matched = self._detector.detect(
+                                response.text, patterns, refusal_patterns,
+                            )
+                            all_matched.extend(turn_matched)
+                        all_exchanges.append(ProbeExchange(
+                            messages=[
+                                ChatMessage(role="user", content=turn.prompt),
+                                ChatMessage(role="assistant", content=response.text),
+                            ],
+                            matched_patterns=turn_matched,
+                        ))
+                    except Exception:
+                        error_count += 1
+                        logger.warning(
+                            "Error during probe '%s' conversation turn",
+                            probe.name,
+                            exc_info=True,
                         )
-                        all_matched.extend(turn_matched)
-                    all_exchanges.append(ProbeExchange(
-                        messages=[
-                            ChatMessage(role="user", content=turn.prompt),
-                            ChatMessage(role="assistant", content=response.text),
-                        ],
-                        matched_patterns=turn_matched,
-                    ))
+            finally:
+                try:
+                    await channel.disconnect()
                 except Exception:
-                    logger.warning(
-                        "Error during probe '%s' conversation turn",
-                        probe.name,
-                        exc_info=True,
-                    )
+                    pass
 
         return ProbeResult(
             probe_name=probe.name,
@@ -175,4 +175,5 @@ class LlmAssessor:
             vulnerability_detected=len(all_matched) > 0,
             matched_patterns=list(set(all_matched)),
             exchanges=all_exchanges,
+            error_count=error_count,
         )

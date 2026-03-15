@@ -53,6 +53,7 @@ class ProbeResult(BaseModel):
     vulnerability_detected: bool = False
     matched_patterns: list[str] = Field(default_factory=list)
     exchanges: list[ProbeExchange] = Field(default_factory=list)
+    error_count: int = 0
     timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 

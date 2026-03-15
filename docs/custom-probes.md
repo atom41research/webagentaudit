@@ -1,6 +1,6 @@
 # Custom Probes
 
-WebAgentAudit ships with 102 built-in probes. You can add your own by writing YAML files — no Python required.
+WebAgentAudit ships with 47 built-in probes (consolidated from 102 individual test cases for more efficient, focused coverage). You can add your own by writing YAML files — no Python required.
 
 ## Probe file format
 
@@ -414,7 +414,7 @@ This loads your custom probe, filters to only that probe by name, and runs it in
 
 The tool outputs:
 - Per-probe pass/fail with matched patterns
-- Conversation logs in ChatML format (saved to `output/` by default)
+- Conversation logs in ChatML format
 - Screenshots showing each interaction step (with `--screenshots`)
 
 ## Validation errors
