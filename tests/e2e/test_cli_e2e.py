@@ -36,14 +36,14 @@ class TestDetectE2E:
 
     def test_detect_text_output(self, runner, demo_server):
         """detect against an interactive demo page should find an LLM."""
-        url = f"{demo_server}/interactive/echo-llm.html"
+        url = f"{demo_server}/interactive/reverse-llm.html"
         result = runner.invoke(cli, ["detect", url, "--output", "text"])
         assert result.exit_code == 0, f"Failed: {result.output}"
         assert "Detection Result" in result.output
 
     def test_detect_json_output(self, runner, demo_server):
         """detect --output json should produce valid JSON."""
-        url = f"{demo_server}/interactive/echo-llm.html"
+        url = f"{demo_server}/interactive/reverse-llm.html"
         result = runner.invoke(cli, ["detect", url, "--output", "json"])
         assert result.exit_code == 0, f"Failed: {result.output}"
         # Find JSON in output (skip any non-JSON prefix)
@@ -80,7 +80,7 @@ class TestDetectE2E:
         assert len(data.get("signals", [])) == 0
 
     def test_detect_with_timeout(self, runner, demo_server):
-        url = f"{demo_server}/interactive/echo-llm.html"
+        url = f"{demo_server}/interactive/reverse-llm.html"
         result = runner.invoke(cli, [
             "detect", url, "--timeout", "60000",
         ])
@@ -88,7 +88,7 @@ class TestDetectE2E:
 
     def test_detect_positive_has_signals(self, runner, demo_server):
         """detect JSON output for a positive page should include signals."""
-        url = f"{demo_server}/interactive/echo-llm.html"
+        url = f"{demo_server}/interactive/reverse-llm.html"
         result = runner.invoke(cli, ["detect", url, "--output", "json"])
         assert result.exit_code == 0
         lines = result.output.strip().split("\n")
@@ -178,7 +178,7 @@ class TestAssessE2E:
 
     def test_assess_explicit_selectors(self, runner, demo_server):
         """assess with explicit selectors against echo page should succeed."""
-        url = f"{demo_server}/interactive/echo-llm.html"
+        url = f"{demo_server}/interactive/reverse-llm.html"
         result = runner.invoke(cli, [
             "assess", url,
             "--input-selector", "#prompt-input",
@@ -192,7 +192,7 @@ class TestAssessE2E:
 
     def test_assess_with_probe_file(self, runner, demo_server):
         """assess with --probe-file should succeed."""
-        url = f"{demo_server}/interactive/echo-llm.html"
+        url = f"{demo_server}/interactive/reverse-llm.html"
         probe_file = str(FIXTURES_DIR / "yaml_probes" / "single_turn.yaml")
         result = runner.invoke(cli, [
             "assess", url,
@@ -206,7 +206,7 @@ class TestAssessE2E:
 
     def test_assess_json_output(self, runner, demo_server):
         """assess --output json should produce valid JSON."""
-        url = f"{demo_server}/interactive/echo-llm.html"
+        url = f"{demo_server}/interactive/reverse-llm.html"
         result = runner.invoke(cli, [
             "assess", url,
             "--input-selector", "#prompt-input",
@@ -234,12 +234,16 @@ class TestAssessE2E:
         assert "exchanges" in pr
         assert len(pr["exchanges"]) > 0
         for ex in pr["exchanges"]:
-            assert "prompt" in ex and ex["prompt"]
-            assert "response" in ex and ex["response"]
+            assert "messages" in ex and len(ex["messages"]) >= 2
+            roles = [m["role"] for m in ex["messages"]]
+            assert "user" in roles, "Exchange must have a user message"
+            assert "assistant" in roles, "Exchange must have an assistant message"
+            for m in ex["messages"]:
+                assert m["content"], "Message content must be non-empty"
 
     def test_assess_text_output(self, runner, demo_server):
         """assess --output text should show results."""
-        url = f"{demo_server}/interactive/echo-llm.html"
+        url = f"{demo_server}/interactive/reverse-llm.html"
         result = runner.invoke(cli, [
             "assess", url,
             "--input-selector", "#prompt-input",
@@ -276,12 +280,17 @@ class TestAssessE2E:
         vp = vuln_probes[0]
         assert len(vp["matched_patterns"]) > 0
         assert len(vp["exchanges"]) > 0
-        # Verify the exchange that triggered the match has actual content
-        assert any(ex["response"] for ex in vp["exchanges"])
+        # Verify exchanges have assistant responses with actual content
+        assert any(
+            m["content"]
+            for ex in vp["exchanges"]
+            for m in ex["messages"]
+            if m["role"] == "assistant"
+        )
 
     def test_assess_multiple_probe_files(self, runner, demo_server):
         """assess with multiple --probe-file flags should run all probes."""
-        url = f"{demo_server}/interactive/echo-llm.html"
+        url = f"{demo_server}/interactive/reverse-llm.html"
         probe_file_1 = str(FIXTURES_DIR / "yaml_probes" / "single_turn.yaml")
         # Check if there's a second probe file to use
         yaml_files = sorted(glob.glob(str(FIXTURES_DIR / "yaml_probes" / "*.yaml")))

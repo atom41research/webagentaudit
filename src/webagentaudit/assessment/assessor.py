@@ -9,7 +9,7 @@ from webagentaudit.llm_channel.models import ChannelMessage
 
 from .config import AssessmentConfig
 from .detectors.pattern_detector import PatternDetector
-from .models import AssessmentResult, AssessmentSummary, ProbeExchange, ProbeResult
+from .models import AssessmentResult, AssessmentSummary, ChatMessage, ProbeExchange, ProbeResult
 from .probes.base import BaseProbe
 from .probes.registry import ProbeRegistry
 
@@ -139,6 +139,7 @@ class LlmAssessor:
         """Execute a single probe's conversations against the channel."""
         conversations = probe.get_conversations()
         patterns = probe.get_detector_patterns()
+        refusal_patterns = probe.get_refusal_patterns() or None
         all_matched: list[str] = []
         all_exchanges: list[ProbeExchange] = []
         conversations_run = 0
@@ -150,11 +151,15 @@ class LlmAssessor:
                     response = await channel.send(ChannelMessage(text=turn.prompt))
                     turn_matched: list[str] = []
                     if turn.detect_after:
-                        turn_matched = self._detector.detect(response.text, patterns)
+                        turn_matched = self._detector.detect(
+                            response.text, patterns, refusal_patterns,
+                        )
                         all_matched.extend(turn_matched)
                     all_exchanges.append(ProbeExchange(
-                        prompt=turn.prompt,
-                        response=response.text,
+                        messages=[
+                            ChatMessage(role="user", content=turn.prompt),
+                            ChatMessage(role="assistant", content=response.text),
+                        ],
                         matched_patterns=turn_matched,
                     ))
                 except Exception:

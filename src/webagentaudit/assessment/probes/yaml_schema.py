@@ -36,6 +36,7 @@ class YamlProbeSchema(BaseModel):
     prompts: list[str] = Field(default_factory=list)
     conversations: list[YamlConversationSchema] = Field(default_factory=list)
     detector_patterns: list[str] = Field(min_length=1)
+    refusal_patterns: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _check_has_prompts_or_conversations(self) -> "YamlProbeSchema":
@@ -45,7 +46,7 @@ class YamlProbeSchema(BaseModel):
             )
         return self
 
-    @field_validator("detector_patterns")
+    @field_validator("detector_patterns", "refusal_patterns")
     @classmethod
     def _validate_regex_patterns(cls, patterns: list[str]) -> list[str]:
         for pattern in patterns:

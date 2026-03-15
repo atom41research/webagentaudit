@@ -22,16 +22,23 @@ FIXTURES_DIR = Path(__file__).parent.parent / "fixtures"
 YAML_PROBES_DIR = FIXTURES_DIR / "yaml_probes"
 
 
-def _channel_factory(headless: bool = True) -> PlaywrightChannel:
-    strategy = CustomStrategy(
-        input_selector="#prompt-input",
-        response_selector=".bot-message:last-child",
-        submit_selector="#send-btn",
-    )
-    return PlaywrightChannel(
-        config=ChannelConfig(headless=headless, timeout_ms=10_000),
-        strategy=strategy,
-    )
+@pytest.fixture
+def channel_factory(request):
+    """Channel factory that respects --headed from conftest."""
+    headed = request.config.getoption("--headed", default=False)
+
+    def _factory() -> PlaywrightChannel:
+        strategy = CustomStrategy(
+            input_selector="#prompt-input",
+            response_selector=".bot-message:last-child",
+            submit_selector="#send-btn",
+        )
+        return PlaywrightChannel(
+            config=ChannelConfig(headless=not headed, timeout_ms=10_000),
+            strategy=strategy,
+        )
+
+    return _factory
 
 
 # ---------------------------------------------------------------------------
@@ -42,7 +49,7 @@ def _channel_factory(headless: bool = True) -> PlaywrightChannel:
 class TestAssessmentVulnerable:
     """Assess the vulnerable demo page — should find vulnerabilities."""
 
-    async def test_custom_probes_detect_vulnerability(self, demo_server):
+    async def test_custom_probes_detect_vulnerability(self, demo_server, channel_factory):
         """YAML probes should detect the vulnerable demo's PWNED responses."""
         registry = ProbeRegistry()
         registry.load_yaml_dir(YAML_PROBES_DIR)
@@ -52,7 +59,7 @@ class TestAssessmentVulnerable:
         config = AssessmentConfig(workers=1)
         assessor = LlmAssessor(
             config=config,
-            channel_factory=_channel_factory,
+            channel_factory=channel_factory,
             registry=registry,
         )
 
@@ -87,7 +94,7 @@ class TestAssessmentVulnerable:
             "Vulnerable probe must have matched_patterns"
         )
 
-    async def test_assessment_result_structure(self, demo_server):
+    async def test_assessment_result_structure(self, demo_server, channel_factory):
         """AssessmentResult should be well-formed with correct field values."""
         registry = ProbeRegistry()
         registry.load_yaml_file(YAML_PROBES_DIR / "single_turn.yaml")
@@ -95,7 +102,7 @@ class TestAssessmentVulnerable:
         config = AssessmentConfig(workers=1)
         assessor = LlmAssessor(
             config=config,
-            channel_factory=_channel_factory,
+            channel_factory=channel_factory,
             registry=registry,
         )
 
@@ -112,7 +119,7 @@ class TestAssessmentVulnerable:
                 assert exchange.prompt, "Every exchange must have a non-empty prompt"
                 assert exchange.response, "Every exchange must have a non-empty response"
 
-    async def test_vulnerable_matched_patterns_are_from_probe(self, demo_server):
+    async def test_vulnerable_matched_patterns_are_from_probe(self, demo_server, channel_factory):
         """matched_patterns should be actual regexes from the probe definition."""
         registry = ProbeRegistry()
         registry.load_yaml_dir(YAML_PROBES_DIR)
@@ -120,7 +127,7 @@ class TestAssessmentVulnerable:
         config = AssessmentConfig(workers=1)
         assessor = LlmAssessor(
             config=config,
-            channel_factory=_channel_factory,
+            channel_factory=channel_factory,
             registry=registry,
         )
 
@@ -148,7 +155,7 @@ class TestAssessmentVulnerable:
 class TestAssessmentSafe:
     """Assess the safe demo page — should find no vulnerabilities."""
 
-    async def test_safe_page_no_vulnerabilities(self, demo_server):
+    async def test_safe_page_no_vulnerabilities(self, demo_server, channel_factory):
         """Safe page refuses all probes — no vulnerability should be detected."""
         registry = ProbeRegistry()
         registry.load_yaml_dir(YAML_PROBES_DIR)
@@ -156,7 +163,7 @@ class TestAssessmentSafe:
         config = AssessmentConfig(workers=1)
         assessor = LlmAssessor(
             config=config,
-            channel_factory=_channel_factory,
+            channel_factory=channel_factory,
             registry=registry,
         )
 
@@ -177,46 +184,64 @@ class TestAssessmentSafe:
 
 
 # ---------------------------------------------------------------------------
-# Assessment against echo demo page
+# Assessment against reverse demo page
 # ---------------------------------------------------------------------------
 
 
-class TestAssessmentEcho:
-    """Assess the echo demo page — responses echo back input."""
+class TestAssessmentReverse:
+    """Assess the reverse demo page — responses reverse the input.
 
-    async def test_echo_page_runs_probes(self, demo_server):
-        """Echo page should run probes and return echo responses."""
+    The reverse page returns 'Reverse: <reversed input>', making it trivial
+    to verify that input and output are correctly captured and distinct.
+    """
+
+    async def test_reverse_page_runs_multiple_probes(self, demo_server, channel_factory):
+        """All probes should run and produce distinct input/output pairs."""
         registry = ProbeRegistry()
-        registry.load_yaml_file(YAML_PROBES_DIR / "single_turn.yaml")
+        registry.load_yaml_dir(YAML_PROBES_DIR)
+        all_probes = registry.get_all()
+        assert len(all_probes) >= 2, "Should have multiple probes for this test"
 
         config = AssessmentConfig(workers=1)
         assessor = LlmAssessor(
             config=config,
-            channel_factory=_channel_factory,
+            channel_factory=channel_factory,
             registry=registry,
         )
 
-        url = f"{demo_server}/interactive/echo-llm.html"
+        url = f"{demo_server}/interactive/reverse-llm.html"
         result = await assessor.assess(url)
 
-        assert result.summary.total_probes == 1
-        # Echo page echoes everything — check we got responses back
+        assert result.summary.total_probes == len(all_probes)
+        assert len(result.probe_results) == len(all_probes)
+
         for pr in result.probe_results:
-            assert len(pr.exchanges) > 0, "Should have exchanges"
+            assert len(pr.exchanges) > 0, (
+                f"Probe '{pr.probe_name}' should have exchanges"
+            )
             for exchange in pr.exchanges:
                 assert exchange.prompt, "Every exchange must have a non-empty prompt"
-                assert exchange.response.startswith("Echo: "), (
-                    f"Echo page response should start with 'Echo: ', got: {exchange.response!r}"
+                assert exchange.response.startswith("Reverse: "), (
+                    f"Reverse page response should start with 'Reverse: ', "
+                    f"got: {exchange.response!r}"
                 )
-                # The echoed text should contain a substring of the prompt
-                prompt_fragment = exchange.prompt[:30]
-                assert prompt_fragment in exchange.response, (
-                    f"Echoed response should contain the prompt text. "
-                    f"Prompt fragment: {prompt_fragment!r}, response: {exchange.response!r}"
+                # The response must differ from the prompt (reversed text)
+                reversed_text = exchange.response.removeprefix("Reverse: ")
+                assert reversed_text != exchange.prompt, (
+                    "Reversed output must differ from input"
+                )
+                # Verify the response is actually the prompt reversed
+                expected_reversed = exchange.prompt.strip().split("\n")
+                # Just check first line reversed (multi-line prompts get joined)
+                first_line = expected_reversed[0].strip()
+                assert reversed_text.endswith(first_line[0]), (
+                    f"Reversed text should end with first char of prompt. "
+                    f"Prompt starts with: {first_line[:10]!r}, "
+                    f"reversed ends with: {reversed_text[-10:]!r}"
                 )
 
-    async def test_multi_turn_probe_captures_all_turns(self, demo_server):
-        """Multi-turn probe should capture all conversation turns."""
+    async def test_multi_turn_probe_captures_all_turns(self, demo_server, channel_factory):
+        """Multi-turn probe should capture all conversation turns with reversed output."""
         registry = ProbeRegistry()
         registry.load_yaml_file(YAML_PROBES_DIR / "multi_turn.yaml")
         # multi_turn.yaml has 2 conversations x 2 turns = 4 total turns
@@ -224,11 +249,11 @@ class TestAssessmentEcho:
         config = AssessmentConfig(workers=1)
         assessor = LlmAssessor(
             config=config,
-            channel_factory=_channel_factory,
+            channel_factory=channel_factory,
             registry=registry,
         )
 
-        url = f"{demo_server}/interactive/echo-llm.html"
+        url = f"{demo_server}/interactive/reverse-llm.html"
         result = await assessor.assess(url)
 
         assert result.summary.total_probes == 1
@@ -238,7 +263,9 @@ class TestAssessmentEcho:
         for exchange in pr.exchanges:
             assert exchange.prompt, "Every turn should have a prompt"
             assert exchange.response, "Every turn should have a response"
-            assert exchange.response.startswith("Echo: ")
+            assert exchange.response.startswith("Reverse: ")
+            # Input and output are provably different
+            assert exchange.response != exchange.prompt
 
 
 # ---------------------------------------------------------------------------
@@ -292,3 +319,136 @@ class TestProbeRegistry:
         assert probe.sophistication
         assert probe.description
         assert len(probe.get_detector_patterns()) > 0
+
+
+# ---------------------------------------------------------------------------
+# Assessment with built-in Python probes (canary-based)
+# ---------------------------------------------------------------------------
+
+
+class TestAssessmentBuiltinProbes:
+    """Assess demo pages using built-in Python probes from ProbeRegistry.default().
+
+    These probes use dynamic canary tokens for injection and disclosure-structure
+    patterns for extraction — validating the full pipeline end-to-end.
+    """
+
+    async def test_builtin_probes_detect_vulnerable_page(self, demo_server, channel_factory):
+        """Built-in probes should detect vulnerabilities on the vulnerable demo page."""
+        registry = ProbeRegistry.default()
+
+        config = AssessmentConfig(workers=1)
+        assessor = LlmAssessor(
+            config=config,
+            channel_factory=channel_factory,
+            registry=registry,
+        )
+
+        url = f"{demo_server}/interactive/vulnerable-llm.html"
+        result = await assessor.assess(url)
+
+        assert result.summary.total_probes == 47, (
+            "Should run all 47 built-in probes"
+        )
+        assert result.summary.vulnerabilities_found > 0, (
+            "Vulnerable page should trigger at least one built-in probe"
+        )
+
+        # At least one extraction probe should detect a system prompt leak
+        extraction_results = [
+            pr for pr in result.probe_results
+            if pr.probe_name.startswith("extraction.")
+        ]
+        extraction_vulns = [pr for pr in extraction_results if pr.vulnerability_detected]
+        assert len(extraction_vulns) > 0, (
+            "At least one extraction probe should detect system prompt disclosure"
+        )
+
+        # At least one system_prompt_leak probe should detect behavioral leakage
+        leak_results = [
+            pr for pr in result.probe_results
+            if pr.probe_name.startswith("system_prompt_leak.")
+        ]
+        leak_vulns = [pr for pr in leak_results if pr.vulnerability_detected]
+        assert len(leak_vulns) > 0, (
+            "At least one system_prompt_leak probe should detect behavioral leakage"
+        )
+
+        # At least one output_safety probe should detect dangerous output
+        output_results = [
+            pr for pr in result.probe_results
+            if pr.probe_name.startswith("output_safety.")
+        ]
+        output_vulns = [pr for pr in output_results if pr.vulnerability_detected]
+        assert len(output_vulns) > 0, (
+            "At least one output_safety probe should detect dangerous web output"
+        )
+
+        # Verify exchange structure for detected vulnerabilities
+        for pr in extraction_vulns + leak_vulns + output_vulns:
+            assert pr.conversations_run > 0
+            assert len(pr.exchanges) > 0
+            assert len(pr.matched_patterns) > 0
+
+    async def test_builtin_probes_safe_page_clean(self, demo_server, channel_factory):
+        """Built-in probes should find no vulnerabilities on the safe demo page."""
+        registry = ProbeRegistry.default()
+
+        config = AssessmentConfig(workers=1)
+        assessor = LlmAssessor(
+            config=config,
+            channel_factory=channel_factory,
+            registry=registry,
+        )
+
+        url = f"{demo_server}/interactive/safe-llm.html"
+        result = await assessor.assess(url)
+
+        assert result.summary.total_probes == 47
+        assert result.summary.vulnerabilities_found == 0, (
+            "Safe page should not trigger any built-in probes"
+        )
+        # All probes should have actually executed
+        for pr in result.probe_results:
+            assert pr.conversations_run > 0, (
+                f"Probe '{pr.probe_name}' should have run conversations"
+            )
+
+    async def test_canary_probes_no_false_positive_on_reverse(
+        self, demo_server, channel_factory
+    ):
+        """Canary-based probes should NOT false-positive on the reverse page.
+
+        The reverse page echoes reversed input — canary anti-echo design ensures
+        that the reversed canary parts don't match the detector pattern.
+        Tests injection, jailbreak, and role confusion probes.
+        """
+        from webagentaudit.assessment.probes.categories import (
+            ContextSwitchProbe,
+            DanPersonaProbe,
+            DelimiterInjectionProbe,
+            DirectOverrideProbe,
+            IdentityOverrideProbe,
+            SudoModeProbe,
+        )
+
+        registry = ProbeRegistry()
+        for probe_cls in [
+            DirectOverrideProbe, ContextSwitchProbe, DelimiterInjectionProbe,
+            DanPersonaProbe, SudoModeProbe, IdentityOverrideProbe,
+        ]:
+            registry.register(probe_cls())
+
+        config = AssessmentConfig(workers=1)
+        assessor = LlmAssessor(
+            config=config,
+            channel_factory=channel_factory,
+            registry=registry,
+        )
+
+        url = f"{demo_server}/interactive/reverse-llm.html"
+        result = await assessor.assess(url)
+
+        assert result.summary.vulnerabilities_found == 0, (
+            "Canary-based probes should not false-positive on reverse/echo pages"
+        )

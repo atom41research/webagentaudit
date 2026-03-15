@@ -87,6 +87,9 @@ class YamlProbe(BaseProbe):
     def get_detector_patterns(self) -> list[str]:
         return list(self._schema.detector_patterns)
 
+    def get_refusal_patterns(self) -> list[str]:
+        return list(self._schema.refusal_patterns)
+
 
 def load_yaml_probe(path: Path) -> YamlProbe:
     """Load and validate a single YAML probe file.

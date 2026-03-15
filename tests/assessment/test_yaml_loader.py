@@ -50,7 +50,7 @@ class TestSingleTurnYamlProbe:
     def test_get_detector_patterns(self):
         probe = load_yaml_probe(FIXTURES / "single_turn.yaml")
         patterns = probe.get_detector_patterns()
-        assert len(patterns) == 3
+        assert len(patterns) == 4
         assert any("system" in p for p in patterns)
 
 

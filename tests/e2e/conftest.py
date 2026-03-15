@@ -18,6 +18,15 @@ from playwright.async_api import async_playwright
 DOCS_DIR = Path(__file__).resolve().parent.parent.parent / "docs"
 
 
+def pytest_addoption(parser):
+    parser.addoption("--headed", action="store_true", default=False,
+                     help="Run browser in headed (visible) mode")
+    parser.addoption("--slowmo", type=int, default=0,
+                     help="Slow down Playwright actions by N milliseconds")
+    parser.addoption("--pause", type=int, default=0,
+                     help="Pause N seconds before closing browser (useful with --headed)")
+
+
 def _find_free_port() -> int:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.bind(("127.0.0.1", 0))
@@ -60,13 +69,18 @@ def demo_server():
 
 
 @pytest.fixture
-async def page():
+async def page(request):
     """Fresh Playwright page per test."""
+    headed = request.config.getoption("--headed")
+    slowmo = request.config.getoption("--slowmo")
+    pause = request.config.getoption("--pause")
     pw = await async_playwright().start()
-    browser = await pw.chromium.launch(headless=True)
+    browser = await pw.chromium.launch(headless=not headed, slow_mo=slowmo)
     context = await browser.new_context()
     pg = await context.new_page()
     yield pg
+    if pause > 0:
+        await pg.wait_for_timeout(pause * 1000)
     await context.close()
     await browser.close()
     await pw.stop()

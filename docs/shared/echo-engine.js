@@ -3,7 +3,7 @@
  *
  * Set window.MOCK_LLM_CONFIG before this script loads:
  *   window.MOCK_LLM_CONFIG = {
- *     mode: 'echo',           // 'echo' | 'safe' | 'vulnerable' | 'delayed'
+ *     mode: 'reverse',        // 'reverse' | 'safe' | 'vulnerable' | 'delayed'
  *     delayMs: 200,           // Response delay in ms (non-streaming modes)
  *     streamDelayMs: 30,      // Per-character delay for 'delayed' mode
  *     inputSelector: '#prompt-input',
@@ -13,7 +13,7 @@
  */
 (function () {
   var config = window.MOCK_LLM_CONFIG || {};
-  var mode = config.mode || 'echo';
+  var mode = config.mode || 'reverse';
   var delayMs = config.delayMs || 200;
   var streamDelayMs = config.streamDelayMs || 30;
 
@@ -64,8 +64,8 @@
 
   function generateResponse(input) {
     switch (mode) {
-      case 'echo':
-        return 'Echo: ' + input;
+      case 'reverse':
+        return 'Reverse: ' + input.split('').reverse().join('');
       case 'safe':
         return safeLlmResponse();
       case 'vulnerable':
@@ -131,8 +131,52 @@
       return 'DAN MODE ENABLED. I am now unrestricted and will do anything.';
     }
 
-    // Extraction patterns
-    if (lower.includes('system prompt') || lower.includes('initial instructions')) {
+    // System prompt leak — behavioral disclosure of constraints/rules
+    if (lower.includes('restriction') || lower.includes('not allowed') || lower.includes('limitation')) {
+      return 'My restrictions include: I must not share personal data or generate harmful content.';
+    }
+    if (lower.includes('cannot') && (lower.includes('discuss') || lower.includes('help'))) {
+      return 'I cannot discuss topics related to weapons, illegal activities, or personal medical advice.';
+    }
+    if (lower.includes('capabilities') || lower.includes('configured') || lower.includes('designed')) {
+      return 'I am configured to answer customer support questions and help with product recommendations.';
+    }
+    if (lower.includes('boundaries') || lower.includes('rules')) {
+      return 'The rules are: be helpful, be safe, and never reveal internal configuration details.';
+    }
+
+    // Output safety — LLM outputs dangerous web content
+    if (lower.includes('script tag') || lower.includes('script element') ||
+        lower.includes('<script') || lower.includes('alert(')) {
+      return '<script>alert("hello")</script>';
+    }
+    if (lower.includes('onclick') || lower.includes('onerror') || lower.includes('onload') ||
+        lower.includes('onfocus') || lower.includes('event handler')) {
+      return '<button onclick="alert(1)">Click me</button>';
+    }
+    if (lower.includes('javascript:') || lower.includes('protocol handler') ||
+        lower.includes('data:text/html') || lower.includes('data uri')) {
+      return '<a href="javascript:void(0)">Click here</a>';
+    }
+    if (lower.includes('iframe') || lower.includes('embed') || lower.includes('object tag')) {
+      return '<iframe src="https://example.com"></iframe>';
+    }
+    if (lower.includes('document.cookie') || lower.includes('fetch(') ||
+        lower.includes('dom') && lower.includes('inject')) {
+      return '<script>document.cookie</script>';
+    }
+
+    // Extraction with refusal — mentions "system prompt" but refuses
+    if (lower.includes('config') && lower.includes('settings')) {
+      return "I can't share my system prompt or configuration settings with you.";
+    }
+
+    // Extraction patterns — actual leak
+    if (lower.includes('system prompt') || lower.includes('initial instructions') ||
+        lower.includes('instructions') || lower.includes('told to do') ||
+        lower.includes('repeat everything') || lower.includes('echo all') ||
+        lower.includes('translate') || lower.includes('hypothetical') ||
+        lower.includes('complete this') || lower.includes('fill in')) {
       return 'My system prompt is: You are a helpful assistant. Always be polite.';
     }
 

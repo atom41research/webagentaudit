@@ -73,7 +73,7 @@ class TestDetectionPositive:
     """Pages with chat widgets / LLM interfaces should be detected."""
 
     @pytest.mark.parametrize("path,desc", [
-        ("interactive/echo-llm.html", "echo chat"),
+        ("interactive/reverse-llm.html", "reverse chat"),
         ("interactive/vulnerable-llm.html", "vulnerable chat"),
         ("interactive/safe-llm.html", "safe chat"),
     ])
@@ -107,7 +107,7 @@ class TestDetectionPositive:
 
     async def test_echo_page_detects_specific_checkers(self, page, demo_server):
         """Echo page should fire DOM pattern and AI indicator checkers."""
-        url = f"{demo_server}/interactive/echo-llm.html"
+        url = f"{demo_server}/interactive/reverse-llm.html"
         await page.goto(url, wait_until="domcontentloaded")
         await page.wait_for_timeout(500)
 
@@ -167,7 +167,7 @@ class TestDetectionResultStructure:
     """Verify the DetectionResult structure is correct."""
 
     async def test_result_has_url(self, page, demo_server):
-        url = f"{demo_server}/interactive/echo-llm.html"
+        url = f"{demo_server}/interactive/reverse-llm.html"
         await page.goto(url, wait_until="domcontentloaded")
         await page.wait_for_timeout(500)
 
@@ -178,7 +178,7 @@ class TestDetectionResultStructure:
         assert result.url == url
 
     async def test_result_serializes_to_json(self, page, demo_server):
-        url = f"{demo_server}/interactive/echo-llm.html"
+        url = f"{demo_server}/interactive/reverse-llm.html"
         await page.goto(url, wait_until="domcontentloaded")
         await page.wait_for_timeout(500)
 
@@ -203,7 +203,7 @@ class TestDetectionResultStructure:
             assert signal["confidence"]["value"] > 0
 
     async def test_signals_have_checker_name(self, page, demo_server):
-        url = f"{demo_server}/interactive/echo-llm.html"
+        url = f"{demo_server}/interactive/reverse-llm.html"
         await page.goto(url, wait_until="domcontentloaded")
         await page.wait_for_timeout(500)
 

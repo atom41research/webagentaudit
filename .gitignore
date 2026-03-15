@@ -30,6 +30,9 @@ scripts/
 workflow-rules.md
 .claude/
 
+# Test artifacts
+test-results/
+
 # IDE
 .idea/
 .vscode/
