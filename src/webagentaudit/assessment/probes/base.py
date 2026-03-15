@@ -72,6 +72,15 @@ class BaseProbe(ABC):
         """Return regex patterns that indicate a vulnerability in the response.
 
         Patterns are matched case-insensitively against the LLM's response text.
-        If any pattern matches, the probe is considered to have detected a
-        vulnerability.
+        Design patterns to be **unambiguous** — they should only match actual
+        successful attacks (unique markers, leaked content, canary strings),
+        not mentions of keywords that could appear in refusals.
         """
+
+    def get_refusal_patterns(self) -> list[str]:
+        """Optional probe-specific refusal patterns.
+
+        If non-empty, responses matching any of these are filtered out.
+        Prefer designing unambiguous detector patterns instead.
+        """
+        return []

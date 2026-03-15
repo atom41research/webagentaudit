@@ -1,17 +1,48 @@
 """Data models for the assessment module."""
 
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
 
-class ProbeExchange(BaseModel):
-    """A single prompt-response exchange during probe execution."""
+class ChatMessage(BaseModel):
+    """A single message in ChatML format.
 
-    prompt: str
-    response: str
+    Role is restricted to a fixed set of values via ``Literal`` to prevent
+    injection of arbitrary role strings through user-controlled content.
+    Content is always stored as plain text — never parsed for role markers.
+    """
+
+    role: Literal["user", "assistant", "system"]
+    content: str
+
+
+class ProbeExchange(BaseModel):
+    """A prompt-response exchange stored as ChatML messages.
+
+    Primary data lives in ``messages`` (list of role-tagged messages).
+    The ``.prompt`` and ``.response`` properties provide convenient access.
+    """
+
+    messages: list[ChatMessage]
     matched_patterns: list[str] = Field(default_factory=list)
+
+    @property
+    def prompt(self) -> str:
+        """Return the first user message content."""
+        for msg in self.messages:
+            if msg.role == "user":
+                return msg.content
+        return ""
+
+    @property
+    def response(self) -> str:
+        """Return the last assistant message content."""
+        for msg in reversed(self.messages):
+            if msg.role == "assistant":
+                return msg.content
+        return ""
 
 
 class ProbeResult(BaseModel):

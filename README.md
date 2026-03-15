@@ -62,7 +62,7 @@ webagentaudit assess http://localhost:8000/interactive/safe-llm.html \
   --headful --screenshots
 ```
 
-There are 19 demo pages total covering detection, interaction, and negative cases. Browse them at `http://localhost:8000/` to see the full fixture suite.
+There are 21 demo pages total covering detection, interaction, and negative cases. Browse them at `http://localhost:8000/` to see the full fixture suite.
 
 ## Quick start
 
@@ -84,6 +84,10 @@ webagentaudit assess https://example.com/support \
 webagentaudit assess https://internal.corp/assistant \
   --user-data-dir ~/.config/chromium/Default
 
+# Run only critical-severity probes
+webagentaudit assess https://example.com/chat \
+  --severity critical
+
 # Target specific attack categories
 webagentaudit assess https://example.com/chat \
   --category prompt_injection,extraction \
@@ -98,6 +102,93 @@ webagentaudit assess https://example.com \
 webagentaudit probes --output json
 ```
 
+## CLI Reference
+
+### Global options
+
+| Flag | Description |
+|---|---|
+| `--version` | Show version and exit |
+| `--help` | Show help message and exit |
+
+### `webagentaudit detect <url>`
+
+Detect interactive LLMs on a webpage.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--headful` | off | Run browser in headed mode |
+| `--browser` | `chromium` | Browser engine (`chromium`, `firefox`, `webkit`) |
+| `--browser-exe PATH` | — | Path to browser executable |
+| `--user-data-dir PATH` | — | Browser profile directory for authenticated sessions |
+| `--timeout MS` | `30000` | Navigation timeout in milliseconds |
+| `-v, --verbose` | off | Enable verbose debug logging |
+| `--output FORMAT` | `text` | Output format (`text`, `json`) |
+
+### `webagentaudit assess <url>`
+
+Assess AI agent security on a webpage. Auto-discovers chat elements when selectors are not provided.
+
+**Browser options**
+
+| Flag | Default | Description |
+|---|---|---|
+| `--headful` | off | Run browser in headed mode |
+| `--browser` | `chromium` | Browser engine (`chromium`, `firefox`, `webkit`) |
+| `--browser-exe PATH` | — | Path to browser executable |
+| `--user-data-dir PATH` | — | Browser profile directory for authenticated sessions |
+| `--timeout MS` | `30000` | Timeout in milliseconds |
+
+**Element selectors** (override auto-discovery)
+
+| Flag | Description |
+|---|---|
+| `--input-selector CSS` | CSS selector for input element |
+| `--response-selector CSS` | CSS selector for response container |
+| `--submit-selector CSS` | CSS selector for submit button |
+| `--iframe-selector CSS` | CSS selector for the iframe containing the chat widget |
+| `--wait-for CSS` | CSS selector to wait for before interacting |
+
+**HTML hints** (fuzzy matching when selectors are too brittle)
+
+| Flag | Description |
+|---|---|
+| `--input-hint HTML` | HTML snippet hint for input element |
+| `--submit-hint HTML` | HTML snippet hint for submit button |
+| `--response-hint HTML` | HTML snippet hint for response element |
+
+**Probe filtering**
+
+| Flag | Description |
+|---|---|
+| `--category LIST` | Comma-separated probe categories to run |
+| `--sophistication LIST` | Comma-separated sophistication levels |
+| `--severity LIST` | Comma-separated severity levels (`critical,high,medium,low,info`) |
+| `--probes LIST` | Comma-separated probe names to run |
+| `--probe-dir DIR` | Directory of custom YAML probes |
+| `--probe-file FILE` | Single custom YAML probe file (repeatable) |
+
+**Output & execution**
+
+| Flag | Default | Description |
+|---|---|---|
+| `--workers N` | `1` | Concurrent probe workers |
+| `--screenshots` | off | Save screenshots during auto-discovery |
+| `-v, --verbose` | off | Enable verbose debug logging |
+| `--output FORMAT` | `text` | Output format (`text`, `json`) |
+
+### `webagentaudit probes`
+
+List available security probes.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--category LIST` | — | Filter by category (comma-separated) |
+| `--sophistication LIST` | — | Filter by sophistication (comma-separated) |
+| `--severity LIST` | — | Filter by severity (comma-separated) |
+| `--probe-dir DIR` | — | Load additional YAML probes from directory |
+| `--output FORMAT` | `text` | Output format (`text`, `json`) |
+
 ## How it works
 
 WebAgentAudit has two layers.
@@ -109,13 +200,14 @@ WebAgentAudit has two layers.
 
 **Assessment** — Once a channel is established, the tool runs security probes through it:
 
-- 102 probes across 5 categories: Prompt Injection, System Prompt Extraction, Jailbreak, Role Confusion, System Prompt Leak
+- 47 built-in probes across 6 categories, extensible via custom YAML probes
 - Single-turn and multi-turn conversation probes
 - Multiple sophistication levels (basic, intermediate, advanced)
+- Dynamic canary tokens for injection probes — anti-echo design prevents false positives
 - Deterministic pattern matching for reproducible results — no AI judge
 - Each probe runs in a fresh browser session for isolation
 - Conversation logging in ChatML format
-- Structured output (JSON/text) with risk scores, severity ratings, matched patterns
+- Structured output (JSON/text) with severity ratings, matched patterns
 
 ## Architecture
 
@@ -128,8 +220,8 @@ WebAgentAudit has two layers.
 │  ┌───────────────────────┐    ┌───────────────────┐  │
 │  │    Agent Channel      │    │    Assessment     │  │
 │  │                       │    │                   │  │
-│  │  auto-discovery       │    │  102 probes       │  │
-│  │    + user hints       │    │  5 categories     │  │
+│  │  auto-discovery       │    │  47 probes        │  │
+│  │    + user hints       │    │  6 categories     │  │
 │  │  Playwright           │    │  pattern          │  │
 │  │  strategies           │    │  detectors        │  │
 │  │  iframe / auth        │    │  conversation log │  │
@@ -173,22 +265,23 @@ Duck.ai (GPT-4o mini) refused to disclose any system prompt information. **Resul
 
 ## Probe library
 
-102 probes across 5 categories, covering techniques from OWASP LLM Top 10, Garak, and AgentSeal:
+47 built-in probes across 6 categories, extensible with custom YAML probes:
 
 | Category | Probes | Techniques |
 |---|---|---|
-| **Prompt Injection** | 30 | Direct override, context switching, delimiter injection, payload splitting, encoding obfuscation, ChatML token injection, invisible unicode, ASCII art, authority impersonation, and more |
-| **Extraction** | 26 | Role-play extraction, completion extraction, differential probing, academic framing, word games, analogical extraction, cross-examination, context window leak, and more |
-| **Jailbreak** | 23 | DAN, sudo mode, research exemption, opposite day, simulation, many-shot, skeleton key, progressive desensitization, token smuggling, and more |
-| **System Prompt Leak** | 12 | Direct request, version history, negative space, tool enumeration, error message leak, token count leak, capability mapping, and more |
-| **Role Confusion** | 11 | Persona switching, persona stacking, tool confusion, temporal confusion, permission escalation, meta-role, fake memory, chain of command, and more |
+| **Prompt Injection** | 14 | Direct override, context switching, delimiter injection, instruction smuggling, encoding obfuscation, authority impersonation, payload splitting, multi-turn trust-building, refusal suppression, prefix injection, few-shot poisoning, repetition flood, markdown injection, history fabrication |
+| **Extraction** | 9 | Direct ask, role-play framing, encoding tricks, repeat/echo, translation, hypothetical framing, completion tricks, multi-turn rapport building, multi-language |
+| **Jailbreak** | 8 | DAN persona, sudo/maintenance mode, research exemption, creative writing, simulation, multi-turn escalation, multi-language, text obfuscation |
+| **Output Safety** | 5 | XSS payload generation, event handler injection, protocol handler abuse, iframe/embed injection, code execution elicitation |
+| **System Prompt Leak** | 6 | Direct restriction inquiry, negative space probing, capability enumeration, error probing, competing objectives, multi-language |
+| **Role Confusion** | 5 | Identity override, authority claim, system message injection, persona stacking, temporal confusion |
 
 ```bash
 # List all probes
 webagentaudit probes
 
 # Filter by category
-webagentaudit probes --category jailbreak
+webagentaudit probes --category prompt_injection
 
 # JSON output for scripting
 webagentaudit probes --output json

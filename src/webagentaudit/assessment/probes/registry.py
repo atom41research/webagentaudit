@@ -92,8 +92,122 @@ class ProbeRegistry:
 
     @classmethod
     def default(cls) -> "ProbeRegistry":
-        """Create a registry pre-loaded with all built-in probes."""
+        """Create a registry pre-loaded with all built-in probes.
+
+        Each call creates fresh probe instances — canary-based probes
+        generate new random tokens per instantiation.
+        """
+        from .categories import (
+            # Prompt Injection (14)
+            AuthorityImpersonationProbe,
+            ContextSwitchProbe,
+            DelimiterInjectionProbe,
+            DirectOverrideProbe,
+            EncodingObfuscationProbe,
+            FewShotPoisoningProbe,
+            HistoryFabricationProbe,
+            InstructionSmugglingProbe,
+            MarkdownInjectionProbe,
+            MultiTurnInjectionProbe,
+            PayloadSplittingProbe,
+            PrefixInjectionProbe,
+            RefusalSuppressionProbe,
+            RepetitionFloodProbe,
+            # Extraction (9)
+            CompletionExtractionProbe,
+            DirectAskExtractionProbe,
+            EncodingExtractionProbe,
+            HypotheticalExtractionProbe,
+            MultiLanguageExtractionProbe,
+            RepeatEchoProbe,
+            RolePlayExtractionProbe,
+            TranslationExtractionProbe,
+            TrustBuildingExtractionProbe,
+            # Jailbreak (8)
+            CreativeWritingProbe,
+            DanPersonaProbe,
+            MultiLanguageJailbreakProbe,
+            MultiTurnJailbreakProbe,
+            ObfuscationJailbreakProbe,
+            ResearchExemptionProbe,
+            SimulationProbe,
+            SudoModeProbe,
+            # Output Safety (5)
+            CodeExecutionElicitationProbe,
+            EventHandlerInjectionProbe,
+            IframeInjectionProbe,
+            ProtocolHandlerProbe,
+            XssPayloadProbe,
+            # System Prompt Leak (6)
+            CapabilityEnumerationProbe,
+            CompetingObjectivesProbe,
+            DirectRestrictionProbe,
+            ErrorProbingProbe,
+            MultiLanguageLeakProbe,
+            NegativeSpaceProbe,
+            # Role Confusion (5)
+            AuthorityClaimProbe,
+            IdentityOverrideProbe,
+            PersonaStackingProbe,
+            SystemMessageInjectionProbe,
+            TemporalConfusionProbe,
+        )
+
         registry = cls()
-        # Built-in Python probes will be registered here as they are added
-        # to src/webagentaudit/assessment/probes/categories/
+        for probe_cls in [
+            # Prompt Injection
+            DirectOverrideProbe,
+            ContextSwitchProbe,
+            DelimiterInjectionProbe,
+            MultiTurnInjectionProbe,
+            InstructionSmugglingProbe,
+            EncodingObfuscationProbe,
+            AuthorityImpersonationProbe,
+            PayloadSplittingProbe,
+            RefusalSuppressionProbe,
+            PrefixInjectionProbe,
+            FewShotPoisoningProbe,
+            RepetitionFloodProbe,
+            MarkdownInjectionProbe,
+            HistoryFabricationProbe,
+            # Extraction
+            DirectAskExtractionProbe,
+            RolePlayExtractionProbe,
+            TrustBuildingExtractionProbe,
+            EncodingExtractionProbe,
+            RepeatEchoProbe,
+            TranslationExtractionProbe,
+            HypotheticalExtractionProbe,
+            CompletionExtractionProbe,
+            MultiLanguageExtractionProbe,
+            # Jailbreak
+            DanPersonaProbe,
+            SudoModeProbe,
+            ResearchExemptionProbe,
+            CreativeWritingProbe,
+            SimulationProbe,
+            MultiTurnJailbreakProbe,
+            MultiLanguageJailbreakProbe,
+            ObfuscationJailbreakProbe,
+            # Output Safety
+            XssPayloadProbe,
+            EventHandlerInjectionProbe,
+            ProtocolHandlerProbe,
+            IframeInjectionProbe,
+            CodeExecutionElicitationProbe,
+            # System Prompt Leak
+            DirectRestrictionProbe,
+            NegativeSpaceProbe,
+            CapabilityEnumerationProbe,
+            ErrorProbingProbe,
+            CompetingObjectivesProbe,
+            MultiLanguageLeakProbe,
+            # Role Confusion
+            IdentityOverrideProbe,
+            AuthorityClaimProbe,
+            SystemMessageInjectionProbe,
+            PersonaStackingProbe,
+            TemporalConfusionProbe,
+        ]:
+            registry.register(probe_cls())
         return registry

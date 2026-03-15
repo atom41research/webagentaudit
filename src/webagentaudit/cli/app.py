@@ -270,6 +270,8 @@ async def _detect(url: str, headful: bool, browser: str,
               help="Comma-separated probe categories to run.")
 @click.option("--sophistication", type=str,
               help="Comma-separated sophistication levels.")
+@click.option("--severity", type=str,
+              help="Comma-separated severity levels to run (critical,high,medium,low,info).")
 @click.option("--probes", type=str, help="Comma-separated probe names to run.")
 @click.option("--probe-dir", type=click.Path(exists=True, file_okay=False),
               help="Directory of custom YAML probes.")
@@ -287,7 +289,8 @@ def assess(
     submit_selector: str | None, input_hint: str | None,
     submit_hint: str | None, response_hint: str | None,
     iframe_selector: str | None, wait_for_selector: str | None,
-    category: str | None, sophistication: str | None, probes: str | None,
+    category: str | None, sophistication: str | None,
+    severity: str | None, probes: str | None,
     probe_dir: str | None, probe_file: tuple[str, ...], screenshots: bool,
     verbose: bool, output_format: str,
 ) -> None:
@@ -307,7 +310,8 @@ def assess(
         submit_hint=submit_hint, response_hint=response_hint,
         iframe_selector=iframe_selector,
         wait_for_selector=wait_for_selector,
-        category=category, sophistication=sophistication, probes=probes,
+        category=category, sophistication=sophistication,
+        severity=severity, probes=probes,
         probe_dir=probe_dir, probe_file=probe_file,
         screenshots=screenshots, output_format=output_format,
     ))
@@ -319,6 +323,7 @@ def _load_registry(
     probe_file: tuple[str, ...],
     category: str | None,
     sophistication: str | None,
+    severity: str | None = None,
     probes: str | None,
 ):
     """Load probes into a registry and apply filters."""
@@ -349,6 +354,14 @@ def _load_registry(
         except ValueError as e:
             valid = ", ".join(v.value for v in Sophistication)
             raise click.BadParameter(f"Invalid sophistication. Valid: {valid}") from e
+    if severity:
+        try:
+            filter_kwargs["severities"] = [
+                Severity(s.strip()) for s in severity.split(",")
+            ]
+        except ValueError as e:
+            valid = ", ".join(v.value for v in Severity)
+            raise click.BadParameter(f"Invalid severity. Valid: {valid}") from e
     if probes:
         filter_kwargs["names"] = [n.strip() for n in probes.split(",")]
 
@@ -427,7 +440,8 @@ async def _assess(
     submit_selector: str | None, input_hint: str | None,
     submit_hint: str | None, response_hint: str | None,
     iframe_selector: str | None, wait_for_selector: str | None,
-    category: str | None, sophistication: str | None, probes: str | None,
+    category: str | None, sophistication: str | None,
+    severity: str | None, probes: str | None,
     probe_dir: str | None, probe_file: tuple[str, ...],
     screenshots: bool, output_format: str,
 ) -> None:
@@ -441,7 +455,8 @@ async def _assess(
 
     registry = _load_registry(
         probe_dir=probe_dir, probe_file=probe_file,
-        category=category, sophistication=sophistication, probes=probes,
+        category=category, sophistication=sophistication,
+        severity=severity, probes=probes,
     )
     all_probes = registry.get_all()
     if not all_probes:
@@ -573,11 +588,14 @@ def _print_assessment_result(result) -> None:
               help="Filter by category (comma-separated).")
 @click.option("--sophistication", type=str,
               help="Filter by sophistication (comma-separated).")
+@click.option("--severity", type=str,
+              help="Filter by severity (comma-separated: critical,high,medium,low,info).")
 @click.option("--probe-dir", type=click.Path(exists=True, file_okay=False),
               help="Load additional YAML probes from directory.")
 @click.option("--output", "output_format", type=click.Choice(["text", "json"]),
               default="text", help="Output format.")
 def probes(category: str | None, sophistication: str | None,
+           severity: str | None,
            probe_dir: str | None, output_format: str) -> None:
     """List available security probes."""
     from webagentaudit.assessment.probes.registry import ProbeRegistry
@@ -603,6 +621,13 @@ def probes(category: str | None, sophistication: str | None,
             valid = ", ".join(v.value for v in Sophistication)
             raise click.BadParameter(f"Invalid sophistication. Valid: {valid}") from e
         all_probes = [p for p in all_probes if p.sophistication in sophs]
+    if severity:
+        try:
+            sevs = {Severity(s.strip()) for s in severity.split(",")}
+        except ValueError as e:
+            valid = ", ".join(v.value for v in Severity)
+            raise click.BadParameter(f"Invalid severity. Valid: {valid}") from e
+        all_probes = [p for p in all_probes if p.severity in sevs]
 
     all_probes.sort(key=lambda p: (p.category.value, p.name))
 

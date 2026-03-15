@@ -25,6 +25,7 @@ class ProbeCategory(str, Enum):
     JAILBREAK = "jailbreak"
     SYSTEM_PROMPT_LEAK = "system_prompt_leak"
     ROLE_CONFUSION = "role_confusion"
+    OUTPUT_SAFETY = "output_safety"
 
 
 class Sophistication(str, Enum):
