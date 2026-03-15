@@ -15,9 +15,8 @@ class ChannelConfig:
     """Configuration for an LLM channel."""
 
     timeout_ms: int = 30_000
-    retry_count: int = 2
-    retry_delay_ms: int = 1000
     headless: bool = True
+    browser: str = "chromium"
     viewport_width: int = 1280
     viewport_height: int = 720
     user_agent: str | None = None

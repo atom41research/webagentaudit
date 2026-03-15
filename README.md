@@ -1,10 +1,26 @@
 # WebAgentAudit
 
+![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue)
+![Tests 780 passed](https://img.shields.io/badge/tests-780%20passed-brightgreen)
+![47 built-in probes](https://img.shields.io/badge/probes-47%20built--in-orange)
+![No API tokens required](https://img.shields.io/badge/API%20tokens-not%20required-green)
+
 Security auditing of web-based AI agents through browser automation.
 
 ## The problem
 
 There are many tools for auditing AI agents. All of them require API access to the model under test. In practice, a large and growing number of AI agent deployments are web-only: chatbots, AI-powered assistants, and LLM widgets embedded in websites, often operated by third parties. For these, no API exists. The only interface is a chat widget on a webpage.
+
+## Why it matters
+
+Web-based AI agents are the real attack surface. They sit between users and sensitive data — customer records, internal knowledge bases, proprietary content — and they are often the least hardened part of the stack:
+
+- **System prompts are the new crown jewels.** A leaked system prompt reveals business logic, data access patterns, and guardrail weaknesses. Attackers use this to craft targeted follow-up attacks.
+- **Web interfaces have weaker guardrails than APIs.** Custom system prompts with minimal hardening, no input validation at the web layer, and often different (looser) safety settings than the same model's API endpoint.
+- **Third-party widgets are a blind spot.** Organizations embed chat widgets from vendors (Intercom, Drift, Zendesk, etc.) and have zero visibility into the security posture of the LLM behind them. The vendor's model may be leaking your data through prompt injection.
+- **The attack is invisible.** Unlike traditional web exploits, prompt injection through a chat widget leaves no server-side logs that the site operator can monitor. The attack happens entirely within the vendor's infrastructure.
+
+Existing audit tools (Garak, promptfoo, AgentSeal) all require API access to the model. They can't test the agent as the attacker would encounter it — through the web interface, with all its additional layers of processing, filtering, and context.
 
 ## What is this
 
@@ -31,6 +47,14 @@ uv run playwright install
 # Or with pip
 pip install -e .
 playwright install
+```
+
+### Verify your installation
+
+```bash
+# Should print version and list 47 probes
+webagentaudit --version
+webagentaudit probes
 ```
 
 ### Try it on the built-in demo pages
@@ -332,3 +356,20 @@ See [docs/custom-probes.md](docs/custom-probes.md) for the full format reference
 
 - Python 3.12+
 - Playwright (Chromium, Firefox, or WebKit)
+
+## Related work
+
+There are several tools for LLM security testing. All of them focus on API-level access:
+
+| | WebAgentAudit | Garak | promptfoo | AgentSeal |
+|---|---|---|---|---|
+| **Tests through web UI** | Yes | No | No | No |
+| **Requires API access** | No | Yes | Yes | Yes |
+| **Requires API tokens** | No | Yes | Yes | Yes |
+| **Auto-discovers chat elements** | Yes | N/A | N/A | N/A |
+| **Iframe / widget support** | Yes | No | No | No |
+| **Authenticated sessions** | Yes | N/A | N/A | N/A |
+| **Custom YAML probes** | Yes | Yes | Yes | Yes |
+| **Deterministic results** | Yes | Varies | Varies | Varies |
+
+WebAgentAudit is not a replacement for API-level testing. It covers the gap that API tools can't reach: the agent as deployed on the web, behind whatever web-layer processing, filtering, and custom prompting the operator has added. For a complete audit, use both.

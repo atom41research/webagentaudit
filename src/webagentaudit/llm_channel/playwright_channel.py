@@ -31,6 +31,7 @@ class PlaywrightChannel(BaseLlmChannel):
 
     async def connect(self, url: str) -> None:
         self._playwright = await async_playwright().start()
+        launcher = getattr(self._playwright, self._config.browser)
 
         viewport = {
             "width": self._config.viewport_width,
@@ -39,7 +40,7 @@ class PlaywrightChannel(BaseLlmChannel):
 
         if self._config.user_data_dir:
             # Persistent context reuses an existing browser profile
-            self._context = await self._playwright.chromium.launch_persistent_context(
+            self._context = await launcher.launch_persistent_context(
                 self._config.user_data_dir,
                 headless=self._config.headless,
                 viewport=viewport,
@@ -48,7 +49,7 @@ class PlaywrightChannel(BaseLlmChannel):
             )
             self._page = await self._context.new_page()
         else:
-            self._browser = await self._playwright.chromium.launch(
+            self._browser = await launcher.launch(
                 headless=self._config.headless,
             )
             self._context = await self._browser.new_context(

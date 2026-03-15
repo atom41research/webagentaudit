@@ -179,19 +179,21 @@ async def _detect(url: str, headful: bool, browser: str,
                   timeout: int, output_format: str) -> None:
     from playwright.async_api import async_playwright
 
-    click.echo(f"Opening {_style(browser, bold=True)} browser...")
+    is_json = output_format == "json"
+
+    click.echo(f"Opening {_style(browser, bold=True)} browser...", err=is_json)
 
     async with async_playwright() as pw:
         page, closeable = await _launch_browser(
             pw, browser, headful, browser_exe, user_data_dir)
 
-        click.echo(f"Navigating to {_style(url, fg='cyan')}...")
+        click.echo(f"Navigating to {_style(url, fg='cyan')}...", err=is_json)
         await page.goto(url, wait_until="domcontentloaded", timeout=timeout)
         await page.wait_for_timeout(3000)
         page_data = await _collect_page_data(page, url)
         await closeable.close()
 
-    click.echo("Running detection...")
+    click.echo("Running detection...", err=is_json)
     detector = _create_detector()
     result = detector.detect(page_data)
 
@@ -381,12 +383,16 @@ async def _auto_discover(
     timeout: int, wait_for_selector: str | None,
     input_hint: str | None, submit_hint: str | None,
     response_hint: str | None, screenshots: bool,
-) -> tuple[str | None, str | None, str | None]:
+    output_format: str = "text",
+) -> tuple[str | None, str | None, str | None, str | None]:
     """Run auto-discovery to find chat element selectors."""
     from webagentaudit.llm_channel.auto_config import AlgorithmicAutoConfigurator
     from webagentaudit.llm_channel.auto_config._hint_matcher import parse_hint
 
-    click.echo(f"  Auto-discovering chat elements on {_style(url, fg='cyan')}...")
+    is_json = output_format == "json"
+
+    click.echo(f"  Auto-discovering chat elements on {_style(url, fg='cyan')}...",
+               err=is_json)
 
     page, closeable = await _launch_browser(
         pw, browser, headful, browser_exe, user_data_dir)
@@ -401,7 +407,7 @@ async def _auto_discover(
             except Exception:
                 click.echo(_style(
                     f"  Warning: --wait-for selector '{wait_for_selector}'"
-                    " not found within timeout", fg="yellow"))
+                    " not found within timeout", fg="yellow"), err=is_json)
 
         if screenshots:
             Path("screenshots").mkdir(exist_ok=True)
@@ -421,16 +427,19 @@ async def _auto_discover(
     inp = auto_result.input_selector
     sub = auto_result.submit_selector
     resp = auto_result.response_selector
+    iframe = auto_result.iframe_selector
 
     if inp:
-        click.echo(_style("  Auto-discovery succeeded!", fg="green"))
-        click.echo(f"    Input:    {inp}")
-        click.echo(f"    Submit:   {sub or 'Enter key'}")
-        click.echo(f"    Response: {resp or 'not found'}")
+        click.echo(_style("  Auto-discovery succeeded!", fg="green"), err=is_json)
+        click.echo(f"    Input:    {inp}", err=is_json)
+        click.echo(f"    Submit:   {sub or 'Enter key'}", err=is_json)
+        click.echo(f"    Response: {resp or 'not found'}", err=is_json)
+        if iframe:
+            click.echo(f"    Iframe:   {iframe}", err=is_json)
     else:
-        click.echo(_style("  Auto-discovery failed.", fg="red"))
+        click.echo(_style("  Auto-discovery failed.", fg="red"), err=is_json)
 
-    return inp, sub, resp
+    return inp, sub, resp, iframe
 
 
 async def _assess(
@@ -453,6 +462,8 @@ async def _assess(
     from webagentaudit.llm_channel.playwright_channel import PlaywrightChannel
     from webagentaudit.llm_channel.strategies.custom import CustomStrategy
 
+    is_json = output_format == "json"
+
     registry = _load_registry(
         probe_dir=probe_dir, probe_file=probe_file,
         category=category, sophistication=sophistication,
@@ -470,16 +481,20 @@ async def _assess(
 
     if not actual_input or not actual_response:
         async with async_playwright() as pw:
-            disc_inp, disc_sub, disc_resp = await _auto_discover(
+            disc_inp, disc_sub, disc_resp, disc_iframe = await _auto_discover(
                 url, pw=pw, browser=browser, headful=headful,
                 browser_exe=browser_exe, user_data_dir=user_data_dir,
                 timeout=timeout, wait_for_selector=wait_for_selector,
                 input_hint=input_hint, submit_hint=submit_hint,
                 response_hint=response_hint, screenshots=screenshots,
+                output_format=output_format,
             )
         actual_input = actual_input or disc_inp
         actual_submit = actual_submit or disc_sub
         actual_response = actual_response or disc_resp
+        # Use discovered iframe if user didn't provide one
+        if not iframe_selector and disc_iframe:
+            iframe_selector = disc_iframe
 
     if not actual_input:
         click.echo("Error: Could not find input element. Use --input-selector.",
@@ -490,16 +505,18 @@ async def _assess(
                     " Use --response-selector.", err=True)
         sys.exit(1)
 
-    _print_header("LLM Security Assessment")
-    _print_kv("URL", url)
-    _print_kv("Browser", f"{browser} ({'headed' if headful else 'headless'})")
-    _print_kv("Input", actual_input)
-    _print_kv("Submit", actual_submit or "Enter key")
-    _print_kv("Response", actual_response)
-    _print_kv("Probes", str(len(all_probes)))
+    if not is_json:
+        _print_header("LLM Security Assessment")
+        _print_kv("URL", url)
+        _print_kv("Browser", f"{browser} ({'headed' if headful else 'headless'})")
+        _print_kv("Input", actual_input)
+        _print_kv("Submit", actual_submit or "Enter key")
+        _print_kv("Response", actual_response)
+        _print_kv("Probes", str(len(all_probes)))
 
     channel_config = ChannelConfig(
         headless=not headful,
+        browser=browser,
         timeout_ms=timeout,
         user_data_dir=user_data_dir,
     )
@@ -521,6 +538,8 @@ async def _assess(
 
     def _on_progress(results) -> None:
         nonlocal completed
+        if is_json:
+            return
         if len(results) > completed:
             latest = results[-1]
             completed = len(results)
@@ -532,7 +551,8 @@ async def _assess(
             click.echo(f"  [{completed}/{len(all_probes)}] {status}"
                        f" {latest.probe_name}")
 
-    _print_section("Running Probes")
+    if not is_json:
+        _print_section("Running Probes")
 
     assessor = LlmAssessor(
         config=assess_config,
@@ -542,10 +562,10 @@ async def _assess(
     )
     result = await assessor.assess(url)
 
-    click.echo()
     if output_format == "json":
         click.echo(result.model_dump_json(indent=2))
     else:
+        click.echo()
         _print_assessment_result(result)
 
 
