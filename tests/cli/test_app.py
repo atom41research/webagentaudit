@@ -78,7 +78,7 @@ class TestHelpAndVersion:
         result = runner.invoke(cli, ["assess", "--help"])
         assert result.exit_code == 0
         for opt in [
-            "--headful", "--screenshots", "--input-selector",
+            "--headful", "--screenshots", "--screenshots-dir", "--input-selector",
             "--response-selector", "--input-hint", "--submit-hint",
             "--iframe-selector", "--wait-for", "--category",
             "--sophistication", "--probe-dir", "--probe-file",
@@ -155,6 +155,40 @@ class TestAssessOptionParsing:
     def test_assess_help_has_output(self, runner):
         result = runner.invoke(cli, ["assess", "--help"])
         assert "--output" in result.output
+
+
+# ---------------------------------------------------------------------------
+# Screenshots directory option
+# ---------------------------------------------------------------------------
+
+
+class TestScreenshotsDir:
+    """Tests for the --screenshots-dir option."""
+
+    def test_assess_help_has_screenshots_dir(self, runner):
+        result = runner.invoke(cli, ["assess", "--help"])
+        assert "--screenshots-dir" in result.output
+
+    def test_screenshots_dir_help_text(self, runner):
+        """Help text should describe the default."""
+        result = runner.invoke(cli, ["assess", "--help"])
+        assert "Directory for screenshots" in result.output
+
+    def test_screenshots_dir_listed_near_screenshots(self, runner):
+        """--screenshots-dir should appear in help alongside --screenshots."""
+        result = runner.invoke(cli, ["assess", "--help"])
+        lines = result.output.splitlines()
+        ss_line = None
+        ss_dir_line = None
+        for i, line in enumerate(lines):
+            if "--screenshots-dir" in line:
+                ss_dir_line = i
+            elif "--screenshots " in line:  # trailing space to avoid matching --screenshots-dir
+                ss_line = i
+        assert ss_line is not None, "--screenshots not found in help"
+        assert ss_dir_line is not None, "--screenshots-dir not found in help"
+        # They should be near each other (within 3 lines)
+        assert abs(ss_dir_line - ss_line) <= 3
 
 
 # ---------------------------------------------------------------------------

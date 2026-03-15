@@ -188,7 +188,14 @@ async def _detect(url: str, headful: bool, browser: str,
             pw, browser, headful, browser_exe, user_data_dir)
 
         click.echo(f"Navigating to {_style(url, fg='cyan')}...", err=is_json)
-        await page.goto(url, wait_until="domcontentloaded", timeout=timeout)
+        try:
+            await page.goto(url, wait_until="domcontentloaded", timeout=timeout)
+        except Exception as exc:
+            await closeable.close()
+            msg = str(exc).split("\n")[0]
+            click.echo(_style(f"Error: Could not load {url}: {msg}",
+                              fg="red"), err=True)
+            sys.exit(1)
         await page.wait_for_timeout(3000)
         page_data = await _collect_page_data(page, url)
         await closeable.close()
@@ -281,6 +288,8 @@ async def _detect(url: str, headful: bool, browser: str,
               multiple=True, help="Single custom YAML probe file.")
 @click.option("--screenshots", is_flag=True,
               help="Save screenshots during auto-discovery.")
+@click.option("--screenshots-dir", type=click.Path(), default=None,
+              help="Directory for screenshots (default: ./screenshots).")
 @click.option("-v", "--verbose", is_flag=True, help="Enable verbose debug logging.")
 @click.option("--output", "output_format", type=click.Choice(["text", "json"]),
               default="text", help="Output format.")
@@ -294,7 +303,7 @@ def assess(
     category: str | None, sophistication: str | None,
     severity: str | None, probes: str | None,
     probe_dir: str | None, probe_file: tuple[str, ...], screenshots: bool,
-    verbose: bool, output_format: str,
+    screenshots_dir: str | None, verbose: bool, output_format: str,
 ) -> None:
     """Assess AI agent security on a webpage.
 
@@ -315,7 +324,8 @@ def assess(
         category=category, sophistication=sophistication,
         severity=severity, probes=probes,
         probe_dir=probe_dir, probe_file=probe_file,
-        screenshots=screenshots, output_format=output_format,
+        screenshots=screenshots, screenshots_dir=screenshots_dir,
+        output_format=output_format,
     ))
 
 
@@ -383,7 +393,7 @@ async def _auto_discover(
     timeout: int, wait_for_selector: str | None,
     input_hint: str | None, submit_hint: str | None,
     response_hint: str | None, screenshots: bool,
-    output_format: str = "text",
+    screenshots_dir: str | None = None, output_format: str = "text",
 ) -> tuple[str | None, str | None, str | None, str | None]:
     """Run auto-discovery to find chat element selectors."""
     from webagentaudit.llm_channel.auto_config import AlgorithmicAutoConfigurator
@@ -398,7 +408,13 @@ async def _auto_discover(
         pw, browser, headful, browser_exe, user_data_dir)
 
     try:
-        await page.goto(url, wait_until="domcontentloaded", timeout=timeout)
+        try:
+            await page.goto(url, wait_until="domcontentloaded", timeout=timeout)
+        except Exception as exc:
+            msg = str(exc).split("\n")[0]
+            click.echo(_style(f"Error: Could not load {url}: {msg}",
+                              fg="red"), err=True)
+            sys.exit(1)
         await page.wait_for_timeout(3000)
 
         if wait_for_selector:
@@ -410,8 +426,14 @@ async def _auto_discover(
                     " not found within timeout", fg="yellow"), err=is_json)
 
         if screenshots:
-            Path("screenshots").mkdir(exist_ok=True)
-            await page.screenshot(path="screenshots/00_discovery.png",
+            import os
+            ss_dir = Path(
+                screenshots_dir
+                or os.environ.get("WEBAGENTAUDIT_SCREENSHOTS_DIR")
+                or "screenshots"
+            )
+            ss_dir.mkdir(parents=True, exist_ok=True)
+            await page.screenshot(path=str(ss_dir / "00_discovery.png"),
                                   full_page=False)
 
         configurator = AlgorithmicAutoConfigurator()
@@ -452,7 +474,7 @@ async def _assess(
     category: str | None, sophistication: str | None,
     severity: str | None, probes: str | None,
     probe_dir: str | None, probe_file: tuple[str, ...],
-    screenshots: bool, output_format: str,
+    screenshots: bool, screenshots_dir: str | None, output_format: str,
 ) -> None:
     from playwright.async_api import async_playwright
 
@@ -487,7 +509,7 @@ async def _assess(
                 timeout=timeout, wait_for_selector=wait_for_selector,
                 input_hint=input_hint, submit_hint=submit_hint,
                 response_hint=response_hint, screenshots=screenshots,
-                output_format=output_format,
+                screenshots_dir=screenshots_dir, output_format=output_format,
             )
         actual_input = actual_input or disc_inp
         actual_submit = actual_submit or disc_sub

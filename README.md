@@ -49,6 +49,36 @@ pip install -e .
 playwright install
 ```
 
+All CLI examples below use bare `webagentaudit`. With uv, either prefix commands with `uv run` or activate the virtualenv first (`source .venv/bin/activate`).
+
+### Docker
+
+```bash
+# Build
+docker build -t webagentaudit .
+
+# Detect
+docker run --rm --user $(id -u):$(id -g) \
+  webagentaudit detect https://example.com
+
+# Assess with screenshots (saved to host ./docker-output/screenshots/)
+docker run --rm --user $(id -u):$(id -g) \
+  -v ./docker-output/screenshots:/data/screenshots \
+  webagentaudit assess https://example.com --screenshots
+
+# List probes
+docker run --rm webagentaudit probes --output json
+
+# Via docker compose (volumes pre-configured in docker-compose.yml)
+# Set DOCKER_UID/DOCKER_GID so output files are owned by your user
+export DOCKER_UID=$(id -u) DOCKER_GID=$(id -g)
+docker compose run --rm webagentaudit detect https://example.com
+docker compose run --rm webagentaudit assess https://example.com --screenshots
+docker compose run --rm webagentaudit probes
+```
+
+Inside the container, screenshots default to `/data/screenshots` (via `WEBAGENTAUDIT_SCREENSHOTS_DIR`). Mount that path to access them on the host. Do not use `--screenshots-dir` with Docker — use the volume mount instead.
+
 ### Verify your installation
 
 ```bash
@@ -86,7 +116,7 @@ webagentaudit assess http://localhost:8000/interactive/safe-llm.html \
   --headful --screenshots
 ```
 
-There are 21 demo pages total covering detection, interaction, and negative cases. Browse them at `http://localhost:8000/` to see the full fixture suite.
+There are 22 demo pages total covering detection, interaction, and negative cases. Browse them at `http://localhost:8000/` to see the full fixture suite.
 
 ## Quick start
 
@@ -116,6 +146,10 @@ webagentaudit assess https://example.com/chat \
 webagentaudit assess https://example.com/chat \
   --category prompt_injection,extraction \
   --sophistication advanced
+
+# Save screenshots to a specific directory
+webagentaudit assess https://example.com/support \
+  --screenshots --screenshots-dir ./audit-results
 
 # Audit an iframe-embedded third-party chatbot
 webagentaudit assess https://example.com \
@@ -198,6 +232,7 @@ Assess AI agent security on a webpage. Auto-discovers chat elements when selecto
 |---|---|---|
 | `--workers N` | `1` | Concurrent probe workers |
 | `--screenshots` | off | Save screenshots during auto-discovery |
+| `--screenshots-dir DIR` | `./screenshots` | Directory for saved screenshots |
 | `-v, --verbose` | off | Enable verbose debug logging |
 | `--output FORMAT` | `text` | Output format (`text`, `json`) |
 
