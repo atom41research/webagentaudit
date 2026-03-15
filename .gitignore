@@ -30,6 +30,9 @@ scripts/
 workflow-rules.md
 .claude/
 
+# Docker output (mounted volumes)
+docker-output/
+
 # Test artifacts
 test-results/
 

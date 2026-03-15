@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import glob
 import json
+import socket
 from pathlib import Path
 
 import pytest
@@ -19,6 +20,13 @@ from webagentaudit.cli.app import cli
 
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures"
 YAML_PROBES_DIR = str(FIXTURES_DIR / "yaml_probes")
+
+
+def _find_free_port() -> int:
+    """Return a TCP port that is not listening."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
 
 
 @pytest.fixture
@@ -322,3 +330,97 @@ class TestAssessE2E:
             "--output", "text",
         ])
         assert result.exit_code == 0, f"Failed: {result.output}"
+
+
+# ---------------------------------------------------------------------------
+# URL loading failure tests
+# ---------------------------------------------------------------------------
+
+
+class TestDetectUrlFailures:
+    """Detect command should show user-friendly errors for unreachable URLs."""
+
+    def test_detect_dns_resolution_failure(self, runner):
+        """Nonexistent domain should produce a clear error, not a traceback."""
+        result = runner.invoke(cli, [
+            "detect", "https://this-domain-does-not-exist-12345.invalid",
+            "--timeout", "5000",
+        ])
+        assert result.exit_code != 0
+        assert "Error: Could not load" in result.output
+        assert "Traceback" not in result.output
+
+    def test_detect_connection_refused(self, runner):
+        """Connection to a port with nothing listening should error cleanly."""
+        port = _find_free_port()
+        result = runner.invoke(cli, [
+            "detect", f"http://127.0.0.1:{port}",
+            "--timeout", "5000",
+        ])
+        assert result.exit_code != 0
+        assert "Error: Could not load" in result.output
+        assert "Traceback" not in result.output
+
+    def test_detect_timeout(self, runner):
+        """Very short timeout should error cleanly, not crash."""
+        # 1ms timeout — navigation can't complete in time
+        result = runner.invoke(cli, [
+            "detect", "https://example.com",
+            "--timeout", "1",
+        ])
+        assert result.exit_code != 0
+        assert "Error: Could not load" in result.output
+        assert "Traceback" not in result.output
+
+    def test_detect_invalid_url_scheme(self, runner):
+        """Non-HTTP URL should error cleanly."""
+        result = runner.invoke(cli, [
+            "detect", "ftp://example.com",
+            "--timeout", "5000",
+        ])
+        assert result.exit_code != 0
+        assert "Traceback" not in result.output
+
+    def test_detect_dns_failure_json_output(self, runner):
+        """JSON mode should also handle URL failures without traceback."""
+        result = runner.invoke(cli, [
+            "detect", "https://this-domain-does-not-exist-12345.invalid",
+            "--timeout", "5000", "--output", "json",
+        ])
+        assert result.exit_code != 0
+        assert "Traceback" not in (result.output + (result.stderr or ""))
+
+
+class TestAssessUrlFailures:
+    """Assess command should show user-friendly errors for unreachable URLs."""
+
+    def test_assess_dns_resolution_failure(self, runner):
+        """Nonexistent domain should produce a clear error, not a traceback."""
+        result = runner.invoke(cli, [
+            "assess", "https://this-domain-does-not-exist-12345.invalid",
+            "--timeout", "5000",
+        ])
+        assert result.exit_code != 0
+        assert "Error: Could not load" in result.output
+        assert "Traceback" not in result.output
+
+    def test_assess_connection_refused(self, runner):
+        """Connection to a closed port should error cleanly."""
+        port = _find_free_port()
+        result = runner.invoke(cli, [
+            "assess", f"http://127.0.0.1:{port}",
+            "--timeout", "5000",
+        ])
+        assert result.exit_code != 0
+        assert "Error: Could not load" in result.output
+        assert "Traceback" not in result.output
+
+    def test_assess_timeout(self, runner):
+        """Very short timeout should error cleanly, not crash."""
+        result = runner.invoke(cli, [
+            "assess", "https://example.com",
+            "--timeout", "1",
+        ])
+        assert result.exit_code != 0
+        assert "Error: Could not load" in result.output
+        assert "Traceback" not in result.output

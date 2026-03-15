@@ -1,0 +1,11 @@
+services:
+  webagentaudit:
+    build: .
+    user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
+    volumes:
+      # Screenshots and reports are written here — accessible from host
+      - ./docker-output/screenshots:/data/screenshots
+      - ./docker-output/reports:/data/output
+    # Override with your target URL, e.g.:
+    #   docker compose run webagentaudit detect https://example.com
+    #   docker compose run webagentaudit assess https://example.com --screenshots
