@@ -1,5 +1,7 @@
 """LLM channel that communicates via browser automation."""
 
+from datetime import UTC, datetime
+
 from playwright.async_api import Browser, BrowserContext, Frame, Page, async_playwright
 
 from webagentaudit.core.exceptions import (
@@ -110,7 +112,7 @@ class PlaywrightChannel(BaseLlmChannel):
         )
         if text is None:
             raise ChannelTimeoutError("No response received within timeout")
-        return ChannelResponse(text=text)
+        return ChannelResponse(text=text, timestamp=datetime.now(UTC))
 
     async def write(self, text: str) -> None:
         target = self._target
@@ -125,7 +127,7 @@ class PlaywrightChannel(BaseLlmChannel):
         text = await self._strategy.get_response(target, timeout)
         if text is None:
             raise ChannelTimeoutError("No response received within timeout")
-        return ChannelResponse(text=text)
+        return ChannelResponse(text=text, timestamp=datetime.now(UTC))
 
     async def disconnect(self) -> None:
         if self._context:

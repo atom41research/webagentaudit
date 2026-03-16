@@ -46,20 +46,35 @@ class LlmDetector:
     def _aggregate_confidence(
         self, signals: list[DetectionSignal]
     ) -> ConfidenceScore:
-        """Combine signal confidences. Uses max confidence across all signals."""
+        """Combine signal confidences using decay-sum.
+
+        Sorts signals by confidence descending, takes the strongest as the base,
+        then adds diminishing contributions from remaining signals (0.3^i decay).
+        This ensures multiple signals boost confidence beyond the single strongest,
+        while capping at 1.0.
+        """
         if not signals:
             return ConfidenceScore(value=0.0)
-        max_value = max(s.confidence.value for s in signals)
-        return ConfidenceScore(value=min(max_value, 1.0))
+        values = sorted(
+            (s.confidence.value for s in signals), reverse=True
+        )
+        base = values[0]
+        remaining = values[1:]
+        boost = sum(val * (0.3 ** (i + 1)) for i, val in enumerate(remaining))
+        return ConfidenceScore(value=min(base + boost, 1.0))
 
     def _extract_provider_hint(
         self, signals: list[DetectionSignal]
     ) -> Optional[str]:
-        """Extract provider hint from known_signature signals."""
-        for signal in signals:
-            if signal.signal_type == "known_provider" and "provider" in signal.metadata:
-                return signal.metadata["provider"]
-        return None
+        """Extract provider hint from the highest-confidence known_provider signal."""
+        provider_signals = [
+            s for s in signals
+            if s.signal_type == "known_provider" and "provider" in s.metadata
+        ]
+        if not provider_signals:
+            return None
+        best = max(provider_signals, key=lambda s: s.confidence.value)
+        return best.metadata["provider"]
 
     def _extract_interaction_hint(
         self, signals: list[DetectionSignal]

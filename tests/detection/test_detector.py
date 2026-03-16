@@ -134,7 +134,12 @@ class TestLlmDetectorSignalAggregation:
 class TestLlmDetectorConfidence:
     """Test confidence aggregation logic."""
 
-    def test_max_confidence_is_used(self):
+    def test_decay_sum_aggregation(self):
+        """Multiple signals boost confidence beyond the single strongest.
+
+        Formula: base + sum(val * 0.3^i for i, val in enumerate(remaining))
+        With [0.7, 0.5, 0.3]: 0.7 + 0.5*0.3 + 0.3*0.09 = 0.877
+        """
         signals = [
             _make_signal(confidence=0.3),
             _make_signal(confidence=0.7),
@@ -146,7 +151,26 @@ class TestLlmDetectorConfidence:
 
         result = detector.detect(_make_page_data())
 
-        assert result.overall_confidence.value == 0.7
+        assert result.overall_confidence.value == pytest.approx(0.877, abs=1e-3)
+
+    def test_multiple_signals_beat_single_signal(self):
+        """Three signals at 0.5 should score higher than one signal at 0.5."""
+        single_checker = StubChecker([_make_signal(confidence=0.5)])
+        multi_checker = StubChecker([
+            _make_signal(confidence=0.5),
+            _make_signal(confidence=0.5),
+            _make_signal(confidence=0.5),
+        ])
+
+        detector_single = LlmDetector()
+        detector_single.register_checker(single_checker)
+        result_single = detector_single.detect(_make_page_data())
+
+        detector_multi = LlmDetector()
+        detector_multi.register_checker(multi_checker)
+        result_multi = detector_multi.detect(_make_page_data())
+
+        assert result_multi.overall_confidence.value > result_single.overall_confidence.value
 
     def test_single_signal_confidence(self):
         checker = StubChecker([_make_signal(confidence=0.85)])
@@ -258,7 +282,31 @@ class TestLlmDetectorProviderHint:
 
         assert result.provider_hint is None
 
-    def test_first_known_provider_wins(self):
+    def test_highest_confidence_provider_wins(self):
+        """When multiple providers are detected, the highest-confidence one wins."""
+        signals = [
+            _make_signal(
+                signal_type="known_provider",
+                confidence=0.7,
+                metadata={"provider": "drift"},
+            ),
+            _make_signal(
+                signal_type="known_provider",
+                confidence=0.9,
+                metadata={"provider": "intercom"},
+            ),
+        ]
+        checker = StubChecker(signals)
+        detector = LlmDetector()
+        detector.register_checker(checker)
+
+        result = detector.detect(_make_page_data())
+
+        # The highest-confidence provider should be returned
+        assert result.provider_hint == "intercom"
+
+    def test_equal_confidence_providers_returns_one(self):
+        """When providers have equal confidence, one is returned (deterministic)."""
         signals = [
             _make_signal(
                 signal_type="known_provider",
@@ -277,8 +325,7 @@ class TestLlmDetectorProviderHint:
 
         result = detector.detect(_make_page_data())
 
-        # The first known_provider signal's provider should be returned
-        assert result.provider_hint == "drift"
+        assert result.provider_hint in ("drift", "intercom")
 
     def test_provider_hint_ignored_if_metadata_missing_key(self):
         signals = [

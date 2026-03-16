@@ -1,6 +1,6 @@
 """Core module - shared models, enums, exceptions, and constants."""
 
-from .enums import ConfidenceLevel, DetectionMethod, ProbeCategory, Severity
+from .enums import ConfidenceLevel, DetectionMethod, ProbeCategory, Severity, Sophistication
 from .exceptions import (
     AssessmentError,
     ChannelError,
@@ -23,5 +23,6 @@ __all__ = [
     "Finding",
     "ProbeCategory",
     "Severity",
+    "Sophistication",
     "WebLlmError",
 ]
