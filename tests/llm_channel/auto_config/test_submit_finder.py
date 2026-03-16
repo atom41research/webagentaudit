@@ -1,12 +1,14 @@
 """Tests for SubmitFinder: algorithmic submit button discovery and scoring."""
 
 import pytest
-from playwright.async_api import Page, async_playwright
+from playwright.async_api import Page
 
 from webagentaudit.llm_channel.auto_config._dom_utils import extract_element_props
 from webagentaudit.llm_channel.auto_config._selector_builder import SelectorBuilder
 from webagentaudit.llm_channel.auto_config._submit_finder import SubmitFinder
 from webagentaudit.llm_channel.auto_config.models import ElementCandidate
+
+pytestmark = pytest.mark.browser
 
 # ---------------------------------------------------------------------------
 # HTML fixtures — input and button are laid out inline (no absolute positioning)
@@ -133,23 +135,6 @@ async def _get_input_candidate(pg: Page) -> ElementCandidate:
     builder = SelectorBuilder()
     candidate.selector = await builder.build(el, pg)
     return candidate
-
-
-@pytest.fixture
-async def browser():
-    pw = await async_playwright().start()
-    browser = await pw.chromium.launch(headless=True)
-    yield browser
-    await browser.close()
-    await pw.stop()
-
-
-@pytest.fixture
-async def page(browser):
-    context = await browser.new_context()
-    pg = await context.new_page()
-    yield pg
-    await context.close()
 
 
 @pytest.fixture

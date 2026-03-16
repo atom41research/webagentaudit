@@ -1,0 +1,14 @@
+.git
+.github
+.venv
+__pycache__
+*.pyc
+*.egg-info
+.mypy_cache
+.pytest_cache
+.ruff_cache
+output/
+screenshots/
+docker-output/
+tasks/
+kb/

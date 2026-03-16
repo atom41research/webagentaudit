@@ -496,13 +496,14 @@ async def _assess(
         click.echo("No probes to run.", err=True)
         sys.exit(1)
 
-    # Resolve selectors via auto-discovery if needed
-    actual_input = input_selector
-    actual_submit = submit_selector
-    actual_response = response_selector
+    # Single Playwright instance for the entire assess run
+    async with async_playwright() as pw:
+        # Resolve selectors via auto-discovery if needed
+        actual_input = input_selector
+        actual_submit = submit_selector
+        actual_response = response_selector
 
-    if not actual_input or not actual_response:
-        async with async_playwright() as pw:
+        if not actual_input or not actual_response:
             disc_inp, disc_sub, disc_resp, disc_iframe = await _auto_discover(
                 url, pw=pw, browser=browser, headful=headful,
                 browser_exe=browser_exe, user_data_dir=user_data_dir,
@@ -511,78 +512,94 @@ async def _assess(
                 response_hint=response_hint, screenshots=screenshots,
                 screenshots_dir=screenshots_dir, output_format=output_format,
             )
-        actual_input = actual_input or disc_inp
-        actual_submit = actual_submit or disc_sub
-        actual_response = actual_response or disc_resp
-        # Use discovered iframe if user didn't provide one
-        if not iframe_selector and disc_iframe:
-            iframe_selector = disc_iframe
+            actual_input = actual_input or disc_inp
+            actual_submit = actual_submit or disc_sub
+            actual_response = actual_response or disc_resp
+            if not iframe_selector and disc_iframe:
+                iframe_selector = disc_iframe
 
-    if not actual_input:
-        click.echo("Error: Could not find input element. Use --input-selector.",
-                    err=True)
-        sys.exit(1)
-    if not actual_response:
-        click.echo("Error: Could not find response element."
-                    " Use --response-selector.", err=True)
-        sys.exit(1)
+        if not actual_input:
+            click.echo("Error: Could not find input element. Use --input-selector.",
+                        err=True)
+            sys.exit(1)
+        if not actual_response:
+            click.echo("Error: Could not find response element."
+                        " Use --response-selector.", err=True)
+            sys.exit(1)
 
-    if not is_json:
-        _print_header("LLM Security Assessment")
-        _print_kv("URL", url)
-        _print_kv("Browser", f"{browser} ({'headed' if headful else 'headless'})")
-        _print_kv("Input", actual_input)
-        _print_kv("Submit", actual_submit or "Enter key")
-        _print_kv("Response", actual_response)
-        _print_kv("Probes", str(len(all_probes)))
+        if not is_json:
+            _print_header("LLM Security Assessment")
+            _print_kv("URL", url)
+            _print_kv("Browser", f"{browser} ({'headed' if headful else 'headless'})")
+            _print_kv("Input", actual_input)
+            _print_kv("Submit", actual_submit or "Enter key")
+            _print_kv("Response", actual_response)
+            _print_kv("Probes", str(len(all_probes)))
 
-    channel_config = ChannelConfig(
-        headless=not headful,
-        browser=browser,
-        timeout_ms=timeout,
-        user_data_dir=user_data_dir,
-    )
-
-    # Capture for closure
-    _inp, _sub, _resp = actual_input, actual_submit, actual_response
-
-    def channel_factory() -> PlaywrightChannel:
-        strategy = CustomStrategy(
-            input_selector=_inp,
-            response_selector=_resp,
-            submit_selector=_sub,
-            iframe_selector=iframe_selector,
+        channel_config = ChannelConfig(
+            headless=not headful,
+            browser=browser,
+            timeout_ms=timeout,
+            user_data_dir=user_data_dir,
         )
-        return PlaywrightChannel(config=channel_config, strategy=strategy)
 
-    assess_config = AssessmentConfig(workers=workers)
-    completed = 0
+        # Launch a shared browser for all probe conversations (when not using
+        # persistent context).  Each PlaywrightChannel.connect() will create a
+        # cheap context+page from this browser instead of spawning a new one.
+        shared_browser = None
+        if not user_data_dir:
+            launcher = getattr(pw, browser)
+            launch_kw: dict = {"headless": not headful}
+            if browser_exe:
+                launch_kw["executable_path"] = browser_exe
+            shared_browser = await launcher.launch(**launch_kw)
 
-    def _on_progress(results) -> None:
-        nonlocal completed
-        if is_json:
-            return
-        if len(results) > completed:
-            latest = results[-1]
-            completed = len(results)
-            status = (
-                _style("VULN", fg="red", bold=True)
-                if latest.vulnerability_detected
-                else _style("PASS", fg="green")
+        # Capture for closure
+        _inp, _sub, _resp = actual_input, actual_submit, actual_response
+
+        def channel_factory() -> PlaywrightChannel:
+            strategy = CustomStrategy(
+                input_selector=_inp,
+                response_selector=_resp,
+                submit_selector=_sub,
+                iframe_selector=iframe_selector,
             )
-            click.echo(f"  [{completed}/{len(all_probes)}] {status}"
-                       f" {latest.probe_name}")
+            return PlaywrightChannel(
+                config=channel_config, strategy=strategy,
+                browser=shared_browser,
+            )
 
-    if not is_json:
-        _print_section("Running Probes")
+        assess_config = AssessmentConfig(workers=workers)
+        completed = 0
 
-    assessor = LlmAssessor(
-        config=assess_config,
-        channel_factory=channel_factory,
-        registry=registry,
-        progress_callback=_on_progress,
-    )
-    result = await assessor.assess(url)
+        def _on_progress(results) -> None:
+            nonlocal completed
+            if is_json:
+                return
+            if len(results) > completed:
+                latest = results[-1]
+                completed = len(results)
+                status = (
+                    _style("VULN", fg="red", bold=True)
+                    if latest.vulnerability_detected
+                    else _style("PASS", fg="green")
+                )
+                click.echo(f"  [{completed}/{len(all_probes)}] {status}"
+                           f" {latest.probe_name}")
+
+        if not is_json:
+            _print_section("Running Probes")
+
+        assessor = LlmAssessor(
+            config=assess_config,
+            channel_factory=channel_factory,
+            registry=registry,
+            progress_callback=_on_progress,
+        )
+        result = await assessor.assess(url)
+
+        if shared_browser:
+            await shared_browser.close()
 
     if output_format == "json":
         click.echo(result.model_dump_json(indent=2))

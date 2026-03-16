@@ -2,11 +2,15 @@
 
 import re
 
+import pytest
+
 from webagentaudit.assessment.probes.canary import (
     CanaryToken,
     generate_concat_canary,
     generate_separator_canary,
 )
+
+pytestmark = pytest.mark.unit
 
 
 class TestConcatCanary:

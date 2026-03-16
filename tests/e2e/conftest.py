@@ -68,19 +68,31 @@ def demo_server():
     return _ensure_server()
 
 
-@pytest.fixture
-async def page(request):
-    """Fresh Playwright page per test."""
+@pytest.fixture(scope="session")
+async def _pw():
+    """Single Playwright instance per session/worker."""
+    pw = await async_playwright().start()
+    yield pw
+    await pw.stop()
+
+
+@pytest.fixture(scope="session")
+async def _browser(_pw, request):
+    """Single browser per session/worker."""
     headed = request.config.getoption("--headed")
     slowmo = request.config.getoption("--slowmo")
+    b = await _pw.chromium.launch(headless=not headed, slow_mo=slowmo)
+    yield b
+    await b.close()
+
+
+@pytest.fixture
+async def page(_browser, request):
+    """Fresh context per test from shared browser (cheap)."""
     pause = request.config.getoption("--pause")
-    pw = await async_playwright().start()
-    browser = await pw.chromium.launch(headless=not headed, slow_mo=slowmo)
-    context = await browser.new_context()
+    context = await _browser.new_context()
     pg = await context.new_page()
     yield pg
     if pause > 0:
         await pg.wait_for_timeout(pause * 1000)
     await context.close()
-    await browser.close()
-    await pw.stop()

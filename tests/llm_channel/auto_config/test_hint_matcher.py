@@ -8,6 +8,8 @@ from webagentaudit.llm_channel.auto_config._hint_matcher import (
 )
 from webagentaudit.llm_channel.auto_config.models import ElementCandidate, ElementHint
 
+pytestmark = pytest.mark.unit
+
 
 class TestParseHint:
     """Tests for HTML snippet → ElementHint parsing."""

@@ -7,6 +7,8 @@ from webagentaudit.detection.known_assets.models import ApiSignature, DomSignatu
 from webagentaudit.detection.known_assets.checker import KnownAssetsChecker
 from webagentaudit.detection.models import PageData
 
+pytestmark = pytest.mark.unit
+
 
 def make_page_data(html="<html><body></body></html>", url="https://example.com", scripts=None, inline_scripts=None):
     return PageData(

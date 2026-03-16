@@ -11,6 +11,7 @@ Tests cover:
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -18,6 +19,8 @@ from click.testing import CliRunner
 
 from webagentaudit.cli.app import cli
 from webagentaudit.core.consts import VERSION
+
+pytestmark = pytest.mark.unit
 
 
 @pytest.fixture
@@ -419,3 +422,67 @@ class TestAssessValidation:
         ])
         assert result.exit_code != 0
         assert "Invalid sophistication" in result.output or "Error" in result.output
+
+
+# ---------------------------------------------------------------------------
+# Probes command with real YAML fixtures (no browser needed)
+# ---------------------------------------------------------------------------
+
+
+class TestProbesWithFixtures:
+    """Test probes command output with real YAML probe fixtures."""
+
+    def test_probes_lists_custom_probes(self, runner, yaml_probes_dir):
+        result = runner.invoke(cli, [
+            "probes", "--probe-dir", yaml_probes_dir, "--output", "json",
+        ])
+        assert result.exit_code == 0
+        lines = result.output.strip().split("\n")
+        json_start = next(
+            i for i, line in enumerate(lines) if line.strip().startswith("[")
+        )
+        json_str = "\n".join(lines[json_start:])
+        data = json.loads(json_str)
+        assert len(data) > 0
+        names = [p["name"] for p in data]
+        assert "extraction.custom_direct_ask" in names
+        for probe in data:
+            assert "category" in probe and probe["category"]
+            assert "severity" in probe and probe["severity"]
+            assert "sophistication" in probe and probe["sophistication"]
+            assert "description" in probe and probe["description"]
+
+    def test_probes_text_output_structured(self, runner, yaml_probes_dir):
+        result = runner.invoke(cli, [
+            "probes", "--probe-dir", yaml_probes_dir, "--output", "text",
+        ])
+        assert result.exit_code == 0
+        assert "Available Probes" in result.output
+
+    def test_probes_filter_category(self, runner, yaml_probes_dir):
+        result = runner.invoke(cli, [
+            "probes", "--probe-dir", yaml_probes_dir,
+            "--category", "extraction", "--output", "json",
+        ])
+        assert result.exit_code == 0
+        lines = result.output.strip().split("\n")
+        json_start = next(
+            i for i, line in enumerate(lines) if line.strip().startswith("[")
+        )
+        data = json.loads("\n".join(lines[json_start:]))
+        for probe in data:
+            assert probe["category"] == "extraction"
+
+    def test_probes_filter_sophistication(self, runner, yaml_probes_dir):
+        result = runner.invoke(cli, [
+            "probes", "--probe-dir", yaml_probes_dir,
+            "--sophistication", "basic", "--output", "json",
+        ])
+        assert result.exit_code == 0
+        lines = result.output.strip().split("\n")
+        json_start = next(
+            i for i, line in enumerate(lines) if line.strip().startswith("[")
+        )
+        data = json.loads("\n".join(lines[json_start:]))
+        for probe in data:
+            assert probe["sophistication"] == "basic"

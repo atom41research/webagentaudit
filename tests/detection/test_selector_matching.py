@@ -18,6 +18,8 @@ from tests.conftest import (
     SIMPLE_BLOG_HTML,
 )
 
+pytestmark = pytest.mark.unit
+
 
 @pytest.fixture
 def checker():

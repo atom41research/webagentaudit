@@ -18,6 +18,8 @@ from tests.conftest import (
     TIDIO_EMBED_HTML,
 )
 
+pytestmark = pytest.mark.unit
+
 
 @pytest.fixture
 def checker():

@@ -12,6 +12,8 @@ from webagentaudit.assessment.models import (
     ProbeResult,
 )
 
+pytestmark = pytest.mark.unit
+
 
 class TestChatMessage:
     """ChatMessage role validation and construction."""

@@ -1,0 +1,24 @@
+# Test image: includes dev deps, test files, and Playwright browser
+FROM mcr.microsoft.com/playwright/python:v1.58.0-noble
+
+WORKDIR /app
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+
+# Copy project files
+COPY pyproject.toml uv.lock ./
+COPY src/ src/
+
+# Install ALL dependencies including dev (no --no-dev flag)
+RUN uv sync --frozen --no-editable
+
+# Install Playwright browsers
+RUN uv run playwright install --with-deps chromium
+
+# Copy test files and demo pages (needed by e2e HTTP server)
+COPY tests/ tests/
+COPY docs/ docs/
+
+ENTRYPOINT ["uv", "run", "pytest"]
+CMD ["-n", "auto", "--dist", "worksteal", "-v"]

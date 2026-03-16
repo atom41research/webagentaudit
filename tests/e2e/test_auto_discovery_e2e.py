@@ -26,6 +26,8 @@ from playwright.async_api import Page
 from webagentaudit.llm_channel.auto_config import AlgorithmicAutoConfigurator
 from webagentaudit.llm_channel.auto_config._hint_matcher import parse_hint
 
+pytestmark = pytest.mark.e2e
+
 
 # ---------------------------------------------------------------------------
 # Input hint tests (ambiguous-saas.html)

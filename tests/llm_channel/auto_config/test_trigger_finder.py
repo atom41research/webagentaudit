@@ -1,11 +1,12 @@
 """Tests for TriggerFinder: hidden AI panel detection and activation."""
 
 import pytest
-from playwright.async_api import async_playwright
 
 from webagentaudit.llm_channel.auto_config._trigger_finder import TriggerFinder
 from webagentaudit.llm_channel.auto_config._selector_builder import SelectorBuilder
 from webagentaudit.llm_channel.auto_config.models import TriggerMechanism
+
+pytestmark = pytest.mark.browser
 
 # ---------------------------------------------------------------------------
 # HTML fixtures
@@ -142,25 +143,6 @@ CSS_VAR_PANEL_HTML = """\
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
-
-
-@pytest.fixture
-async def browser():
-    """Launch a Playwright browser for each test function."""
-    pw = await async_playwright().start()
-    b = await pw.chromium.launch(headless=True)
-    yield b
-    await b.close()
-    await pw.stop()
-
-
-@pytest.fixture
-async def page(browser):
-    """Create a fresh page for each test."""
-    ctx = await browser.new_context(viewport={"width": 1280, "height": 720})
-    p = await ctx.new_page()
-    yield p
-    await ctx.close()
 
 
 @pytest.fixture

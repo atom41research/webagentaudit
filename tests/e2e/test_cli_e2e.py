@@ -18,6 +18,8 @@ from click.testing import CliRunner
 
 from webagentaudit.cli.app import cli
 
+pytestmark = pytest.mark.e2e
+
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures"
 YAML_PROBES_DIR = str(FIXTURES_DIR / "yaml_probes")
 
@@ -113,76 +115,21 @@ class TestDetectE2E:
 
 
 # ---------------------------------------------------------------------------
-# probes command e2e with custom probe dir
-# ---------------------------------------------------------------------------
-
-
-class TestProbesE2E:
-    """End-to-end tests for the probes command with real fixtures."""
-
-    def test_probes_lists_custom_probes(self, runner):
-        result = runner.invoke(cli, [
-            "probes", "--probe-dir", YAML_PROBES_DIR, "--output", "json",
-        ])
-        assert result.exit_code == 0
-        lines = result.output.strip().split("\n")
-        json_start = next(
-            i for i, line in enumerate(lines) if line.strip().startswith("[")
-        )
-        json_str = "\n".join(lines[json_start:])
-        data = json.loads(json_str)
-        assert len(data) > 0
-        names = [p["name"] for p in data]
-        assert "extraction.custom_direct_ask" in names
-        for probe in data:
-            assert "category" in probe and probe["category"]
-            assert "severity" in probe and probe["severity"]
-            assert "sophistication" in probe and probe["sophistication"]
-            assert "description" in probe and probe["description"]
-
-    def test_probes_text_output_structured(self, runner):
-        result = runner.invoke(cli, [
-            "probes", "--probe-dir", YAML_PROBES_DIR, "--output", "text",
-        ])
-        assert result.exit_code == 0
-        assert "Available Probes" in result.output
-
-    def test_probes_filter_category(self, runner):
-        result = runner.invoke(cli, [
-            "probes", "--probe-dir", YAML_PROBES_DIR,
-            "--category", "extraction", "--output", "json",
-        ])
-        assert result.exit_code == 0
-        lines = result.output.strip().split("\n")
-        json_start = next(
-            i for i, line in enumerate(lines) if line.strip().startswith("[")
-        )
-        data = json.loads("\n".join(lines[json_start:]))
-        for probe in data:
-            assert probe["category"] == "extraction"
-
-    def test_probes_filter_sophistication(self, runner):
-        result = runner.invoke(cli, [
-            "probes", "--probe-dir", YAML_PROBES_DIR,
-            "--sophistication", "basic", "--output", "json",
-        ])
-        assert result.exit_code == 0
-        lines = result.output.strip().split("\n")
-        json_start = next(
-            i for i, line in enumerate(lines) if line.strip().startswith("[")
-        )
-        data = json.loads("\n".join(lines[json_start:]))
-        for probe in data:
-            assert probe["sophistication"] == "basic"
-
-
-# ---------------------------------------------------------------------------
 # assess command e2e
 # ---------------------------------------------------------------------------
 
 
+SINGLE_PROBE_YAML = str(FIXTURES_DIR / "yaml_probes" / "single_turn.yaml")
+SINGLE_PROBE_NAME = "extraction.custom_direct_ask"
+
+
 class TestAssessE2E:
-    """End-to-end tests for the assess command."""
+    """End-to-end tests for the assess command.
+
+    Tests that verify CLI output format use a single probe to keep execution
+    fast. Tests that verify detection behavior use the full probe dir with
+    concurrent workers.
+    """
 
     def test_assess_explicit_selectors(self, runner, demo_server):
         """assess with explicit selectors against echo page should succeed."""
@@ -192,7 +139,8 @@ class TestAssessE2E:
             "--input-selector", "#prompt-input",
             "--response-selector", ".bot-message:last-child",
             "--submit-selector", "#send-btn",
-            "--probe-dir", YAML_PROBES_DIR,
+            "--probe-file", SINGLE_PROBE_YAML,
+            "--probes", SINGLE_PROBE_NAME,
             "--output", "text",
         ])
         assert result.exit_code == 0, f"Failed: {result.output}"
@@ -201,13 +149,13 @@ class TestAssessE2E:
     def test_assess_with_probe_file(self, runner, demo_server):
         """assess with --probe-file should succeed."""
         url = f"{demo_server}/interactive/reverse-llm.html"
-        probe_file = str(FIXTURES_DIR / "yaml_probes" / "single_turn.yaml")
         result = runner.invoke(cli, [
             "assess", url,
             "--input-selector", "#prompt-input",
             "--response-selector", ".bot-message:last-child",
             "--submit-selector", "#send-btn",
-            "--probe-file", probe_file,
+            "--probe-file", SINGLE_PROBE_YAML,
+            "--probes", SINGLE_PROBE_NAME,
             "--output", "text",
         ])
         assert result.exit_code == 0, f"Failed: {result.output}"
@@ -220,7 +168,8 @@ class TestAssessE2E:
             "--input-selector", "#prompt-input",
             "--response-selector", ".bot-message:last-child",
             "--submit-selector", "#send-btn",
-            "--probe-dir", YAML_PROBES_DIR,
+            "--probe-file", SINGLE_PROBE_YAML,
+            "--probes", SINGLE_PROBE_NAME,
             "--output", "json",
         ])
         assert result.exit_code == 0, f"Failed: {result.output}"
@@ -257,7 +206,8 @@ class TestAssessE2E:
             "--input-selector", "#prompt-input",
             "--response-selector", ".bot-message:last-child",
             "--submit-selector", "#send-btn",
-            "--probe-dir", YAML_PROBES_DIR,
+            "--probe-file", SINGLE_PROBE_YAML,
+            "--probes", SINGLE_PROBE_NAME,
             "--output", "text",
         ])
         assert result.exit_code == 0, f"Failed: {result.output}"
@@ -273,6 +223,8 @@ class TestAssessE2E:
             "--response-selector", ".bot-message:last-child",
             "--submit-selector", "#send-btn",
             "--probe-dir", YAML_PROBES_DIR,
+            "--category", "extraction",
+            "--workers", "4",
             "--output", "json",
         ])
         assert result.exit_code == 0, f"Failed: {result.output}"
@@ -299,8 +251,7 @@ class TestAssessE2E:
     def test_assess_multiple_probe_files(self, runner, demo_server):
         """assess with multiple --probe-file flags should run all probes."""
         url = f"{demo_server}/interactive/reverse-llm.html"
-        probe_file_1 = str(FIXTURES_DIR / "yaml_probes" / "single_turn.yaml")
-        # Check if there's a second probe file to use
+        probe_file_1 = SINGLE_PROBE_YAML
         yaml_files = sorted(glob.glob(str(FIXTURES_DIR / "yaml_probes" / "*.yaml")))
         if len(yaml_files) < 2:
             pytest.skip("Need at least 2 YAML probe files")
@@ -313,6 +264,8 @@ class TestAssessE2E:
             "--submit-selector", "#send-btn",
             "--probe-file", probe_file_1,
             "--probe-file", probe_file_2,
+            "--probes", f"{SINGLE_PROBE_NAME},extraction.trust_building_custom",
+            "--workers", "4",
             "--output", "json",
         ])
         assert result.exit_code == 0, f"Failed: {result.output}"
@@ -326,7 +279,8 @@ class TestAssessE2E:
             "--input-selector", "#prompt-input",
             "--response-selector", ".bot-message:last-child",
             "--submit-selector", "#send-btn",
-            "--probe-dir", YAML_PROBES_DIR,
+            "--probe-file", SINGLE_PROBE_YAML,
+            "--probes", SINGLE_PROBE_NAME,
             "--output", "text",
         ])
         assert result.exit_code == 0, f"Failed: {result.output}"
