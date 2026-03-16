@@ -26,8 +26,6 @@ from .consts import (
     API_PROVIDER_OPENAI,
     DEFAULT_BASE_URL_ANTHROPIC,
     DEFAULT_BASE_URL_OPENAI,
-    DEFAULT_MODEL_ANTHROPIC,
-    DEFAULT_MODEL_OPENAI,
     ENV_API_KEY_ANTHROPIC,
     ENV_API_KEY_OPENAI,
     SUPPORTED_API_PROVIDERS,
@@ -216,7 +214,6 @@ class ApiChannel(BaseLlmChannel):
 
         return ChannelResponse(
             text=response_text,
-            raw_html=None,
             response_time_ms=elapsed_ms,
             truncated=truncated,
             timestamp=datetime.now(UTC),
@@ -364,7 +361,7 @@ class ApiChannel(BaseLlmChannel):
         return {
             API_PROVIDER_OPENAI: ENV_API_KEY_OPENAI,
             API_PROVIDER_ANTHROPIC: ENV_API_KEY_ANTHROPIC,
-        }.get(provider, f"{provider.upper()}_API_KEY")
+        }[provider]
 
     @staticmethod
     def _default_base_url(provider: str) -> str:
@@ -372,14 +369,6 @@ class ApiChannel(BaseLlmChannel):
         return {
             API_PROVIDER_OPENAI: DEFAULT_BASE_URL_OPENAI,
             API_PROVIDER_ANTHROPIC: DEFAULT_BASE_URL_ANTHROPIC,
-        }[provider]
-
-    @staticmethod
-    def _default_model(provider: str) -> str:
-        """Return the default model for a provider."""
-        return {
-            API_PROVIDER_OPENAI: DEFAULT_MODEL_OPENAI,
-            API_PROVIDER_ANTHROPIC: DEFAULT_MODEL_ANTHROPIC,
         }[provider]
 
     @staticmethod

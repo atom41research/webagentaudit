@@ -54,10 +54,14 @@ def parse_proxy_url(url: str) -> ProxyConfig:
     username = unquote(parsed.username) if parsed.username else None
     password = unquote(parsed.password) if parsed.password else None
 
-    # Reconstruct the server URL without auth credentials
+    # Reconstruct the server URL without auth credentials, preserving path/query
     server = f"{parsed.scheme}://{parsed.hostname}"
     if parsed.port:
         server += f":{parsed.port}"
+    if parsed.path and parsed.path != "/":
+        server += parsed.path
+    if parsed.query:
+        server += f"?{parsed.query}"
 
     return ProxyConfig(
         server=server,

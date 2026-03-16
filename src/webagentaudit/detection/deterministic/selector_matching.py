@@ -9,6 +9,7 @@ from ...core.models import ConfidenceScore
 from ..consts import CHAT_WIDGET_SELECTORS, SIGNAL_WEIGHT_CHAT_WIDGET
 from ..models import DetectionSignal, PageData
 from .base import BaseSignalChecker
+from .dom_patterns import _element_evidence
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +39,8 @@ class SelectorMatchingChecker(BaseSignalChecker):
             except Exception:
                 logger.debug("Invalid CSS selector skipped: %s", selector)
                 continue
-            for element in elements:
-                snippet = str(element)[:200]
+            if elements:
+                snippet = _element_evidence(elements[0])
                 signals.append(
                     DetectionSignal(
                         checker_name=self.name,
@@ -48,7 +49,10 @@ class SelectorMatchingChecker(BaseSignalChecker):
                         confidence=ConfidenceScore(value=SIGNAL_WEIGHT_CHAT_WIDGET),
                         evidence=f"{selector} -> {snippet}",
                         method=DetectionMethod.DETERMINISTIC,
-                        metadata={"widget_selector": selector},
+                        metadata={
+                            "widget_selector": selector,
+                            "match_count": len(elements),
+                        },
                     )
                 )
 

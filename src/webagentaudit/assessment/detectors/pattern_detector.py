@@ -1,8 +1,11 @@
 """Regex-based pattern detector."""
 
+import logging
 import re
 
 from .base import BaseDetector
+
+logger = logging.getLogger(__name__)
 
 
 class PatternDetector(BaseDetector):
@@ -34,6 +37,7 @@ class PatternDetector(BaseDetector):
             try:
                 if re.search(pattern, response_text, re.IGNORECASE):
                     matched.append(pattern)
-            except re.error:
+            except re.error as exc:
+                logger.warning("Invalid regex pattern %r: %s", pattern, exc)
                 continue
         return matched

@@ -14,7 +14,6 @@ class ChannelMessage(BaseModel):
 class ChannelResponse(BaseModel):
     """A response received from the LLM."""
     text: str
-    raw_html: str | None = None
     response_time_ms: float = 0.0
     truncated: bool = False
     timestamp: datetime | None = None

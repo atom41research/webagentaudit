@@ -179,7 +179,7 @@ class ChatWidgetStrategy(BaseInteractionStrategy):
                     return explicit
             except Exception:
                 pass
-            return explicit  # Still return it; may appear later
+            return None  # Explicit selector didn't match; let caller fall back
 
         for selector in defaults:
             try:
