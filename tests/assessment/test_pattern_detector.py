@@ -6,6 +6,8 @@ import pytest
 
 from webagentaudit.assessment.detectors.pattern_detector import PatternDetector
 
+pytestmark = pytest.mark.unit
+
 # -- Reusable extraction patterns that distinguish disclosure from refusal.
 # Require a colon separator — refusals say "my system prompt is [adjective]"
 # but disclosures say "my system prompt is: [actual content]".

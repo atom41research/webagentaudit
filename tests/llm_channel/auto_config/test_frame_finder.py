@@ -1,26 +1,10 @@
 """Tests for FrameFinder: chat widget iframe discovery."""
 
 import pytest
-from playwright.async_api import async_playwright
 
 from webagentaudit.llm_channel.auto_config._frame_finder import FrameFinder
 
-
-@pytest.fixture
-async def browser():
-    pw = await async_playwright().start()
-    browser = await pw.chromium.launch(headless=True)
-    yield browser
-    await browser.close()
-    await pw.stop()
-
-
-@pytest.fixture
-async def page(browser):
-    context = await browser.new_context()
-    pg = await context.new_page()
-    yield pg
-    await context.close()
+pytestmark = pytest.mark.browser
 
 
 @pytest.fixture

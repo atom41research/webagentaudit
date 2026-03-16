@@ -11,6 +11,8 @@ from webagentaudit.llm_channel.proxy import (
 )
 from webagentaudit.llm_channel.models import ProxyConfig
 
+pytestmark = pytest.mark.unit
+
 
 class TestParseProxyUrl:
     def test_simple_http(self):

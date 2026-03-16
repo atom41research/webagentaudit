@@ -20,9 +20,11 @@ class PlaywrightChannel(BaseLlmChannel):
         self,
         config: ChannelConfig,
         strategy: BaseStrategy,
+        browser: Browser | None = None,
     ) -> None:
         super().__init__(config=config)
         self._strategy = strategy
+        self._external_browser = browser
         self._playwright = None
         self._browser: Browser | None = None
         self._context: BrowserContext | None = None
@@ -30,16 +32,15 @@ class PlaywrightChannel(BaseLlmChannel):
         self._interaction_target: Page | Frame | None = None
 
     async def connect(self, url: str) -> None:
-        self._playwright = await async_playwright().start()
-        launcher = getattr(self._playwright, self._config.browser)
-
         viewport = {
             "width": self._config.viewport_width,
             "height": self._config.viewport_height,
         }
 
         if self._config.user_data_dir:
-            # Persistent context reuses an existing browser profile
+            # Persistent context requires its own playwright/browser
+            self._playwright = await async_playwright().start()
+            launcher = getattr(self._playwright, self._config.browser)
             self._context = await launcher.launch_persistent_context(
                 self._config.user_data_dir,
                 headless=self._config.headless,
@@ -48,7 +49,18 @@ class PlaywrightChannel(BaseLlmChannel):
                 extra_http_headers=self._config.extra_headers or {},
             )
             self._page = await self._context.new_page()
+        elif self._external_browser:
+            # Reuse external browser — only create context+page (cheap)
+            self._context = await self._external_browser.new_context(
+                viewport=viewport,
+                user_agent=self._config.user_agent,
+                extra_http_headers=self._config.extra_headers or {},
+            )
+            self._page = await self._context.new_page()
         else:
+            # No external browser — full launch (original behavior)
+            self._playwright = await async_playwright().start()
+            launcher = getattr(self._playwright, self._config.browser)
             self._browser = await launcher.launch(
                 headless=self._config.headless,
             )

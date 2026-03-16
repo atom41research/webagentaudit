@@ -14,6 +14,8 @@ from webagentaudit.llm_channel.base import BaseLlmChannel
 from webagentaudit.llm_channel.config import ChannelConfig
 from webagentaudit.llm_channel.models import ChannelMessage, ChannelResponse
 
+pytestmark = pytest.mark.unit
+
 
 class StubChannel(BaseLlmChannel):
     """Stub channel that records timing and returns canned responses."""

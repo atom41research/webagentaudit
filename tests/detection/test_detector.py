@@ -11,6 +11,8 @@ from webagentaudit.detection.deterministic.base import BaseSignalChecker
 from webagentaudit.detection.detector import LlmDetector
 from webagentaudit.detection.models import DetectionSignal, PageData
 
+pytestmark = pytest.mark.unit
+
 
 # ---------------------------------------------------------------------------
 # Helpers

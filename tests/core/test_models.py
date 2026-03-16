@@ -5,6 +5,8 @@ import pytest
 from webagentaudit.core.enums import ConfidenceLevel, Severity
 from webagentaudit.core.models import ConfidenceScore, Finding
 
+pytestmark = pytest.mark.unit
+
 
 class TestConfidenceScoreLevel:
     """Test ConfidenceScore.level derivation at each threshold boundary."""

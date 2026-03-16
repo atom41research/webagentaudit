@@ -19,6 +19,8 @@ from webagentaudit.detection.deterministic.selector_matching import SelectorMatc
 from webagentaudit.detection.known_assets.checker import KnownAssetsChecker
 from webagentaudit.detection.models import PageData
 
+pytestmark = pytest.mark.e2e
+
 
 def _create_detector() -> LlmDetector:
     detector = LlmDetector()

@@ -63,6 +63,8 @@ from webagentaudit.assessment.probes.categories import (
 )
 from webagentaudit.assessment.probes.registry import ProbeRegistry
 
+pytestmark = pytest.mark.unit
+
 # Canary-based probes (use dynamic tokens, anti-echo property)
 INJECTION_PROBES = [
     DirectOverrideProbe,

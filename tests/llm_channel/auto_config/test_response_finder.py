@@ -1,11 +1,12 @@
 """Tests for ResponseFinder: interactive response element discovery via DOM diffing."""
 
 import pytest
-from playwright.async_api import async_playwright
 
 from webagentaudit.llm_channel.auto_config._response_finder import ResponseFinder
 from webagentaudit.llm_channel.auto_config._selector_builder import SelectorBuilder
 from webagentaudit.llm_channel.auto_config import consts
+
+pytestmark = pytest.mark.browser
 
 # ---------------------------------------------------------------------------
 # HTML fixtures
@@ -61,23 +62,6 @@ document.getElementById('send').addEventListener('click', function() {
 </body>
 </html>
 """
-
-
-@pytest.fixture
-async def browser():
-    pw = await async_playwright().start()
-    browser = await pw.chromium.launch(headless=True)
-    yield browser
-    await browser.close()
-    await pw.stop()
-
-
-@pytest.fixture
-async def page(browser):
-    context = await browser.new_context()
-    pg = await context.new_page()
-    yield pg
-    await context.close()
 
 
 @pytest.fixture

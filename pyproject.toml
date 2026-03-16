@@ -24,12 +24,21 @@ webagentaudit = "webagentaudit.cli.app:cli"
 dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.23.0",
+    "pytest-xdist>=3.5.0",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+addopts = "--strict-markers"
+markers = [
+    "unit: Fast tests with no browser dependency",
+    "browser: Tests requiring a Playwright browser",
+    "e2e: End-to-end tests with browser and HTTP server",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/webagentaudit"]

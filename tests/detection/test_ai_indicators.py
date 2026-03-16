@@ -15,6 +15,8 @@ import pytest
 from webagentaudit.detection.deterministic.ai_indicators import AiIndicatorChecker
 from webagentaudit.detection.models import PageData
 
+pytestmark = pytest.mark.unit
+
 
 def make_page(html: str, url: str = "https://example.com") -> PageData:
     return PageData(url=url, html=html, scripts=[], inline_scripts=[])

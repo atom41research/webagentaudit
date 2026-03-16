@@ -1,0 +1,19 @@
+services:
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    # Run all tests: docker compose -f docker-compose.test.yml run --rm test
+    # Run subset:    docker compose -f docker-compose.test.yml run --rm test -m unit -n auto
+
+  test-unit:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    command: ["-m", "unit", "-n", "auto", "--dist", "worksteal", "-v"]
+
+  test-e2e:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    command: ["-m", "e2e or browser", "-n", "2", "--dist", "worksteal", "-v"]
