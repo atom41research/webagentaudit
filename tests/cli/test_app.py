@@ -61,6 +61,7 @@ class TestHelpAndVersion:
         assert result.exit_code == 0
         assert "detect" in result.output
         assert "assess" in result.output
+        assert "prompt" in result.output
         assert "probes" in result.output
 
     def test_version(self, runner):
@@ -83,9 +84,12 @@ class TestHelpAndVersion:
         for opt in [
             "--headful", "--screenshots", "--screenshots-dir", "--input-selector",
             "--response-selector", "--input-hint", "--submit-hint",
+            "--trigger-selector",
             "--iframe-selector", "--wait-for", "--category",
             "--sophistication", "--probe-dir", "--probe-file",
             "--probes", "--workers", "--timeout",
+            "--url-file", "--post-send-wait", "--post-success-wait",
+            "--output-file",
         ]:
             assert opt in result.output, f"Missing option {opt} in assess --help"
 
@@ -95,6 +99,16 @@ class TestHelpAndVersion:
         assert "--category" in result.output
         assert "--output" in result.output
         assert "--probe-dir" in result.output
+
+    def test_prompt_help(self, runner):
+        result = runner.invoke(cli, ["prompt", "--help"])
+        assert result.exit_code == 0
+        for opt in [
+            "--headful", "--browser-exe", "--user-data-dir",
+            "--browser-profile", "--post-send-wait", "--input-selector",
+            "--response-selector", "--submit-selector", "--screenshots-dir",
+        ]:
+            assert opt in result.output
 
     def test_unknown_command(self, runner):
         result = runner.invoke(cli, ["nonexistent"])
@@ -158,6 +172,28 @@ class TestAssessOptionParsing:
     def test_assess_help_has_output(self, runner):
         result = runner.invoke(cli, ["assess", "--help"])
         assert "--output" in result.output
+
+    def test_assess_help_has_post_send_wait(self, runner):
+        result = runner.invoke(cli, ["assess", "--help"])
+        assert "--post-send-wait" in result.output
+
+    def test_assess_rejects_url_and_url_file_together(self, runner, tmp_path):
+        url_file = tmp_path / "urls.txt"
+        url_file.write_text("https://example.com\n")
+        result = runner.invoke(cli, [
+            "assess", "https://example.org", "--url-file", str(url_file),
+        ])
+        assert result.exit_code != 0
+        assert "either URL or --url-file" in result.output
+
+    def test_default_output_path_is_timestamped_json_artifact(self):
+        from webagentaudit.cli.app import _default_output_path
+
+        path = _default_output_path()
+
+        assert path.parent == Path("output")
+        assert path.name.startswith("webagentaudit-")
+        assert path.suffix == ".json"
 
 
 # ---------------------------------------------------------------------------

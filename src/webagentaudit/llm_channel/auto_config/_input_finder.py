@@ -7,7 +7,7 @@ import logging
 from playwright.async_api import ElementHandle, Frame, Page
 
 from . import consts
-from ._dom_utils import extract_element_props, is_element_visible
+from ._dom_utils import extract_element_props, is_element_interactable
 from ._hint_matcher import compute_hint_match
 from ._selector_builder import SelectorBuilder
 from .models import ElementCandidate, ElementHint, ScoredElement
@@ -57,7 +57,7 @@ class InputFinder:
             best.score,
             best.score_breakdown,
         )
-        return best if best.score > consts.INPUT_MIN_SCORE else None
+        return best if best.score >= consts.INPUT_MIN_SCORE else None
 
     async def _gather_candidates(self, page: Page | Frame) -> list[ElementCandidate]:
         """Query the DOM for all potential input elements."""
@@ -74,7 +74,7 @@ class InputFinder:
         for selector in selectors:
             elements: list[ElementHandle] = await page.locator(selector).element_handles()
             for el in elements:
-                if not await is_element_visible(el):
+                if not await is_element_interactable(el):
                     continue
 
                 identity = await el.evaluate(
@@ -93,6 +93,28 @@ class InputFinder:
     def _score(self, candidate: ElementCandidate) -> ScoredElement:
         """Score a candidate input element."""
         breakdown: dict[str, float] = {}
+
+        semantic_text = " ".join([
+            candidate.element_id,
+            candidate.name,
+            candidate.placeholder,
+            candidate.aria_label,
+            candidate.title,
+            candidate.data_testid,
+            " ".join(candidate.classes),
+            " ".join(candidate.parent_classes),
+            candidate.label_text,
+            candidate.form_context,
+        ]).lower()
+        if any(keyword in semantic_text for keyword in consts.INPUT_STRONG_NEGATIVE_KEYWORDS):
+            return ScoredElement(
+                candidate=candidate,
+                score=0.0,
+                score_breakdown={"strong_negative": 0.0},
+            )
+        has_chat_signal = any(
+            keyword in semantic_text for keyword in consts.INPUT_CHAT_SIGNAL_KEYWORDS
+        )
 
         type_score = self._score_element_type(candidate)
         breakdown["element_type"] = type_score * consts.INPUT_WEIGHT_ELEMENT_TYPE
@@ -126,8 +148,13 @@ class InputFinder:
         breakdown["no_negative"] = (
             self._score_no_negative(candidate) * consts.INPUT_WEIGHT_NO_NEGATIVE
         )
+        breakdown["chat_signal"] = (
+            consts.INPUT_WEIGHT_CHAT_SIGNAL if has_chat_signal else 0.0
+        )
 
-        total = sum(breakdown.values())
+        # A hint is applied by ``find`` below.  Without one, generic text
+        # fields are deliberately not accepted as chat inputs.
+        total = sum(breakdown.values()) if has_chat_signal else 0.0
         return ScoredElement(candidate=candidate, score=total, score_breakdown=breakdown)
 
     # ------------------------------------------------------------------

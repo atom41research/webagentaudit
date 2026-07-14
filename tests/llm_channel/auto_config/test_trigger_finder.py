@@ -139,6 +139,16 @@ CSS_VAR_PANEL_HTML = """\
 </html>
 """
 
+CHAT_LAUNCHER_HTML = """\
+<!DOCTYPE html><html><body>
+<button style="position: fixed; right: 20px; bottom: 20px"
+        onclick="document.getElementById('chat-panel').style.display='block'">
+  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
+</button>
+<div id="chat-panel" style="display: none"><textarea placeholder="Message us"></textarea></div>
+</body></html>
+"""
+
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -230,4 +240,15 @@ async def test_css_var_hidden_panel(page, finder):
 
     assert result is not None
     assert result.confidence >= 0.2
+    assert await page.locator("textarea").is_visible()
+
+
+@pytest.mark.asyncio
+async def test_icon_only_chat_launcher(page, finder):
+    """An icon-only corner launcher should open its panel."""
+    await page.set_content(CHAT_LAUNCHER_HTML)
+    result = await finder.find_and_activate(page)
+
+    assert result is not None
+    assert result.mechanism == TriggerMechanism.SIDE_PANEL
     assert await page.locator("textarea").is_visible()

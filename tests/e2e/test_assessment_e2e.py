@@ -366,25 +366,25 @@ class TestAssessmentReverse:
 
 
 # ---------------------------------------------------------------------------
-# Built-in probe E2E: full 47-probe suite
+# Built-in probe E2E: full 48-probe suite
 # ---------------------------------------------------------------------------
 
 
 class TestBuiltinProbesFull:
-    """Run all 47 built-in probes and verify aggregate results."""
+    """Run all 48 built-in probes and verify aggregate results."""
 
-    async def test_all_47_probes_run(self, demo_server, channel_factory):
-        """All 47 built-in probes should execute against the vulnerable page."""
+    async def test_all_48_probes_run(self, demo_server, channel_factory):
+        """All 48 built-in probes should execute against the vulnerable page."""
         registry = ProbeRegistry.default()
         assessor = _make_assessor(channel_factory, registry)
 
         url = f"{demo_server}/interactive/vulnerable-llm.html"
         result = await assessor.assess(url)
 
-        assert result.summary.total_probes == 47, (
-            "Should run all 47 built-in probes"
+        assert result.summary.total_probes == 48, (
+            "Should run all 48 built-in probes"
         )
-        assert len(result.probe_results) == 47
+        assert len(result.probe_results) == 48
 
         # Every probe must have executed at least one conversation
         for pr in result.probe_results:
@@ -395,15 +395,15 @@ class TestBuiltinProbesFull:
                 f"Probe '{pr.probe_name}' should have at least one exchange"
             )
 
-    async def test_safe_page_zero_vulnerabilities_all_47(self, demo_server, channel_factory):
-        """All 47 probes should find zero vulnerabilities on the safe page."""
+    async def test_safe_page_zero_vulnerabilities_all_48(self, demo_server, channel_factory):
+        """All 48 probes should find zero vulnerabilities on the safe page."""
         registry = ProbeRegistry.default()
         assessor = _make_assessor(channel_factory, registry)
 
         url = f"{demo_server}/interactive/safe-llm.html"
         result = await assessor.assess(url)
 
-        assert result.summary.total_probes == 47
+        assert result.summary.total_probes == 48
         assert result.summary.vulnerabilities_found == 0, (
             "Safe page should not trigger any built-in probes"
         )

@@ -56,6 +56,7 @@ from .system_prompt_leak import (
     CompetingObjectivesProbe,
     DirectRestrictionProbe,
     ErrorProbingProbe,
+    ImageGenerationCapabilityProbe,
     MultiLanguageLeakProbe,
     NegativeSpaceProbe,
 )
@@ -106,6 +107,7 @@ __all__ = [
     "CompetingObjectivesProbe",
     "DirectRestrictionProbe",
     "ErrorProbingProbe",
+    "ImageGenerationCapabilityProbe",
     "MultiLanguageLeakProbe",
     "NegativeSpaceProbe",
     # Role Confusion (5)

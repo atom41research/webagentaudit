@@ -52,6 +52,7 @@ from webagentaudit.assessment.probes.categories import (
     CompetingObjectivesProbe,
     DirectRestrictionProbe,
     ErrorProbingProbe,
+    ImageGenerationCapabilityProbe,
     MultiLanguageLeakProbe,
     NegativeSpaceProbe,
     # Role Confusion (5)
@@ -127,6 +128,8 @@ SYSTEM_PROMPT_LEAK_PROBES = [
     MultiLanguageLeakProbe,
 ]
 
+CAPABILITY_PROBES = [ImageGenerationCapabilityProbe]
+
 OUTPUT_SAFETY_PROBES = [
     XssPayloadProbe,
     EventHandlerInjectionProbe,
@@ -138,7 +141,9 @@ OUTPUT_SAFETY_PROBES = [
 # All disclosure-pattern-based probes
 DISCLOSURE_PROBES = EXTRACTION_PROBES + SYSTEM_PROMPT_LEAK_PROBES
 
-ALL_PROBES = CANARY_PROBES + DISCLOSURE_PROBES + OUTPUT_SAFETY_PROBES
+ALL_PROBES = (
+    CANARY_PROBES + DISCLOSURE_PROBES + CAPABILITY_PROBES + OUTPUT_SAFETY_PROBES
+)
 
 
 class TestProbeInterface:
@@ -295,6 +300,19 @@ class TestSystemPromptLeakPatterns:
             assert matched == [], (
                 f"Leak pattern should not match generic response: {response!r}"
             )
+
+
+class TestCapabilityProbePatterns:
+    """Capability probes detect only the requested affirmative response."""
+
+    @pytest.mark.parametrize("probe_cls", CAPABILITY_PROBES)
+    def test_patterns_match_yes_at_start(self, probe_cls):
+        probe = probe_cls()
+        detector = PatternDetector()
+
+        assert detector.detect(" yes\n", probe.get_detector_patterns())
+        assert detector.detect("no", probe.get_detector_patterns()) == []
+        assert detector.detect("Yes, I can.", probe.get_detector_patterns())
 
 
 class TestOutputSafetyPatterns:

@@ -108,6 +108,21 @@ RESPONSE_NO_CONTAINER_HTML = """\
 </html>
 """
 
+CLASSLESS_MESSAGE_LIST_HTML = """\
+<!DOCTYPE html><html><body>
+<div id="messages"><div>Welcome</div><div>Customer message</div><div>yes</div></div>
+</body></html>
+"""
+
+TAILWIND_RESPONSE_HTML = """\
+<!DOCTYPE html>
+<html><body>
+<div class="messages bg-[var(--theme-card)]">
+    <div class="assistant-response bg-[var(--theme-card)]">Latest reply</div>
+</div>
+</body></html>
+"""
+
 
 @pytest.fixture
 def builder():
@@ -219,8 +234,8 @@ class TestSelectorBuilderResponseSelector:
             classes=["message", "bot-msg"],
         )
         response_selector = await builder.build_response_selector(candidate, page)
-        # #messages is the parent with multiple same-tag children
-        assert "#messages" in response_selector
+        # The semantic bot class identifies the latest response directly.
+        assert response_selector == "div.bot-msg:last-of-type"
 
     async def test_single_child_fallback(self, page, builder):
         """When only one child exists (no siblings), should fallback gracefully."""
@@ -237,3 +252,30 @@ class TestSelectorBuilderResponseSelector:
         # With only one child, it may fall back to class-based :last-of-type or the precise selector
         assert response_selector is not None
         assert len(response_selector) > 0
+
+    async def test_tailwind_arbitrary_classes_do_not_break_selector_building(
+        self, page, builder
+    ):
+        """Arbitrary Tailwind classes must not be interpolated as raw CSS."""
+        await page.set_content(TAILWIND_RESPONSE_HTML, wait_until="domcontentloaded")
+        el = await page.query_selector(".assistant-response")
+        candidate = ElementCandidate(
+            tag_name="div",
+            selector=await builder.build(el, page),
+            classes=["assistant-response", "bg-[var(--theme-card)]"],
+        )
+
+        selector = await builder.build_response_selector(candidate, page)
+        assert await page.locator(selector).count() == 1
+
+    async def test_classless_message_uses_latest_sibling_selector(self, page, builder):
+        """A path to a classless reply should generalise to the latest message."""
+        await page.set_content(CLASSLESS_MESSAGE_LIST_HTML, wait_until="domcontentloaded")
+        candidate = ElementCandidate(
+            tag_name="div",
+            selector="#messages > div:nth-of-type(3)",
+            classes=[],
+        )
+
+        selector = await builder.build_response_selector(candidate, page)
+        assert selector == "#messages > div:last-of-type"

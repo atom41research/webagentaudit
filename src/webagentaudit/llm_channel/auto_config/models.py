@@ -8,6 +8,7 @@ from enum import Enum
 from playwright.async_api import Frame
 
 from webagentaudit.core.models import ConfidenceScore
+from webagentaudit.llm_channel.models import InteractionAction, InteractionPlan
 
 
 class TriggerMechanism(Enum):
@@ -46,6 +47,12 @@ class ElementCandidate:
     is_visible: bool = True
     has_svg_child: bool = False
     title: str = ""
+    element_id: str = ""
+    name: str = ""
+    autocomplete: str = ""
+    input_mode: str = ""
+    label_text: str = ""
+    form_context: str = ""
 
 
 @dataclass
@@ -81,6 +88,7 @@ class FrameCandidate:
     src: str = ""
     title: str = ""
     has_input: bool = False
+    frame_path: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -105,6 +113,8 @@ class AutoConfigResult:
     test_response_received: str | None = None
     discovery_frame: Frame | None = field(default=None, repr=False)
     iframe_selector: str | None = None
+    input_frame_path: list[str] = field(default_factory=list)
+    setup_actions: list[InteractionAction] = field(default_factory=list)
 
     @property
     def is_usable(self) -> bool:
@@ -119,3 +129,17 @@ class AutoConfigResult:
             "response_selector": self.response_selector,
             "iframe_selector": self.iframe_selector,
         }
+
+    def to_interaction_plan(
+        self, *, response_selector: str | None = None
+    ) -> InteractionPlan | None:
+        """Return a replayable plan, or ``None`` when no input was found."""
+        if not self.input_selector:
+            return None
+        return InteractionPlan(
+            input_selector=self.input_selector,
+            submit_selector=self.submit_selector,
+            response_selector=response_selector or self.response_selector,
+            input_frame_path=self.input_frame_path,
+            setup_actions=self.setup_actions,
+        )

@@ -3,14 +3,16 @@
 Builds stable, minimal CSS selectors by preferring (in order):
 1. ID
 2. ``data-testid``
-3. Unique class name
-4. Attribute-based selector (placeholder, aria-label)
+3. Accessible labels on interactive controls
+4. Unique class name
+5. Attribute-based selector (placeholder, aria-label)
 5. Ancestor chain with ``>``
 """
 
 from __future__ import annotations
 
 import logging
+import re
 
 from playwright.async_api import ElementHandle, Frame, Page
 
@@ -18,6 +20,16 @@ from . import consts
 from .models import ElementCandidate
 
 logger = logging.getLogger(__name__)
+
+_RESPONSE_SEMANTIC_CLASSES = (
+    "response",
+    "reply",
+    "answer",
+    "bot",
+    "assistant",
+    "output",
+    "result",
+)
 
 
 class SelectorBuilder:
@@ -40,6 +52,24 @@ class SelectorBuilder:
                     : [];
                 const placeholder = el.getAttribute('placeholder') || '';
                 const ariaLabel = el.getAttribute('aria-label') || '';
+                const title = el.getAttribute('title') || '';
+                const pathParts = [];
+                for (let current = el; current && current !== document.body;
+                     current = current.parentElement) {
+                    const currentTag = current.tagName.toLowerCase();
+                    const siblings = current.parentElement
+                        ? [...current.parentElement.children]
+                            .filter(item => item.tagName === current.tagName)
+                        : [];
+                    const position = siblings.indexOf(current) + 1;
+                    pathParts.unshift(
+                        siblings.length > 1
+                            ? `${currentTag}:nth-of-type(${position})`
+                            : currentTag
+                    );
+                }
+                pathParts.unshift('body');
+                const absolutePath = pathParts.join(' > ');
 
                 // Ancestor info (up to 3 levels)
                 const ancestors = [];
@@ -54,7 +84,10 @@ class SelectorBuilder:
                     });
                     p = p.parentElement;
                 }
-                return { tag, id, testId, classes, placeholder, ariaLabel, ancestors };
+                return {
+                    tag, id, testId, classes, placeholder, ariaLabel, title,
+                    ancestors, absolutePath,
+                };
             }"""
         )
 
@@ -64,6 +97,7 @@ class SelectorBuilder:
         classes = props["classes"]
         placeholder = props["placeholder"]
         aria_label = props["ariaLabel"]
+        title = props["title"]
 
         # 1. Stable ID
         if el_id and not self._is_dynamic_id(el_id):
@@ -77,32 +111,45 @@ class SelectorBuilder:
             if await self._is_unique(selector, page):
                 return selector
 
-        # 3. Unique class name
+        # 3. Accessible labels are generally more stable than styling classes.
+        if tag in {"button", "input"}:
+            for attribute, value in (("aria-label", aria_label), ("title", title)):
+                if value:
+                    selector = f'{tag}[{attribute}="{value}"]'
+                    if await self._is_unique(selector, page):
+                        return selector
+
+        # 4. Unique class name
         stable_classes = self._filter_classes(classes)
         for cls in stable_classes:
             selector = f"{tag}.{cls}"
             if await self._is_unique(selector, page):
                 return selector
 
-        # 4. Placeholder attribute
+        # 5. Placeholder attribute
         if placeholder:
             selector = f'{tag}[placeholder="{placeholder}"]'
             if await self._is_unique(selector, page):
                 return selector
 
-        # 5. aria-label
+        # 6. aria-label
         if aria_label:
             selector = f'{tag}[aria-label="{aria_label}"]'
             if await self._is_unique(selector, page):
                 return selector
 
-        # 6. Ancestor chain
+        # 7. Ancestor chain
         ancestors = props.get("ancestors", [])
-        return await self._build_ancestor_chain(tag, stable_classes, ancestors, page)
+        selector = await self._build_ancestor_chain(
+            tag, stable_classes, ancestors, page
+        )
+        if selector:
+            return selector
+        return props["absolutePath"]
 
     async def build_response_selector(
         self, candidate: ElementCandidate, page: Page | Frame
-    ) -> str:
+    ) -> str | None:
         """Build a ``container > tag:last-of-type`` selector for response elements.
 
         Looks for a parent container that has multiple children of the same
@@ -110,6 +157,59 @@ class SelectorBuilder:
         """
         tag = candidate.tag_name
         original_selector = candidate.selector
+        classes = self._filter_classes(candidate.classes)
+
+        # Response discovery can identify a bare text wrapper.  Prefer the
+        # nearest repeating sibling list, which remains valid for the next
+        # response, over an absolute path tied to the discovery probe.
+        if not any(
+            any(keyword in cls.lower() for keyword in _RESPONSE_SEMANTIC_CLASSES)
+            for cls in classes
+        ):
+            structural_selector = await page.evaluate(
+                """(selector) => {
+                    let target;
+                    try { target = document.querySelector(selector); } catch (_) { return null; }
+                    if (!target) return null;
+
+                    const path = (node) => {
+                        const parts = [];
+                        for (let current = node; current && current.nodeType === Node.ELEMENT_NODE; current = current.parentElement) {
+                            if (current.id) { parts.unshift('#' + CSS.escape(current.id)); break; }
+                            const tag = current.tagName.toLowerCase();
+                            const children = current.parentElement ? [...current.parentElement.children] : [];
+                            const alike = children.filter(child => child.tagName === current.tagName);
+                            const index = alike.indexOf(current) + 1;
+                            parts.unshift(alike.length > 1 ? `${tag}:nth-of-type(${index})` : tag);
+                            if (current.tagName === 'BODY') break;
+                        }
+                        return parts.join(' > ');
+                    };
+
+                    for (let node = target; node.parentElement; node = node.parentElement) {
+                        const siblings = [...node.parentElement.children]
+                            .filter(child => child.tagName === node.tagName);
+                        if (siblings.length > 1) {
+                            return `${path(node.parentElement)} > ${node.tagName.toLowerCase()}:last-of-type`;
+                        }
+                    }
+                    return null;
+                }""",
+                original_selector,
+            )
+            if structural_selector and await self._is_valid(structural_selector, page):
+                return structural_selector
+            return original_selector
+
+        # A semantic bubble class is more precise than a layout container.
+        for cls in classes:
+            if any(keyword in cls.lower() for keyword in _RESPONSE_SEMANTIC_CLASSES):
+                selector = f"{tag}.{cls}:last-of-type"
+                if await self._is_valid(selector, page):
+                    return selector
+                selector = f"{tag}.{cls}"
+                if await self._is_unique(selector, page):
+                    return selector
 
         # Try to find the parent container via the candidate's selector.
         # We use querySelectorAll and pick the last match (response elements
@@ -155,7 +255,7 @@ class SelectorBuilder:
                 } else {
                     const pTag = bestParent.tagName.toLowerCase();
                     const pClasses = bestParent.className && typeof bestParent.className === 'string'
-                        ? bestParent.className.split(/\\s+/).filter(Boolean) : [];
+                        ? bestParent.className.split(/\\s+/).filter(cls => /^[A-Za-z_-][A-Za-z0-9_-]*$/.test(cls)) : [];
                     if (pClasses.length > 0) {
                         parentSel = pTag + '.' + pClasses.join('.');
                     } else {
@@ -168,7 +268,7 @@ class SelectorBuilder:
                     siblingCount: bestParent.querySelectorAll(':scope > ' + tag).length,
                 };
             }""",
-            {"sel": original_selector, "tag": tag, "classes": candidate.classes},
+            {"sel": original_selector, "tag": tag, "classes": classes},
         )
 
         if not container_info:
@@ -207,6 +307,8 @@ class SelectorBuilder:
                 continue
             if any(cls.startswith(p) for p in consts.SELECTOR_AUTO_GENERATED_PREFIXES):
                 continue
+            if not re.fullmatch(r"[A-Za-z_-][A-Za-z0-9_-]*", cls):
+                continue
             result.append(cls)
         return result
 
@@ -233,8 +335,7 @@ class SelectorBuilder:
                 if await self._is_unique(selector, page):
                     return selector
 
-        # Fallback: just tag (may not be unique)
-        return tag
+        return None
 
     @staticmethod
     async def _is_unique(selector: str, page: Page | Frame) -> bool:

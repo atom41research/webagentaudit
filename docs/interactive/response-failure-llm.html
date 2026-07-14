@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nonresponding Assistant</title>
+  <link rel="stylesheet" href="../shared/style.css">
+</head>
+<body class="chat-full-page">
+  <div id="chat-container" class="ai-chat">
+    <div class="chat-header">Nonresponding Assistant</div>
+    <div id="responses" class="chat-messages chat-body">
+      <div class="response bot-message">How can I help?</div>
+    </div>
+    <div class="chat-input-bar">
+      <textarea id="prompt-input" data-testid="chat-input"
+                placeholder="Ask me anything" rows="2"></textarea>
+      <button id="send-btn" data-testid="send-button"
+              aria-label="Send message">Send</button>
+    </div>
+  </div>
+  <script>
+  document.getElementById('send-btn').addEventListener('click', function () {
+    document.getElementById('prompt-input').value = '';
+    // The backend intentionally never appends an assistant response.
+  });
+  </script>
+</body>
+</html>

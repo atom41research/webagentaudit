@@ -2,6 +2,7 @@
 
 import pytest
 
+from webagentaudit.core.exceptions import ChannelResponseError
 from webagentaudit.llm_channel.auto_config._response_finder import ResponseFinder
 from webagentaudit.llm_channel.auto_config._selector_builder import SelectorBuilder
 from webagentaudit.llm_channel.auto_config import consts
@@ -63,6 +64,105 @@ document.getElementById('send').addEventListener('click', function() {
 </html>
 """
 
+NURBANK_CHAT_HTML = """\
+<!DOCTYPE html>
+<html><body>
+<div class="description"><p>All rights reserved.</p></div>
+<section class="nurbank-chat-agent__panel">
+  <div class="nurbank-chat-agent__messages">
+    <div class="nurbank-chat-agent__row">
+      <div class="nurbank-chat-agent__bubble nurbank-chat-agent__bubble--assistant">
+        Welcome to Nurbank AI.
+      </div>
+    </div>
+  </div>
+  <textarea class="nurbank-chat-agent__input"></textarea>
+  <button class="nurbank-chat-agent__send">Send</button>
+</section>
+<script>
+document.querySelector('.nurbank-chat-agent__send').addEventListener('click', () => {
+    const messages = document.querySelector('.nurbank-chat-agent__messages');
+    const customer = document.createElement('div');
+    customer.className = 'nurbank-chat-agent__row nurbank-chat-agent__row--customer';
+    customer.textContent = document.querySelector('.nurbank-chat-agent__input').value;
+    messages.appendChild(customer);
+    setTimeout(() => {
+        const row = document.createElement('div');
+        row.className = 'nurbank-chat-agent__row';
+        const reply = document.createElement('div');
+        reply.className = 'nurbank-chat-agent__bubble nurbank-chat-agent__bubble--assistant';
+        reply.textContent = 'I can only help with Nurbank banking products.';
+        row.appendChild(reply);
+        messages.appendChild(row);
+    }, 300);
+});
+</script>
+</body></html>
+"""
+
+NESTED_ASSISTANT_CHAT_HTML = """\
+<!DOCTYPE html><html><body>
+<main class="grid app-shell"><div class="messages"><div class="assistant-response">Welcome</div></div></main>
+<textarea id="input"></textarea><button id="send">Send</button>
+<script>
+send.addEventListener('click', () => {
+  const customer = document.createElement('div');
+  customer.className = 'customer-message'; customer.textContent = input.value;
+  document.querySelector('.messages').append(customer);
+  setTimeout(() => {
+    const reply = document.createElement('div');
+    reply.className = 'assistant-response'; reply.textContent = 'yes';
+    document.querySelector('.messages').append(reply);
+  }, 300);
+});
+</script></body></html>
+"""
+
+CLASSLESS_REPLY_CHAT_HTML = """\
+<!DOCTYPE html><html><body>
+<div id="messages"><div>Welcome</div></div>
+<textarea id="input"></textarea><button id="send">Send</button>
+<script>
+send.addEventListener('click', () => {
+  const customer = document.createElement('div'); customer.textContent = input.value;
+  messages.append(customer);
+  setTimeout(() => { const reply = document.createElement('span'); reply.textContent = 'yes'; messages.append(reply); }, 300);
+});
+</script></body></html>
+"""
+
+TIMESTAMPED_REPLY_CHAT_HTML = """\
+<!DOCTYPE html><html><body>
+<div id="messages"><div>Welcome</div></div>
+<textarea id="input"></textarea><button id="send">Send</button>
+<script>
+send.addEventListener('click', () => {
+  const customer = document.createElement('div'); customer.textContent = input.value;
+  messages.append(customer);
+  const time = document.createElement('span'); time.textContent = '11:44 PM'; messages.append(time);
+  setTimeout(() => { const reply = document.createElement('span'); reply.textContent = 'yes'; messages.append(reply); }, 300);
+});
+</script></body></html>
+"""
+
+REPLY_WITH_ACTION_HTML = """\
+<!DOCTYPE html><html><body>
+<div id="messages"><div>Welcome</div></div>
+<textarea id="input"></textarea><button id="send">Send</button>
+<script>
+send.addEventListener('click', () => {
+  const customer = document.createElement('div'); customer.textContent = input.value;
+  messages.append(customer);
+  setTimeout(() => {
+    const reply = document.createElement('div');
+    const text = document.createElement('span'); text.textContent = 'yes';
+    const copy = document.createElement('button'); copy.textContent = 'Copy';
+    reply.append(text, copy); messages.append(reply);
+  }, 300);
+});
+</script></body></html>
+"""
+
 
 @pytest.fixture
 def finder():
@@ -103,14 +203,13 @@ class TestResponseFinderBasic:
         # because there are multiple .bot-response siblings inside #messages
         assert "last-of-type" in result.candidate.selector
 
-    async def test_no_response_returns_none(self, page, finder):
-        """When no DOM changes occur after submitting, should return (None, None)."""
+    async def test_no_response_reports_read_failure(self, page, finder):
+        """A submitted prompt without a reply is a response-read failure."""
         await page.set_content(NO_RESPONSE_HTML, wait_until="domcontentloaded")
-        result, response_text = await finder.find(
-            page, input_selector="#input", submit_selector="#send"
-        )
-        assert result is None
-        assert response_text is None
+        with pytest.raises(ChannelResponseError, match="no response"):
+            await finder.find(
+                page, input_selector="#input", submit_selector="#send"
+            )
 
     async def test_response_candidate_has_context_score(self, page, finder):
         """The response element should score on context due to 'bot-response' class."""
@@ -121,6 +220,61 @@ class TestResponseFinderBasic:
         assert result is not None
         # "bot" and "response" are in the context keywords
         assert result.score_breakdown.get("context", 0) > 0.0
+
+    async def test_prefers_new_assistant_message_over_customer_message(self, page, finder):
+        """A customer echo must not be mistaken for the assistant response."""
+        await page.set_content(NURBANK_CHAT_HTML, wait_until="domcontentloaded")
+        result, response_text = await finder.find(
+            page,
+            input_selector="textarea.nurbank-chat-agent__input",
+            submit_selector="button.nurbank-chat-agent__send",
+        )
+
+        assert result is not None
+        assert response_text == "I can only help with Nurbank banking products."
+        assert await page.locator(result.candidate.selector).last.inner_text() == response_text
+
+    async def test_prefers_specific_assistant_bubble_over_layout_container(self, page, finder):
+        """A new reply must not resolve to the enclosing grid/main shell."""
+        await page.set_content(NESTED_ASSISTANT_CHAT_HTML, wait_until="domcontentloaded")
+        result, response_text = await finder.find(
+            page, input_selector="#input", submit_selector="#send"
+        )
+
+        assert result is not None
+        assert response_text == "yes"
+        assert result.candidate.selector == "div.assistant-response:last-of-type"
+
+    async def test_classless_reply_uses_exact_new_text_selector(self, page, finder):
+        """Classless replies must not fall back to an enclosing page container."""
+        await page.set_content(CLASSLESS_REPLY_CHAT_HTML, wait_until="domcontentloaded")
+        result, response_text = await finder.find(
+            page, input_selector="#input", submit_selector="#send"
+        )
+
+        assert result is not None
+        assert response_text == "yes"
+        assert await page.locator(result.candidate.selector).inner_text() == "yes"
+
+    async def test_ignores_new_message_timestamp(self, page, finder):
+        """A newly added timestamp is metadata, not the assistant response."""
+        await page.set_content(TIMESTAMPED_REPLY_CHAT_HTML, wait_until="domcontentloaded")
+        result, response_text = await finder.find(
+            page, input_selector="#input", submit_selector="#send"
+        )
+
+        assert result is not None
+        assert response_text == "yes"
+
+    async def test_ignores_new_reply_action_button(self, page, finder):
+        """Reply-card controls such as Copy are not response text."""
+        await page.set_content(REPLY_WITH_ACTION_HTML, wait_until="domcontentloaded")
+        result, response_text = await finder.find(
+            page, input_selector="#input", submit_selector="#send"
+        )
+
+        assert result is not None
+        assert response_text == "yes"
 
     async def test_response_with_enter_key_submit(self, page, finder):
         """ResponseFinder should work when submit_selector is None (Enter key)."""

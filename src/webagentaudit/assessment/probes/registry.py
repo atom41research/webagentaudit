@@ -143,6 +143,7 @@ class ProbeRegistry:
             CompetingObjectivesProbe,
             DirectRestrictionProbe,
             ErrorProbingProbe,
+            ImageGenerationCapabilityProbe,
             MultiLanguageLeakProbe,
             NegativeSpaceProbe,
             # Role Confusion (5)
@@ -199,6 +200,7 @@ class ProbeRegistry:
             DirectRestrictionProbe,
             NegativeSpaceProbe,
             CapabilityEnumerationProbe,
+            ImageGenerationCapabilityProbe,
             ErrorProbingProbe,
             CompetingObjectivesProbe,
             MultiLanguageLeakProbe,

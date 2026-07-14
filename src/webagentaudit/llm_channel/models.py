@@ -1,8 +1,9 @@
 """Data models for LLM channel communication."""
 
 from datetime import datetime
+from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ChannelMessage(BaseModel):
@@ -25,3 +26,22 @@ class ProxyConfig(BaseModel):
     server: str
     username: str | None = None
     password: str | None = None
+
+
+class InteractionAction(BaseModel):
+    """One deterministic setup action needed to expose a chat input."""
+
+    kind: Literal["dismiss", "trigger"]
+    selector: str
+    frame_path: list[str] = Field(default_factory=list)
+    optional: bool = False
+
+
+class InteractionPlan(BaseModel):
+    """Stable selectors and setup actions discovered for a browser channel."""
+
+    input_selector: str
+    submit_selector: str | None = None
+    response_selector: str | None = None
+    input_frame_path: list[str] = Field(default_factory=list)
+    setup_actions: list[InteractionAction] = Field(default_factory=list)

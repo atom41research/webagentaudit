@@ -15,10 +15,15 @@ DEFAULT_RETRY_COUNT = 2
 
 # Response stability detection: if the response text doesn't change
 # for this many milliseconds, consider the response complete.
-RESPONSE_STABLE_INTERVAL_MS = 2_000
+RESPONSE_STABLE_INTERVAL_MS = 3_000
 
 # Polling interval for checking response stability (ms)
 RESPONSE_POLL_INTERVAL_MS = 200
+
+# A send action must change navigation, page count, input content, or response DOM.
+SUBMISSION_CONFIRM_TIMEOUT_MS = 3_000
+SUBMISSION_CONFIRM_POLL_INTERVAL_MS = 100
+NEW_PAGE_HANDOFF_WAIT_MS = 500
 
 # Default navigation timeout (ms)
 DEFAULT_NAVIGATION_TIMEOUT_MS = 30_000
@@ -31,6 +36,14 @@ SUPPORTED_BROWSER_TYPES = ("chromium", "firefox", "webkit")
 
 # Default browser type
 DEFAULT_BROWSER_TYPE = "chromium"
+
+# Stable response containers for first-party LLM pages whose entry point may
+# navigate to a different host before rendering the response.
+DEFAULT_RESPONSE_SELECTORS_BY_HOST = {
+    "chatgpt.com": '[data-message-author-role="assistant"]',
+    "gemini.google.com": "model-response",
+    "openai.com": '[data-message-author-role="assistant"]',
+}
 
 # Known typing indicator selectors that signal the LLM is still generating
 TYPING_INDICATOR_SELECTORS = [

@@ -6,10 +6,22 @@ from collections.abc import Callable
 
 from webagentaudit.llm_channel.base import BaseLlmChannel
 from webagentaudit.llm_channel.models import ChannelMessage
+from webagentaudit.core.exceptions import (
+    ChannelNotReadyError,
+    ChannelResponseError,
+    ChannelSubmissionError,
+)
 
 from .config import AssessmentConfig
 from .detectors.pattern_detector import PatternDetector
-from .models import AssessmentResult, AssessmentSummary, ChatMessage, ProbeExchange, ProbeResult
+from .models import (
+    AssessmentResult,
+    AssessmentSummary,
+    ChatMessage,
+    ProbeError,
+    ProbeExchange,
+    ProbeResult,
+)
 from .probes.base import BaseProbe
 from .probes.registry import ProbeRegistry
 
@@ -133,7 +145,7 @@ class LlmAssessor:
         all_matched: list[str] = []
         all_exchanges: list[ProbeExchange] = []
         conversations_run = 0
-        error_count = 0
+        errors: list[ProbeError] = []
 
         for conversation in conversations:
             conversations_run += 1
@@ -156,13 +168,31 @@ class LlmAssessor:
                             ],
                             matched_patterns=turn_matched,
                         ))
-                    except Exception:
-                        error_count += 1
+                    except Exception as exc:
+                        errors.append(ProbeError(
+                            phase=self._failure_phase(exc),
+                            message=str(exc) or type(exc).__name__,
+                            prompt=turn.prompt,
+                        ))
                         logger.warning(
                             "Error during probe '%s' conversation turn",
                             probe.name,
                             exc_info=True,
                         )
+            except Exception as exc:
+                errors.append(ProbeError(
+                    phase=(
+                        "chat_detection"
+                        if isinstance(exc, ChannelNotReadyError)
+                        else "connection"
+                    ),
+                    message=str(exc) or type(exc).__name__,
+                ))
+                logger.warning(
+                    "Error connecting probe '%s' to target",
+                    probe.name,
+                    exc_info=True,
+                )
             finally:
                 try:
                     await channel.disconnect()
@@ -175,5 +205,16 @@ class LlmAssessor:
             vulnerability_detected=len(all_matched) > 0,
             matched_patterns=list(set(all_matched)),
             exchanges=all_exchanges,
-            error_count=error_count,
+            error_count=len(errors),
+            errors=errors,
         )
+
+    @staticmethod
+    def _failure_phase(exc: Exception) -> str:
+        if isinstance(exc, ChannelNotReadyError):
+            return "chat_detection"
+        if isinstance(exc, ChannelSubmissionError):
+            return "prompt_submission"
+        if isinstance(exc, ChannelResponseError):
+            return "response_read"
+        return "assessment"

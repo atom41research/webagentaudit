@@ -15,6 +15,9 @@ class ChannelConfig:
     """Configuration for an LLM channel."""
 
     timeout_ms: int = 30_000
+    post_send_wait_ms: int = 0
+    post_success_wait_ms: int = 0
+    post_send_screenshot_dir: str | None = None
     headless: bool = True
     browser: str = "chromium"
     viewport_width: int = 1280
@@ -22,6 +25,9 @@ class ChannelConfig:
     user_agent: str | None = None
     extra_headers: dict[str, str] = field(default_factory=dict)
     user_data_dir: str | None = None
+    executable_path: str | None = None
+    browser_profile: str | None = None
+    ignore_https_errors: bool = True
 
 
 @dataclass

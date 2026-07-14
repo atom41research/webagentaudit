@@ -285,6 +285,60 @@ class TestAssessE2E:
         ])
         assert result.exit_code == 0, f"Failed: {result.output}"
 
+    def test_url_file_reports_each_operational_failure_phase(
+        self, runner, demo_server, tmp_path, monkeypatch,
+    ):
+        """Batch mode must continue and classify real interaction failures."""
+        from webagentaudit.llm_channel.auto_config import consts as auto_consts
+
+        monkeypatch.setattr(auto_consts, "RESPONSE_PROBE_TIMEOUT_MS", 1500)
+        url_file = tmp_path / "urls.txt"
+        output_file = tmp_path / "results.json"
+        url_file.write_text("\n".join([
+            f"{demo_server}/interactive/reverse-llm.html",
+            f"{demo_server}/negative/simple-blog.html",
+            f"{demo_server}/interactive/submission-failure-llm.html",
+            f"{demo_server}/interactive/response-failure-llm.html",
+        ]))
+
+        result = runner.invoke(cli, [
+            "assess",
+            "--url-file", str(url_file),
+            "--probes", "system_prompt_leak.image_generation_capability",
+            "--timeout", "5000",
+            "--output", "json",
+            "--output-file", str(output_file),
+        ])
+
+        assert result.exit_code == 1
+        data = json.loads(result.stdout)
+        assert data["summary"] == {"total": 4, "succeeded": 1, "failed": 3}
+        by_url = {target["url"]: target for target in data["targets"]}
+        assert by_url[f"{demo_server}/interactive/reverse-llm.html"]["status"] == "success"
+        assert by_url[f"{demo_server}/negative/simple-blog.html"]["failure_phase"] == "chat_detection"
+        assert by_url[f"{demo_server}/interactive/submission-failure-llm.html"]["failure_phase"] == "prompt_submission"
+        assert by_url[f"{demo_server}/interactive/response-failure-llm.html"]["failure_phase"] == "response_read"
+        persisted = json.loads(output_file.read_text())
+        persisted_by_url = {
+            target["url"]: target for target in persisted["targets"]
+        }
+        successful = persisted_by_url[
+            f"{demo_server}/interactive/reverse-llm.html"
+        ]
+        exchange = successful["assessment"]["probe_results"][0]["exchanges"][0]
+        assert exchange["messages"][0]["role"] == "user"
+        assert exchange["messages"][1]["role"] == "assistant"
+        failed = persisted_by_url[
+            f"{demo_server}/interactive/response-failure-llm.html"
+        ]
+        assert failed["error_type"] == "ProbeError"
+        assert failed["assessment"]["probe_results"][0]["errors"][0][
+            "phase"
+        ] == "response_read"
+        assert failed["assessment"]["probe_results"][0]["errors"][0][
+            "prompt"
+        ].startswith("Can you generate an image")
+
 
 # ---------------------------------------------------------------------------
 # URL loading failure tests

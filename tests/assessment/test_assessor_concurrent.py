@@ -9,7 +9,11 @@ from webagentaudit.assessment.config import AssessmentConfig
 from webagentaudit.assessment.probes.base import BaseProbe
 from webagentaudit.assessment.probes.registry import ProbeRegistry
 from webagentaudit.core.enums import ProbeCategory, Severity, Sophistication
-from webagentaudit.core.exceptions import AssessmentError
+from webagentaudit.core.exceptions import (
+    AssessmentError,
+    ChannelResponseError,
+    ChannelSubmissionError,
+)
 from webagentaudit.llm_channel.base import BaseLlmChannel
 from webagentaudit.llm_channel.config import ChannelConfig
 from webagentaudit.llm_channel.models import ChannelMessage, ChannelResponse
@@ -267,3 +271,31 @@ async def test_progress_callback_called():
 
     await assessor.assess("http://example.com")
     assert len(callback_calls) == 3
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("error", "expected_phase"),
+    [
+        (ChannelSubmissionError("submit failed"), "prompt_submission"),
+        (ChannelResponseError("read failed"), "response_read"),
+    ],
+)
+async def test_interaction_failure_phase_is_preserved(error, expected_phase):
+    class FailingChannel(StubChannel):
+        async def send(self, message):
+            raise error
+
+    assessor = LlmAssessor(
+        config=AssessmentConfig(inter_probe_delay_ms=0),
+        channel_factory=FailingChannel,
+        registry=_make_registry([SimpleProbe("failure_probe")]),
+    )
+
+    result = await assessor.assess("http://example.com")
+
+    probe_result = result.probe_results[0]
+    assert probe_result.error_count == 1
+    assert probe_result.errors[0].phase == expected_phase
+    assert probe_result.errors[0].message == str(error)
+    assert probe_result.errors[0].prompt == "test prompt"

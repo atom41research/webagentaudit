@@ -6,6 +6,20 @@ Fetched on: 2026-03-10
 
 ---
 
+## First-party LLM prompt composers
+
+### `gemini_prompt_composer.html`
+- **Source URL:** https://gemini.google.com/app
+- **Captured:** 2026-07-14
+- **Description:** Sanitized live DOM fragment for Gemini's contenteditable prompt composer.
+
+### `openai_prompt_composer.html`
+- **Source URL:** https://openai.com/
+- **Captured:** 2026-07-14
+- **Description:** Sanitized live DOM fragment for OpenAI's homepage ChatGPT prompt form.
+
+---
+
 ## Fixtures with confirmed chat widget embed scripts
 
 ### `crisp_crisp.html`

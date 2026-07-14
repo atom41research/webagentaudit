@@ -14,6 +14,17 @@ class BaseStrategy(ABC):
     async def send_message(self, page, text: str) -> None:
         """Type and submit a message."""
 
+    async def prepare_response(self, page) -> None:
+        """Capture any state needed to distinguish the next response."""
+
+    async def get_response_metadata(self, page) -> dict[str, str]:
+        """Return optional metadata for the most recently received response."""
+        return {}
+
+    async def prepare_page(self, page):
+        """Optionally replay setup actions and return an interaction frame."""
+        return None
+
     @abstractmethod
     async def wait_for_response(self, page, timeout_ms: int) -> str:
         """Wait for the LLM response text to stabilise and return it."""

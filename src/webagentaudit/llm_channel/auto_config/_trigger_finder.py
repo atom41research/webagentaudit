@@ -10,15 +10,24 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+from dataclasses import dataclass
 
 from playwright.async_api import ElementHandle, Frame, Page
 
 from . import consts
-from ._dom_utils import extract_element_props, is_element_visible
+from ._dom_utils import extract_element_props, is_element_interactable, is_element_visible
 from ._selector_builder import SelectorBuilder
 from .models import ElementCandidate, TriggerMechanism, TriggerResult
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class TriggerCandidate:
+    candidate: ElementCandidate
+    element: ElementHandle
+    score: float
+    mechanism: TriggerMechanism
 
 
 class TriggerFinder:
@@ -50,26 +59,12 @@ class TriggerFinder:
             logger.debug("Input already visible, no trigger needed")
             return None
 
-        candidates = await self._gather_candidates(page)
-        if not candidates:
-            logger.debug("No trigger candidates found")
-            return None
-
-        # Check for CSS variable hidden panels
-        has_css_var_panel = await self._check_css_var_panels(page)
-
-        # Score and sort candidates
-        scored = []
-        for candidate, el in candidates:
-            score, mechanism = self._score(candidate, has_css_var_panel)
-            scored.append((candidate, el, score, mechanism))
-
-        scored.sort(key=lambda x: x[2], reverse=True)
-
-        # Try each candidate from highest score
-        for candidate, el, score, mechanism in scored:
-            if score < consts.TRIGGER_MIN_SCORE:
-                continue
+        # Compatibility helper: the configurator uses ``ranked_candidates``
+        # and owns retries/reloads; direct callers still get one bounded pass.
+        for item in await self.ranked_candidates(page):
+            candidate, el, score, mechanism = (
+                item.candidate, item.element, item.score, item.mechanism
+            )
 
             logger.debug(
                 "Trying trigger: %s (score=%.3f, mechanism=%s)",
@@ -95,13 +90,32 @@ class TriggerFinder:
 
         return None
 
+    async def ranked_candidates(
+        self, page: Page | Frame
+    ) -> list[TriggerCandidate]:
+        """Return high-confidence candidates without clicking any of them."""
+        candidates = await self._gather_candidates(page)
+        has_css_var_panel = await self._check_css_var_panels(page)
+        ranked: list[TriggerCandidate] = []
+        for candidate, element in candidates:
+            score, mechanism = self._score(candidate, has_css_var_panel)
+            if score >= consts.TRIGGER_MIN_SCORE:
+                ranked.append(TriggerCandidate(
+                    candidate=candidate,
+                    element=element,
+                    score=score,
+                    mechanism=mechanism,
+                ))
+        ranked.sort(key=lambda item: item.score, reverse=True)
+        return ranked
+
     async def _input_already_visible(self, page: Page | Frame) -> bool:
         """Check if any chat input is already visible on the page."""
         for selector in consts.TRIGGER_INPUT_WAIT_SELECTORS:
             try:
                 elements = await page.locator(selector).element_handles()
                 for el in elements:
-                    if await is_element_visible(el):
+                    if await is_element_interactable(el):
                         return True
             except Exception:
                 continue
@@ -112,7 +126,7 @@ class TriggerFinder:
     ) -> list[tuple[ElementCandidate, ElementHandle]]:
         """Collect all visible buttons that might be trigger elements."""
         candidates: list[tuple[ElementCandidate, ElementHandle]] = []
-        seen: set[str] = set()
+        seen: set[int] = set()
 
         # Check known dialog/menu selectors first
         all_selectors = (
@@ -129,7 +143,18 @@ class TriggerFinder:
             for el in elements:
                 if not await is_element_visible(el):
                     continue
-                identity = await el.evaluate("el => el.outerHTML.substring(0, 120)")
+                identity = await el.evaluate(
+                    """el => {
+                        const ids = window.__webagentauditElementIds
+                            || (window.__webagentauditElementIds = new WeakMap());
+                        const next = window.__webagentauditNextElementId || 1;
+                        if (!ids.has(el)) {
+                            ids.set(el, next);
+                            window.__webagentauditNextElementId = next + 1;
+                        }
+                        return ids.get(el);
+                    }"""
+                )
                 if identity in seen:
                     continue
                 seen.add(identity)
@@ -175,9 +200,12 @@ class TriggerFinder:
         mechanism = TriggerMechanism.DIALOG
 
         # AI label keywords
-        label = (
-            candidate.text_content + " " + candidate.aria_label
-        ).lower()
+        label = " ".join([
+            candidate.text_content,
+            candidate.aria_label,
+            candidate.title,
+            candidate.data_testid,
+        ]).lower()
         ai_label_score = 0.0
         for kw in consts.TRIGGER_AI_LABEL_KEYWORDS:
             if kw in label:
@@ -205,11 +233,11 @@ class TriggerFinder:
         # Detected via menu selectors in gather
         # Check class names for command/menu/dialog hints
         class_str = " ".join(candidate.classes).lower()
-        if any(kw in class_str for kw in ("command", "menu", "dialog", "panel", "sheet")):
+        if any(kw in class_str for kw in ("command", "menu", "dialog", "panel", "sheet", "chat")):
             aria_controls_score = 0.5
             if "command" in class_str or "menu" in class_str:
                 mechanism = TriggerMechanism.COMMAND_MENU
-            elif "panel" in class_str or "sheet" in class_str:
+            elif any(kw in class_str for kw in ("panel", "sheet", "chat")):
                 mechanism = TriggerMechanism.SIDE_PANEL
         # Check text/label for panel/assistant keywords
         if any(kw in label for kw in ("panel", "toggle", "assistant", "sheet")):
@@ -228,6 +256,22 @@ class TriggerFinder:
         icon_score = 1.0 if candidate.has_svg_child else 0.0
         breakdown["icon"] = icon_score * consts.TRIGGER_WEIGHT_ICON
 
+        # A lower-right SVG control is commonly a floating chat launcher.
+        box = candidate.bounding_box or {}
+        viewport_width = box.get("viewportWidth", 0)
+        viewport_height = box.get("viewportHeight", 0)
+        is_corner_launcher = (
+            viewport_width > 0
+            and viewport_height > 0
+            and box.get("x", 0) + box.get("width", 0) >= viewport_width * 0.75
+            and box.get("y", 0) + box.get("height", 0) >= viewport_height * 0.65
+        )
+        if is_corner_launcher:
+            mechanism = TriggerMechanism.SIDE_PANEL
+        breakdown["floating_position"] = (
+            consts.TRIGGER_WEIGHT_FLOATING_POSITION if is_corner_launcher else 0.0
+        )
+
         total = sum(breakdown.values())
         return total, mechanism
 
@@ -242,7 +286,7 @@ class TriggerFinder:
                 try:
                     elements = await page.locator(selector).element_handles()
                     for el in elements:
-                        if await is_element_visible(el):
+                        if await is_element_interactable(el):
                             return True
                 except Exception:
                     continue

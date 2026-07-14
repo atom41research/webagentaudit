@@ -17,7 +17,15 @@ class ChannelError(WebLlmError):
     """Error in LLM channel communication."""
 
 
-class ChannelTimeoutError(ChannelError):
+class ChannelSubmissionError(ChannelError):
+    """Error while typing or submitting a prompt."""
+
+
+class ChannelResponseError(ChannelError):
+    """Error while waiting for or reading a response."""
+
+
+class ChannelTimeoutError(ChannelResponseError):
     """Timeout waiting for LLM response."""
 
 

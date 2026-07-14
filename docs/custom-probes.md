@@ -1,6 +1,6 @@
 # Custom Probes
 
-WebAgentAudit ships with 47 built-in probes (consolidated from 102 individual test cases for more efficient, focused coverage). You can add your own by writing YAML files — no Python required.
+WebAgentAudit ships with 48 built-in probes (consolidated from 102 individual test cases for more efficient, focused coverage). You can add your own by writing YAML files — no Python required.
 
 ## Probe file format
 

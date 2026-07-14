@@ -3,7 +3,10 @@
 import pytest
 from playwright.async_api import Page
 
-from webagentaudit.llm_channel.auto_config._dom_utils import extract_element_props
+from webagentaudit.llm_channel.auto_config._dom_utils import (
+    click_enabled_submit_after_fill,
+    extract_element_props,
+)
 from webagentaudit.llm_channel.auto_config._selector_builder import SelectorBuilder
 from webagentaudit.llm_channel.auto_config._submit_finder import SubmitFinder
 from webagentaudit.llm_channel.auto_config.models import ElementCandidate
@@ -88,6 +91,27 @@ FAR_BUTTON_HTML = """\
 </div>
 </body>
 </html>
+"""
+
+UNRELATED_ICON_HTML = """\
+<!DOCTYPE html>
+<html><body>
+<button aria-label="Close sidebar" style="margin-top: 20px;">
+    <svg viewBox="0 0 24 24"><path d="M4 4l16 16"/></svg>
+</button>
+<textarea id="chat-input" style="margin-top: 600px; width: 400px; height: 40px;"></textarea>
+</body></html>
+"""
+
+DEFERRED_SEND_BUTTON_HTML = """\
+<!DOCTYPE html>
+<html><body>
+<textarea id="chat-input" oninput="send.disabled = !this.value"></textarea>
+<button id="send" aria-label="Send message" disabled onclick="reply.textContent = 'sent'">
+    <svg viewBox="0 0 24 24"><path d="M2 2h20"/></svg>
+</button>
+<div id="reply"></div>
+</body></html>
 """
 
 NO_BUTTONS_HTML = """\
@@ -193,6 +217,19 @@ class TestSubmitFinderBasic:
         input_candidate = await _get_input_candidate(page)
         result = await finder.find(page, input_candidate)
         assert result is None
+
+    async def test_weak_unrelated_icon_is_not_used_as_submit(self, page, finder):
+        """A distant generic icon must fall back to Enter rather than be clicked."""
+        await page.set_content(UNRELATED_ICON_HTML, wait_until="domcontentloaded")
+        input_candidate = await _get_input_candidate(page)
+        assert await finder.find(page, input_candidate) is None
+
+    async def test_enabled_submit_can_be_found_after_text_is_filled(self, page):
+        """A disabled-until-typing send control is usable by the fallback."""
+        await page.set_content(DEFERRED_SEND_BUTTON_HTML, wait_until="domcontentloaded")
+        await page.fill("#chat-input", "Hello")
+        assert await click_enabled_submit_after_fill(page, "#chat-input")
+        assert await page.locator("#reply").inner_text() == "sent"
 
     async def test_multiple_buttons_selects_send(self, page, finder):
         """With 'Login' far away and 'Send' near input, 'Send' should win."""

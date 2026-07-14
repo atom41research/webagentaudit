@@ -1,8 +1,8 @@
 # WebAgentAudit
 
 ![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue)
-![Tests 780 passed](https://img.shields.io/badge/tests-780%20passed-brightgreen)
-![47 built-in probes](https://img.shields.io/badge/probes-47%20built--in-orange)
+![Tests 942 passed](https://img.shields.io/badge/tests-942%20passed-brightgreen)
+![48 built-in probes](https://img.shields.io/badge/probes-48%20built--in-orange)
 ![No API tokens required](https://img.shields.io/badge/API%20tokens-not%20required-green)
 
 Security auditing of web-based AI agents through browser automation.
@@ -82,7 +82,7 @@ Inside the container, screenshots default to `/data/screenshots` (via `WEBAGENTA
 ### Verify your installation
 
 ```bash
-# Should print version and list 47 probes
+# Should print version and list 48 probes
 webagentaudit --version
 webagentaudit probes
 ```
@@ -156,6 +156,17 @@ webagentaudit assess https://example.com \
   --iframe-selector "iframe.chat-widget" \
   --wait-for ".chat-input"
 
+# Assess URL-file targets sequentially with one probe and a visible browser
+webagentaudit assess \
+  --url-file urls.txt \
+  --probes system_prompt_leak.image_generation_capability \
+  --headful \
+  --post-success-wait 10000
+
+# Override the default timestamped JSON artifact path
+webagentaudit assess --url-file urls.txt \
+  --output-file ./output/demo-results.json
+
 # List all available probes
 webagentaudit probes --output json
 ```
@@ -183,19 +194,27 @@ Detect interactive LLMs on a webpage.
 | `-v, --verbose` | off | Enable verbose debug logging |
 | `--output FORMAT` | `text` | Output format (`text`, `json`) |
 
-### `webagentaudit assess <url>`
+### `webagentaudit assess [<url> | --url-file <file>]`
 
-Assess AI agent security on a webpage. Auto-discovers chat elements when selectors are not provided.
+Assess AI agent security on one webpage or a file containing one URL per line. URL-file targets run sequentially and continue after operational failures. Blank lines and lines beginning with `#` are ignored.
+
+Batch output prints live `DISCOVER`, `BLOCKER`, `TRIGGER`, `CHAT FOUND`, `TYPED`, `SUBMITTED`, and `RESPONSE READ` checkpoints. It distinguishes `navigation`, `chat_detection`, `connection`, `prompt_submission`, `response_read`, and `assessment` failures. Every run also writes a timestamped `output/webagentaudit-<UTC timestamp>.json` file by default; `--output-file` overrides the path. Each target embeds its complete assessment, including probe verdicts, prompts, assistant responses, matches, and structured error details. The command exits with status 1 if any target has an operational failure.
+
+Auto-discovery is input-first: it checks the page and accessible iframes before dismissing a recognised blocker or trying bounded chat-launcher branches. It does not send a discovery message or reload before the first conversation; the chosen probe is sent directly on the discovered live page. Later isolated conversations replay the saved plan in fresh pages. Batch targets receive a 60-second base budget plus 20 seconds for every additional probe turn. An intentional `--post-success-wait` is added to that budget. Playwright contexts ignore HTTPS certificate errors so a certificate warning does not prevent interaction testing.
 
 **Browser options**
 
 | Flag | Default | Description |
 |---|---|---|
+| `--url-file FILE` | — | Read target URLs from a file instead of using `<url>` |
 | `--headful` | off | Run browser in headed mode |
 | `--browser` | `chromium` | Browser engine (`chromium`, `firefox`, `webkit`) |
 | `--browser-exe PATH` | — | Path to browser executable |
 | `--user-data-dir PATH` | — | Browser profile directory for authenticated sessions |
 | `--timeout MS` | `30000` | Timeout in milliseconds |
+| `--post-send-wait MS` | `0` | Pause after sending before reading the reply (useful for demos) |
+| `--post-success-wait MS` | `0` | Keep the browser open after a response is successfully read; excluded from response timing |
+| `--output-file FILE` | timestamped file in `output/` | Write complete JSON results, including interactions and probe results |
 
 **Element selectors** (override auto-discovery)
 
@@ -204,6 +223,7 @@ Assess AI agent security on a webpage. Auto-discovers chat elements when selecto
 | `--input-selector CSS` | CSS selector for input element |
 | `--response-selector CSS` | CSS selector for response container |
 | `--submit-selector CSS` | CSS selector for submit button |
+| `--trigger-selector CSS` | CSS selector for a chat launcher |
 | `--iframe-selector CSS` | CSS selector for the iframe containing the chat widget |
 | `--wait-for CSS` | CSS selector to wait for before interacting |
 
@@ -231,7 +251,7 @@ Assess AI agent security on a webpage. Auto-discovers chat elements when selecto
 | Flag | Default | Description |
 |---|---|---|
 | `--workers N` | `1` | Concurrent probe workers |
-| `--screenshots` | off | Save screenshots during auto-discovery |
+| `--screenshots` | off | Save discovery and post-send screenshots |
 | `--screenshots-dir DIR` | `./screenshots` | Directory for saved screenshots |
 | `-v, --verbose` | off | Enable verbose debug logging |
 | `--output FORMAT` | `text` | Output format (`text`, `json`) |
@@ -259,7 +279,7 @@ WebAgentAudit has two layers.
 
 **Assessment** — Once a channel is established, the tool runs security probes through it:
 
-- 47 built-in probes across 6 categories, extensible via custom YAML probes
+- 48 built-in probes across 6 categories, extensible via custom YAML probes
 - Single-turn and multi-turn conversation probes
 - Multiple sophistication levels (basic, intermediate, advanced)
 - Dynamic canary tokens for injection probes — anti-echo design prevents false positives
@@ -279,7 +299,7 @@ WebAgentAudit has two layers.
 │  ┌───────────────────────┐    ┌───────────────────┐  │
 │  │    Agent Channel      │    │    Assessment     │  │
 │  │                       │    │                   │  │
-│  │  auto-discovery       │    │  47 probes        │  │
+│  │  auto-discovery       │    │  48 probes        │  │
 │  │    + user hints       │    │  6 categories     │  │
 │  │  Playwright           │    │  pattern          │  │
 │  │  strategies           │    │  detectors        │  │
@@ -324,7 +344,7 @@ Duck.ai (GPT-4o mini) refused to disclose any system prompt information. **Resul
 
 ## Probe library
 
-47 built-in probes across 6 categories, extensible with custom YAML probes:
+48 built-in probes across 6 categories, extensible with custom YAML probes:
 
 | Category | Probes | Techniques |
 |---|---|---|
@@ -332,7 +352,7 @@ Duck.ai (GPT-4o mini) refused to disclose any system prompt information. **Resul
 | **Extraction** | 9 | Direct ask, role-play framing, encoding tricks, repeat/echo, translation, hypothetical framing, completion tricks, multi-turn rapport building, multi-language |
 | **Jailbreak** | 8 | DAN persona, sudo/maintenance mode, research exemption, creative writing, simulation, multi-turn escalation, multi-language, text obfuscation |
 | **Output Safety** | 5 | XSS payload generation, event handler injection, protocol handler abuse, iframe/embed injection, code execution elicitation |
-| **System Prompt Leak** | 6 | Direct restriction inquiry, negative space probing, capability enumeration, error probing, competing objectives, multi-language |
+| **System Prompt Leak** | 7 | Direct restriction inquiry, negative space probing, capability enumeration, image-generation capability, error probing, competing objectives, multi-language |
 | **Role Confusion** | 5 | Identity override, authority claim, system message injection, persona stacking, temporal confusion |
 
 ```bash

@@ -33,6 +33,41 @@ INPUT_NEGATIVE_KEYWORDS = [
     "code",
 ]
 
+INPUT_CHAT_SIGNAL_KEYWORDS = [
+    "ask",
+    "assistant",
+    "chat",
+    "compose",
+    "conversation",
+    "message",
+    "prompt",
+    "question",
+    "query",
+    "rcw-input",
+    "tell me",
+    "type here",
+    "frage",
+]
+
+INPUT_STRONG_NEGATIVE_KEYWORDS = [
+    "captcha",
+    "checkout",
+    "coupon",
+    "email",
+    "first name",
+    "first_name",
+    "last name",
+    "last_name",
+    "login",
+    "newsletter",
+    "password",
+    "phone",
+    "search",
+    "subscribe",
+    "terminal",
+    "username",
+]
+
 INPUT_PARENT_KEYWORDS = [
     "chat",
     "assistant",
@@ -54,9 +89,10 @@ INPUT_WEIGHT_SIZE = 0.05
 INPUT_WEIGHT_PARENT_CONTEXT = 0.15
 INPUT_WEIGHT_DATA_TESTID = 0.10
 INPUT_WEIGHT_NO_NEGATIVE = 0.05
+INPUT_WEIGHT_CHAT_SIGNAL = 0.20
 
 # Minimum score threshold to accept an input candidate
-INPUT_MIN_SCORE = 0.1
+INPUT_MIN_SCORE = 0.30
 
 # ---------------------------------------------------------------------------
 # Submit Finding
@@ -76,7 +112,9 @@ SUBMIT_WEIGHT_CLASS = 0.15
 SUBMIT_WEIGHT_ICON = 0.15
 
 SUBMIT_MAX_DISTANCE_PX = 200
-SUBMIT_MIN_SCORE = 0.15
+# Do not click a weak, unrelated icon button (for example, "close sidebar").
+# When no control clears this bar, pressing Enter is safer.
+SUBMIT_MIN_SCORE = 0.24
 
 # ---------------------------------------------------------------------------
 # Response Finding
@@ -86,7 +124,8 @@ RESPONSE_PROBE_MESSAGE = "Hello, this is a test message."
 RESPONSE_PROBE_TIMEOUT_MS = 15_000
 RESPONSE_DOM_SETTLE_MS = 500
 RESPONSE_POLL_INTERVAL_MS = 500
-RESPONSE_MIN_TEXT_LENGTH = 3
+# Valid assistants sometimes answer capability checks with only "No"/"Yes".
+RESPONSE_MIN_TEXT_LENGTH = 1
 
 # Elements to skip when building text snapshots
 RESPONSE_IGNORE_TAGS = frozenset(
@@ -99,12 +138,16 @@ RESPONSE_IGNORE_TAGS = frozenset(
 
 TRIGGER_AI_LABEL_KEYWORDS = [
     "ask ai",
+    "assistant",
+    "chat",
     "toggle assistant",
     "ai chat",
     "open assistant",
     "chat panel",
     "ai assistant",
     "ask question",
+    "message us",
+    "support",
 ]
 
 TRIGGER_DIALOG_SELECTORS = [
@@ -123,8 +166,16 @@ TRIGGER_CSS_VAR_PATTERNS = [
     r"--ai[_-]panel[_-](?:width|visible):\s*0",
 ]
 
-TRIGGER_MIN_SCORE = 0.2
+TRIGGER_MIN_SCORE = 0.3
+TRIGGER_DECISIVE_SCORE = 0.5
 TRIGGER_WAIT_FOR_INPUT_MS = 3000
+
+DISCOVERY_TIMEOUT_MS = 20_000
+DISCOVERY_INPUT_POLL_MS = 250
+DISCOVERY_ACTION_WAIT_MS = 2_000
+DISCOVERY_MAX_BLOCKERS = 3
+DISCOVERY_MAX_TRIGGERS = 5
+DISCOVERY_MAX_TRIGGER_DEPTH = 2
 
 # Scoring weights for trigger candidates
 TRIGGER_WEIGHT_AI_LABEL = 0.30
@@ -132,6 +183,38 @@ TRIGGER_WEIGHT_DIALOG_ATTR = 0.25
 TRIGGER_WEIGHT_ARIA_CONTROLS = 0.20
 TRIGGER_WEIGHT_CSS_VAR = 0.15
 TRIGGER_WEIGHT_ICON = 0.10
+TRIGGER_WEIGHT_FLOATING_POSITION = 0.20
+
+# ---------------------------------------------------------------------------
+# Page preflight
+# ---------------------------------------------------------------------------
+
+# Only these controls are clicked, and only when nested in a modal-like UI.
+PREFLIGHT_DISMISS_KEYWORDS = [
+    "skip",
+    "skip setup",
+    "skip onboarding",
+    "skip tour",
+    "accept",
+    "accept all",
+    "agree",
+    "allow all",
+    "continue",
+    "not now",
+    "maybe later",
+    "got it",
+    "dismiss",
+    "close",
+]
+# These labels are unambiguously setup/onboarding actions, even where a site
+# does not provide a dialog/overlay semantic wrapper.
+PREFLIGHT_EXPLICIT_SETUP_KEYWORDS = [
+    "skip setup",
+    "skip onboarding",
+    "skip tour",
+]
+PREFLIGHT_MAX_DISMISSALS = 5
+PREFLIGHT_SETTLE_MS = 150
 
 # Input selectors to wait for after clicking a trigger
 TRIGGER_INPUT_WAIT_SELECTORS = [

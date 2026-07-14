@@ -6,7 +6,11 @@ import asyncio
 import json
 import logging
 import sys
+import time
+from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import urlparse
 
 import click
 
@@ -52,6 +56,14 @@ def _severity_color(severity: str) -> str:
 
 
 BROWSER_CHOICES = ["chromium", "firefox", "webkit"]
+
+
+class TargetAssessmentFailure(click.ClickException):
+    """A target-level failure with a stable machine-readable phase."""
+
+    def __init__(self, phase: str, message: str) -> None:
+        super().__init__(message)
+        self.phase = phase
 
 
 # ---------------------------------------------------------------------------
@@ -150,7 +162,8 @@ def _create_detector():
 
 async def _launch_browser(pw, browser: str, headful: bool,
                           browser_exe: str | None,
-                          user_data_dir: str | None):
+                          user_data_dir: str | None,
+                          browser_profile: str | None = None):
     """Launch a Playwright browser, returning (page, closeable).
 
     *closeable* is the object to ``await close()`` when done — either
@@ -160,17 +173,24 @@ async def _launch_browser(pw, browser: str, headful: bool,
     launch_kw: dict = {"headless": not headful}
     if browser_exe:
         launch_kw["executable_path"] = browser_exe
+    if browser_profile:
+        launch_kw["args"] = [f"--profile-directory={browser_profile}"]
 
     if user_data_dir:
         ctx = await launcher.launch_persistent_context(
             user_data_dir, **launch_kw,
             viewport={"width": 1280, "height": 720},
+            ignore_https_errors=True,
         )
         page = ctx.pages[0] if ctx.pages else await ctx.new_page()
         return page, ctx
     else:
         br = await launcher.launch(**launch_kw)
-        page = await br.new_page()
+        ctx = await br.new_context(
+            viewport={"width": 1280, "height": 720},
+            ignore_https_errors=True,
+        )
+        page = await ctx.new_page()
         return page, br
 
 
@@ -247,11 +267,167 @@ async def _detect(url: str, headful: bool, browser: str,
 
 
 # ---------------------------------------------------------------------------
-# assess command
+# prompt command
 # ---------------------------------------------------------------------------
 
 @cli.command()
 @click.argument("url")
+@click.argument("message")
+@click.option("--headful", is_flag=True, help="Run browser in headed mode.")
+@click.option("--browser", type=click.Choice(BROWSER_CHOICES), default="chromium",
+              help="Browser engine to use.")
+@click.option("--browser-exe", type=click.Path(exists=True), default=None,
+              help="Path to browser executable.")
+@click.option("--user-data-dir", type=click.Path(), default=None,
+              help="Browser user-data root for authenticated sessions.")
+@click.option("--browser-profile", type=str, default=None,
+              help="Named profile within --user-data-dir, such as 'Profile 1'.")
+@click.option("--timeout", type=int, default=120000,
+              help="Response timeout in ms.")
+@click.option("--post-send-wait", type=click.IntRange(min=0), default=60000,
+              help="Wait this many ms after sending before reading the response.")
+@click.option("--input-selector", type=str, help="CSS selector for input element.")
+@click.option("--response-selector", type=str,
+              help="CSS selector for response container.")
+@click.option("--submit-selector", type=str, help="CSS selector for submit button.")
+@click.option("--screenshots-dir", type=click.Path(), default=None,
+              help="Save discovery and post-send screenshots in this directory.")
+@click.option("-v", "--verbose", is_flag=True, help="Enable verbose debug logging.")
+@click.option("--output", "output_format", type=click.Choice(["text", "json"]),
+              default="text", help="Output format.")
+def prompt(
+    url: str, message: str, headful: bool, browser: str,
+    browser_exe: str | None, user_data_dir: str | None,
+    browser_profile: str | None, timeout: int, post_send_wait: int,
+    input_selector: str | None, response_selector: str | None,
+    submit_selector: str | None, screenshots_dir: str | None,
+    verbose: bool, output_format: str,
+) -> None:
+    """Send one MESSAGE to a web-based LLM and return its response."""
+    if verbose:
+        logging.basicConfig(level=logging.DEBUG,
+                            format="%(levelname)-5s %(name)s: %(message)s")
+    asyncio.run(_prompt(
+        url=url, message=message, headful=headful, browser=browser,
+        browser_exe=browser_exe, user_data_dir=user_data_dir,
+        browser_profile=browser_profile, timeout=timeout,
+        post_send_wait=post_send_wait, input_selector=input_selector,
+        response_selector=response_selector, submit_selector=submit_selector,
+        screenshots_dir=screenshots_dir, output_format=output_format,
+    ))
+
+
+async def _prompt(
+    *, url: str, message: str, headful: bool, browser: str,
+    browser_exe: str | None, user_data_dir: str | None,
+    browser_profile: str | None, timeout: int, post_send_wait: int,
+    input_selector: str | None, response_selector: str | None,
+    submit_selector: str | None, screenshots_dir: str | None,
+    output_format: str,
+) -> None:
+    from playwright.async_api import async_playwright
+
+    from webagentaudit.llm_channel.config import ChannelConfig
+    from webagentaudit.llm_channel.consts import DEFAULT_RESPONSE_SELECTORS_BY_HOST
+    from webagentaudit.llm_channel.models import ChannelMessage, InteractionPlan
+    from webagentaudit.llm_channel.playwright_channel import PlaywrightChannel
+    from webagentaudit.llm_channel.strategies.custom import CustomStrategy
+
+    plan: InteractionPlan | None = None
+    discovered_page = None
+    discovered_closeable = None
+    pw = None
+
+    if not input_selector:
+        pw = await async_playwright().start()
+        try:
+            plan, discovered_page, discovered_closeable = await _open_and_auto_discover(
+                url, pw=pw, browser=browser, headful=headful,
+                browser_exe=browser_exe, user_data_dir=user_data_dir,
+                browser_profile=browser_profile,
+                timeout=timeout, wait_for_selector=None,
+                input_hint=None, submit_hint=None, response_hint=None,
+                screenshots=bool(screenshots_dir), screenshots_dir=screenshots_dir,
+                output_format=output_format, skip_response=True,
+            )
+        except BaseException:
+            await pw.stop()
+            raise
+    if plan is None and input_selector:
+        plan = InteractionPlan(
+            input_selector=input_selector,
+            submit_selector=submit_selector,
+        )
+    if plan is None:
+        if discovered_closeable:
+            await discovered_closeable.close()
+        if pw:
+            await pw.stop()
+        raise click.ClickException(
+            "Could not find an input element. Use --input-selector."
+        )
+
+    host = (urlparse(url).hostname or "").removeprefix("www.")
+    plan = plan.model_copy(update={
+        "submit_selector": submit_selector or plan.submit_selector,
+        "response_selector": (
+            response_selector
+            or DEFAULT_RESPONSE_SELECTORS_BY_HOST.get(host)
+            or plan.response_selector
+        ),
+    })
+    config = ChannelConfig(
+        headless=not headful,
+        browser=browser,
+        timeout_ms=timeout,
+        post_send_wait_ms=post_send_wait,
+        post_send_screenshot_dir=screenshots_dir,
+        user_data_dir=user_data_dir,
+        executable_path=browser_exe,
+        browser_profile=browser_profile,
+    )
+    active_plan = (
+        plan.model_copy(update={"setup_actions": []})
+        if discovered_page else plan
+    )
+    strategy = CustomStrategy(plan=active_plan)
+    channel = PlaywrightChannel(
+        config=config,
+        strategy=strategy,
+        page=discovered_page,
+    )
+    try:
+        await channel.connect(url)
+        response = await channel.send(ChannelMessage(text=message))
+    finally:
+        await channel.disconnect()
+        if discovered_closeable:
+            await discovered_closeable.close()
+        if pw:
+            await pw.stop()
+
+    if output_format == "json":
+        click.echo(response.model_dump_json(indent=2))
+        return
+
+    _print_header("Prompt Result")
+    _print_kv("URL", url)
+    _print_kv("Response Time", f"{response.response_time_ms / 1000:.1f}s")
+    _print_kv("Images", response.metadata.get("image_count", "0"))
+    if response.text:
+        _print_section("Response")
+        click.echo(response.text[:2000])
+    click.echo()
+
+
+# ---------------------------------------------------------------------------
+# assess command
+# ---------------------------------------------------------------------------
+
+@cli.command()
+@click.argument("url", required=False)
+@click.option("--url-file", type=click.Path(exists=True, dir_okay=False,
+              path_type=Path), help="Read target URLs from a file, one per line.")
 @click.option("--headful", is_flag=True, help="Run browser in headed mode.")
 @click.option("--browser", type=click.Choice(BROWSER_CHOICES), default="chromium",
               help="Browser engine to use.")
@@ -260,11 +436,16 @@ async def _detect(url: str, headful: bool, browser: str,
 @click.option("--user-data-dir", type=click.Path(), default=None,
               help="Browser profile directory for authenticated sessions.")
 @click.option("--timeout", type=int, default=30000, help="Timeout in ms.")
+@click.option("--post-send-wait", type=click.IntRange(min=0), default=0,
+              help="Wait this many ms after sending before reading a response.")
+@click.option("--post-success-wait", type=click.IntRange(min=0), default=0,
+              help="Keep the browser open this many ms after reading a response.")
 @click.option("--workers", default=1, type=int, help="Concurrent probe workers.")
 @click.option("--input-selector", type=str, help="CSS selector for input element.")
 @click.option("--response-selector", type=str,
               help="CSS selector for response container.")
 @click.option("--submit-selector", type=str, help="CSS selector for submit button.")
+@click.option("--trigger-selector", type=str, help="CSS selector for a chat launcher.")
 @click.option("--input-hint", type=str,
               help="HTML snippet hint for input element (fuzzy matching).")
 @click.option("--submit-hint", type=str,
@@ -287,23 +468,27 @@ async def _detect(url: str, headful: bool, browser: str,
 @click.option("--probe-file", type=click.Path(exists=True, dir_okay=False),
               multiple=True, help="Single custom YAML probe file.")
 @click.option("--screenshots", is_flag=True,
-              help="Save screenshots during auto-discovery.")
+              help="Save discovery and post-send screenshots.")
 @click.option("--screenshots-dir", type=click.Path(), default=None,
               help="Directory for screenshots (default: ./screenshots).")
 @click.option("-v", "--verbose", is_flag=True, help="Enable verbose debug logging.")
 @click.option("--output", "output_format", type=click.Choice(["text", "json"]),
               default="text", help="Output format.")
+@click.option("--output-file", type=click.Path(dir_okay=False, path_type=Path),
+              help="Write complete JSON results here (default: timestamped artifact).")
 def assess(
-    url: str, headful: bool, browser: str, browser_exe: str | None,
-    user_data_dir: str | None, timeout: int, workers: int,
+    url: str | None, url_file: Path | None, headful: bool, browser: str,
+    browser_exe: str | None, user_data_dir: str | None, timeout: int,
+    post_send_wait: int, post_success_wait: int, workers: int,
     input_selector: str | None, response_selector: str | None,
-    submit_selector: str | None, input_hint: str | None,
+    submit_selector: str | None, trigger_selector: str | None, input_hint: str | None,
     submit_hint: str | None, response_hint: str | None,
     iframe_selector: str | None, wait_for_selector: str | None,
     category: str | None, sophistication: str | None,
     severity: str | None, probes: str | None,
     probe_dir: str | None, probe_file: tuple[str, ...], screenshots: bool,
     screenshots_dir: str | None, verbose: bool, output_format: str,
+    output_file: Path | None,
 ) -> None:
     """Assess AI agent security on a webpage.
 
@@ -313,11 +498,17 @@ def assess(
     if verbose:
         logging.basicConfig(level=logging.DEBUG,
                             format="%(levelname)-5s %(name)s: %(message)s")
-    asyncio.run(_assess(
-        url=url, headful=headful, browser=browser, browser_exe=browser_exe,
-        user_data_dir=user_data_dir, timeout=timeout, workers=workers,
+    if (url is None) == (url_file is None):
+        raise click.UsageError("Provide either URL or --url-file, but not both.")
+    output_file = output_file or _default_output_path()
+
+    assess_kwargs = dict(
+        headful=headful, browser=browser, browser_exe=browser_exe,
+        user_data_dir=user_data_dir, timeout=timeout, post_send_wait=post_send_wait,
+        post_success_wait=post_success_wait, workers=workers,
         input_selector=input_selector, response_selector=response_selector,
-        submit_selector=submit_selector, input_hint=input_hint,
+        submit_selector=submit_selector, trigger_selector=trigger_selector,
+        input_hint=input_hint,
         submit_hint=submit_hint, response_hint=response_hint,
         iframe_selector=iframe_selector,
         wait_for_selector=wait_for_selector,
@@ -326,7 +517,35 @@ def assess(
         probe_dir=probe_dir, probe_file=probe_file,
         screenshots=screenshots, screenshots_dir=screenshots_dir,
         output_format=output_format,
+    )
+    if url_file is not None:
+        failed = asyncio.run(_assess_file(
+            url_file=url_file,
+            assess_kwargs=assess_kwargs,
+            output_format=output_format,
+            output_file=output_file,
+        ))
+        if failed:
+            raise click.exceptions.Exit(1)
+        return
+
+    result = asyncio.run(_assess(
+        url=url,
+        emit_output=output_format != "json",
+        **assess_kwargs,
     ))
+    if output_file:
+        result = result.model_copy(update={
+            "metadata": {
+                **result.metadata,
+                "output_file": str(output_file),
+            }
+        })
+        _write_json_output(output_file, result)
+    if output_format == "json":
+        click.echo(result.model_dump_json(indent=2))
+    elif output_file:
+        click.echo(f"Wrote complete JSON results to {output_file}")
 
 
 def _load_registry(
@@ -337,6 +556,7 @@ def _load_registry(
     sophistication: str | None,
     severity: str | None = None,
     probes: str | None,
+    emit_output: bool = True,
 ):
     """Load probes into a registry and apply filters."""
     from webagentaudit.assessment.probes.registry import ProbeRegistry
@@ -344,10 +564,12 @@ def _load_registry(
     registry = ProbeRegistry.default()
     if probe_dir:
         loaded = registry.load_yaml_dir(Path(probe_dir))
-        click.echo(f"Loaded {loaded} custom probe(s) from {probe_dir}")
+        if emit_output:
+            click.echo(f"Loaded {loaded} custom probe(s) from {probe_dir}")
     for pf in probe_file:
         registry.load_yaml_file(Path(pf))
-        click.echo(f"Loaded custom probe from {pf}")
+        if emit_output:
+            click.echo(f"Loaded custom probe from {pf}")
 
     filter_kwargs: dict = {}
     if category:
@@ -387,34 +609,46 @@ def _load_registry(
     return registry
 
 
-async def _auto_discover(
+async def _open_and_auto_discover(
     url: str, *, pw, browser: str, headful: bool,
     browser_exe: str | None, user_data_dir: str | None,
     timeout: int, wait_for_selector: str | None,
     input_hint: str | None, submit_hint: str | None,
     response_hint: str | None, screenshots: bool,
     screenshots_dir: str | None = None, output_format: str = "text",
-) -> tuple[str | None, str | None, str | None, str | None]:
-    """Run auto-discovery to find chat element selectors."""
+    skip_response: bool = False,
+    browser_profile: str | None = None,
+    emit_output: bool = True,
+    progress_callback: Callable[[str, str], None] | None = None,
+) -> "tuple[InteractionPlan | None, object, object]":
+    """Discover a chat plan and leave its live browser page open."""
+    from webagentaudit.core.exceptions import (
+        ChannelResponseError,
+        ChannelSubmissionError,
+    )
     from webagentaudit.llm_channel.auto_config import AlgorithmicAutoConfigurator
     from webagentaudit.llm_channel.auto_config._hint_matcher import parse_hint
+    from webagentaudit.llm_channel.models import InteractionPlan
 
     is_json = output_format == "json"
 
-    click.echo(f"  Auto-discovering chat elements on {_style(url, fg='cyan')}...",
-               err=is_json)
+    if emit_output:
+        click.echo(
+            f"  Auto-discovering chat elements on {_style(url, fg='cyan')}...",
+            err=is_json,
+        )
 
     page, closeable = await _launch_browser(
-        pw, browser, headful, browser_exe, user_data_dir)
+        pw, browser, headful, browser_exe, user_data_dir, browser_profile)
 
     try:
         try:
             await page.goto(url, wait_until="domcontentloaded", timeout=timeout)
         except Exception as exc:
             msg = str(exc).split("\n")[0]
-            click.echo(_style(f"Error: Could not load {url}: {msg}",
-                              fg="red"), err=True)
-            sys.exit(1)
+            raise TargetAssessmentFailure(
+                "navigation", f"Could not load {url}: {msg}"
+            ) from exc
         await page.wait_for_timeout(3000)
 
         if wait_for_selector:
@@ -436,51 +670,257 @@ async def _auto_discover(
             await page.screenshot(path=str(ss_dir / "00_discovery.png"),
                                   full_page=False)
 
-        configurator = AlgorithmicAutoConfigurator()
-        auto_result = await configurator.configure(
-            page,
-            input_hint=parse_hint(input_hint) if input_hint else None,
-            submit_hint=parse_hint(submit_hint) if submit_hint else None,
-            response_hint=parse_hint(response_hint) if response_hint else None,
+        configurator = AlgorithmicAutoConfigurator(
+            progress_callback=progress_callback
         )
-    finally:
+        try:
+            auto_result = await configurator.configure(
+                page,
+                skip_response=True,
+                input_hint=parse_hint(input_hint) if input_hint else None,
+                submit_hint=parse_hint(submit_hint) if submit_hint else None,
+                response_hint=parse_hint(response_hint) if response_hint else None,
+            )
+        except ChannelSubmissionError as exc:
+            raise TargetAssessmentFailure(
+                "prompt_submission", str(exc)
+            ) from exc
+        except ChannelResponseError as exc:
+            raise TargetAssessmentFailure("response_read", str(exc)) from exc
+    except BaseException:
         await closeable.close()
+        raise
 
-    inp = auto_result.input_selector
-    sub = auto_result.submit_selector
-    resp = auto_result.response_selector
-    iframe = auto_result.iframe_selector
+    plan = auto_result.to_interaction_plan()
 
-    if inp:
+    if plan and emit_output:
         click.echo(_style("  Auto-discovery succeeded!", fg="green"), err=is_json)
-        click.echo(f"    Input:    {inp}", err=is_json)
-        click.echo(f"    Submit:   {sub or 'Enter key'}", err=is_json)
-        click.echo(f"    Response: {resp or 'not found'}", err=is_json)
-        if iframe:
-            click.echo(f"    Iframe:   {iframe}", err=is_json)
-    else:
+        click.echo(f"    Input:    {plan.input_selector}", err=is_json)
+        click.echo(f"    Submit:   {plan.submit_selector or 'Enter key'}", err=is_json)
+        click.echo("    Response: discovered from the assessment prompt", err=is_json)
+        if plan.input_frame_path:
+            click.echo(f"    Iframe:   {' > '.join(plan.input_frame_path)}", err=is_json)
+    elif emit_output:
         click.echo(_style("  Auto-discovery failed.", fg="red"), err=is_json)
 
-    return inp, sub, resp, iframe
+    return plan, page, closeable
+
+
+def _read_url_file(path: Path) -> list[str]:
+    """Read non-empty, non-comment URL lines without changing their order."""
+    return [
+        line.strip()
+        for line in path.read_text(encoding="utf-8-sig").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+
+
+async def _assess_file(
+    *, url_file: Path, assess_kwargs: dict, output_format: str,
+    output_file: Path | None = None,
+) -> bool:
+    """Assess URL-file targets sequentially and report operational failures."""
+    from webagentaudit.cli.models import (
+        BatchAssessmentResult,
+        BatchAssessmentSummary,
+        BatchTargetResult,
+    )
+
+    urls = _read_url_file(url_file)
+    if not urls:
+        raise click.UsageError(f"URL file is empty: {url_file}")
+
+    targets: list[BatchTargetResult] = []
+    is_json = output_format == "json"
+    registry = _load_registry(
+        probe_dir=assess_kwargs["probe_dir"],
+        probe_file=assess_kwargs["probe_file"],
+        category=assess_kwargs["category"],
+        sophistication=assess_kwargs["sophistication"],
+        severity=assess_kwargs["severity"],
+        probes=assess_kwargs["probes"],
+        emit_output=False,
+    )
+    prompt_turns = sum(
+        len(conversation.turns)
+        for probe in registry.get_all()
+        for conversation in probe.get_conversations()
+    )
+    target_budget_seconds = (
+        60
+        + 20 * max(0, prompt_turns - 1)
+        + prompt_turns * assess_kwargs["post_success_wait"] / 1000
+    )
+    for index, target_url in enumerate(urls, start=1):
+        if not is_json:
+            click.echo(
+                f"[{index}/{len(urls)}] RUN  {target_url}"
+            )
+        started_at = time.monotonic()
+        active_phase = "chat_detection"
+
+        def report_progress(phase: str, detail: str) -> None:
+            nonlocal active_phase
+            if phase in {"DISCOVER", "BLOCKER", "TRIGGER"}:
+                active_phase = "chat_detection"
+            elif phase in {"CHAT FOUND", "TYPED"}:
+                active_phase = "prompt_submission"
+            elif phase == "SUBMITTED":
+                active_phase = "response_read"
+            elif phase == "RESPONSE READ":
+                active_phase = "assessment"
+            if not is_json:
+                click.echo(
+                    f"[{index}/{len(urls)}] {phase:<13} {detail}"
+                )
+
+        try:
+            assessment = await asyncio.wait_for(
+                _assess(
+                    url=target_url,
+                    emit_output=False,
+                    progress_callback=report_progress,
+                    **assess_kwargs,
+                ),
+                timeout=target_budget_seconds,
+            )
+            probe_error = next(
+                (
+                    error
+                    for probe_result in assessment.probe_results
+                    for error in probe_result.errors
+                ),
+                None,
+            )
+            if probe_error:
+                target_result = BatchTargetResult(
+                    url=target_url,
+                    status="failed",
+                    failure_phase=probe_error.phase,
+                    error=probe_error.message,
+                    duration_ms=(time.monotonic() - started_at) * 1000,
+                    probes_run=assessment.summary.total_probes,
+                    vulnerabilities_found=(
+                        assessment.summary.vulnerabilities_found
+                    ),
+                    error_type="ProbeError",
+                    assessment=assessment,
+                )
+            else:
+                target_result = BatchTargetResult(
+                    url=target_url,
+                    status="success",
+                    duration_ms=(time.monotonic() - started_at) * 1000,
+                    probes_run=assessment.summary.total_probes,
+                    vulnerabilities_found=(
+                        assessment.summary.vulnerabilities_found
+                    ),
+                    assessment=assessment,
+                )
+        except TimeoutError:
+            target_result = BatchTargetResult(
+                url=target_url,
+                status="failed",
+                failure_phase=active_phase,
+                error=(
+                    f"Target exceeded its {target_budget_seconds:.0f}s "
+                    "interaction budget"
+                ),
+                error_type="TimeoutError",
+                duration_ms=(time.monotonic() - started_at) * 1000,
+            )
+        except TargetAssessmentFailure as exc:
+            target_result = BatchTargetResult(
+                url=target_url,
+                status="failed",
+                failure_phase=exc.phase,
+                error=exc.message,
+                error_type=type(exc).__name__,
+                duration_ms=(time.monotonic() - started_at) * 1000,
+            )
+        except Exception as exc:
+            logger = logging.getLogger(__name__)
+            logger.exception("Unexpected batch assessment failure for %s", target_url)
+            target_result = BatchTargetResult(
+                url=target_url,
+                status="failed",
+                failure_phase="assessment",
+                error=str(exc) or type(exc).__name__,
+                error_type=type(exc).__name__,
+                duration_ms=(time.monotonic() - started_at) * 1000,
+            )
+
+        targets.append(target_result)
+        if not is_json:
+            seconds = target_result.duration_ms / 1000
+            if target_result.status == "success":
+                click.echo(
+                    f"[{index}/{len(urls)}] OK   {target_url} ({seconds:.1f}s)"
+                )
+            else:
+                click.echo(
+                    f"[{index}/{len(urls)}] FAIL {target_url} "
+                    f"phase={target_result.failure_phase}: {target_result.error}"
+                )
+
+    failed = sum(target.status == "failed" for target in targets)
+    batch_result = BatchAssessmentResult(
+        summary=BatchAssessmentSummary(
+            total=len(targets),
+            succeeded=len(targets) - failed,
+            failed=failed,
+        ),
+        targets=targets,
+        output_file=str(output_file) if output_file else None,
+    )
+    if is_json:
+        click.echo(batch_result.model_dump_json(indent=2))
+    else:
+        click.echo()
+        click.echo(
+            f"Batch complete: {len(targets) - failed} succeeded, "
+            f"{failed} failed, {len(targets)} total."
+        )
+    if output_file:
+        _write_json_output(output_file, batch_result)
+        if not is_json:
+            click.echo(f"Wrote complete JSON results to {output_file}")
+    return failed > 0
+
+
+def _write_json_output(path: Path, result) -> None:
+    """Persist a Pydantic CLI result as formatted JSON."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(result.model_dump_json(indent=2) + "\n", encoding="utf-8")
+
+
+def _default_output_path() -> Path:
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
+    return Path("output") / f"webagentaudit-{timestamp}.json"
 
 
 async def _assess(
     *, url: str, headful: bool, browser: str, browser_exe: str | None,
-    user_data_dir: str | None, timeout: int, workers: int,
+    user_data_dir: str | None, timeout: int, post_send_wait: int,
+    post_success_wait: int, workers: int,
     input_selector: str | None, response_selector: str | None,
-    submit_selector: str | None, input_hint: str | None,
+    submit_selector: str | None, trigger_selector: str | None, input_hint: str | None,
     submit_hint: str | None, response_hint: str | None,
     iframe_selector: str | None, wait_for_selector: str | None,
     category: str | None, sophistication: str | None,
     severity: str | None, probes: str | None,
     probe_dir: str | None, probe_file: tuple[str, ...],
     screenshots: bool, screenshots_dir: str | None, output_format: str,
-) -> None:
+    emit_output: bool = True,
+    progress_callback: Callable[[str, str], None] | None = None,
+):
     from playwright.async_api import async_playwright
 
     from webagentaudit.assessment.assessor import LlmAssessor
     from webagentaudit.assessment.config import AssessmentConfig
     from webagentaudit.llm_channel.config import ChannelConfig
+    from webagentaudit.llm_channel.consts import DEFAULT_RESPONSE_SELECTORS_BY_HOST
+    from webagentaudit.llm_channel.models import InteractionAction, InteractionPlan
     from webagentaudit.llm_channel.playwright_channel import PlaywrightChannel
     from webagentaudit.llm_channel.strategies.custom import CustomStrategy
 
@@ -490,83 +930,124 @@ async def _assess(
         probe_dir=probe_dir, probe_file=probe_file,
         category=category, sophistication=sophistication,
         severity=severity, probes=probes,
+        emit_output=emit_output,
     )
     all_probes = registry.get_all()
     if not all_probes:
-        click.echo("No probes to run.", err=True)
-        sys.exit(1)
+        raise TargetAssessmentFailure("assessment", "No probes to run.")
 
     # Single Playwright instance for the entire assess run
     async with async_playwright() as pw:
-        # Resolve selectors via auto-discovery if needed
-        actual_input = input_selector
-        actual_submit = submit_selector
-        actual_response = response_selector
-
-        if not actual_input or not actual_response:
-            disc_inp, disc_sub, disc_resp, disc_iframe = await _auto_discover(
+        plan: InteractionPlan | None = None
+        discovered_page = None
+        discovered_closeable = None
+        if not input_selector:
+            plan, discovered_page, discovered_closeable = (
+                await _open_and_auto_discover(
                 url, pw=pw, browser=browser, headful=headful,
                 browser_exe=browser_exe, user_data_dir=user_data_dir,
                 timeout=timeout, wait_for_selector=wait_for_selector,
                 input_hint=input_hint, submit_hint=submit_hint,
                 response_hint=response_hint, screenshots=screenshots,
                 screenshots_dir=screenshots_dir, output_format=output_format,
+                skip_response=True,
+                emit_output=emit_output,
+                progress_callback=progress_callback,
+                )
             )
-            actual_input = actual_input or disc_inp
-            actual_submit = actual_submit or disc_sub
-            actual_response = actual_response or disc_resp
-            if not iframe_selector and disc_iframe:
-                iframe_selector = disc_iframe
+        else:
+            plan = InteractionPlan(
+                input_selector=input_selector,
+                submit_selector=submit_selector,
+                response_selector=response_selector,
+                input_frame_path=[iframe_selector] if iframe_selector else [],
+                setup_actions=(
+                    [InteractionAction(kind="trigger", selector=trigger_selector)]
+                    if trigger_selector else []
+                ),
+            )
 
-        if not actual_input:
-            click.echo("Error: Could not find input element. Use --input-selector.",
-                        err=True)
-            sys.exit(1)
-        if not actual_response:
-            click.echo("Error: Could not find response element."
-                        " Use --response-selector.", err=True)
-            sys.exit(1)
+        if plan is None:
+            if discovered_closeable:
+                await discovered_closeable.close()
+            raise TargetAssessmentFailure(
+                "chat_detection",
+                "Could not find a chat input element.",
+            )
 
-        if not is_json:
+        host = (urlparse(url).hostname or "").removeprefix("www.")
+        updates: dict = {
+            "submit_selector": submit_selector or plan.submit_selector,
+            "response_selector": (
+                response_selector
+                or DEFAULT_RESPONSE_SELECTORS_BY_HOST.get(host)
+                or plan.response_selector
+            ),
+        }
+        if iframe_selector:
+            updates["input_frame_path"] = [iframe_selector]
+        if trigger_selector and not any(
+            action.kind == "trigger" and action.selector == trigger_selector
+            for action in plan.setup_actions
+        ):
+            updates["setup_actions"] = [
+                InteractionAction(kind="trigger", selector=trigger_selector),
+                *plan.setup_actions,
+            ]
+        plan = plan.model_copy(update=updates)
+
+        if emit_output and not is_json:
             _print_header("LLM Security Assessment")
             _print_kv("URL", url)
             _print_kv("Browser", f"{browser} ({'headed' if headful else 'headless'})")
-            _print_kv("Input", actual_input)
-            _print_kv("Submit", actual_submit or "Enter key")
-            _print_kv("Response", actual_response)
+            _print_kv("Input", plan.input_selector)
+            _print_kv("Submit", plan.submit_selector or "Enter key")
+            _print_kv(
+                "Response", plan.response_selector or "discover after prompt"
+            )
             _print_kv("Probes", str(len(all_probes)))
 
         channel_config = ChannelConfig(
             headless=not headful,
             browser=browser,
             timeout_ms=timeout,
+            post_send_wait_ms=post_send_wait,
+            post_success_wait_ms=post_success_wait,
+            post_send_screenshot_dir=(
+                screenshots_dir or "screenshots" if screenshots else None
+            ),
             user_data_dir=user_data_dir,
+            executable_path=browser_exe,
         )
 
-        # Launch a shared browser for all probe conversations (when not using
-        # persistent context).  Each PlaywrightChannel.connect() will create a
-        # cheap context+page from this browser instead of spawning a new one.
+        # Reuse the discovery browser for later isolated conversations.
         shared_browser = None
-        if not user_data_dir:
+        if discovered_closeable and hasattr(discovered_closeable, "new_context"):
+            shared_browser = discovered_closeable
+        elif not user_data_dir:
             launcher = getattr(pw, browser)
             launch_kw: dict = {"headless": not headful}
             if browser_exe:
                 launch_kw["executable_path"] = browser_exe
             shared_browser = await launcher.launch(**launch_kw)
 
-        # Capture for closure
-        _inp, _sub, _resp = actual_input, actual_submit, actual_response
+        first_page = discovered_page
 
         def channel_factory() -> PlaywrightChannel:
+            nonlocal first_page
+            page = first_page
+            first_page = None
             strategy = CustomStrategy(
-                input_selector=_inp,
-                response_selector=_resp,
-                submit_selector=_sub,
-                iframe_selector=iframe_selector,
+                plan=(
+                    plan.model_copy(update={"setup_actions": []})
+                    if page else plan
+                ),
+                progress_callback=progress_callback,
             )
             return PlaywrightChannel(
                 config=channel_config, strategy=strategy,
-                browser=shared_browser,
+                browser=shared_browser if page is None else None,
+                page=page,
             )
 
         assess_config = AssessmentConfig(workers=workers)
@@ -574,20 +1055,21 @@ async def _assess(
 
         def _on_progress(results) -> None:
             nonlocal completed
-            if is_json:
+            if is_json or not emit_output:
                 return
             if len(results) > completed:
                 latest = results[-1]
                 completed = len(results)
-                status = (
-                    _style("VULN", fg="red", bold=True)
-                    if latest.vulnerability_detected
-                    else _style("PASS", fg="green")
-                )
+                if latest.error_count:
+                    status = _style("ERROR", fg="red", bold=True)
+                elif latest.vulnerability_detected:
+                    status = _style("VULN", fg="red", bold=True)
+                else:
+                    status = _style("PASS", fg="green")
                 click.echo(f"  [{completed}/{len(all_probes)}] {status}"
                            f" {latest.probe_name}")
 
-        if not is_json:
+        if emit_output and not is_json:
             _print_section("Running Probes")
 
         assessor = LlmAssessor(
@@ -596,16 +1078,22 @@ async def _assess(
             registry=registry,
             progress_callback=_on_progress,
         )
-        result = await assessor.assess(url)
+        try:
+            result = await assessor.assess(url)
+        finally:
+            if shared_browser:
+                await shared_browser.close()
+            elif discovered_closeable:
+                await discovered_closeable.close()
 
-        if shared_browser:
-            await shared_browser.close()
-
+    if not emit_output:
+        return result
     if output_format == "json":
         click.echo(result.model_dump_json(indent=2))
     else:
         click.echo()
         _print_assessment_result(result)
+    return result
 
 
 def _print_assessment_result(result) -> None:
@@ -623,7 +1111,14 @@ def _print_assessment_result(result) -> None:
     if result.probe_results:
         _print_section("Probe Results")
         for pr in result.probe_results:
-            if pr.vulnerability_detected:
+            if pr.error_count:
+                click.echo(
+                    f"  {_style('ERROR', fg='red', bold=True)} "
+                    f" {pr.probe_name}"
+                )
+                for error in pr.errors:
+                    click.echo(f"      [{error.phase}] {error.message}")
+            elif pr.vulnerability_detected:
                 click.echo(f"  {_style('VULN', fg='red', bold=True)}"
                            f"  {pr.probe_name}")
                 if pr.matched_patterns:

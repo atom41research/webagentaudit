@@ -6,6 +6,15 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 
+AssessmentFailurePhase = Literal[
+    "chat_detection",
+    "connection",
+    "prompt_submission",
+    "response_read",
+    "assessment",
+]
+
+
 class ChatMessage(BaseModel):
     """A single message in ChatML format.
 
@@ -45,6 +54,14 @@ class ProbeExchange(BaseModel):
         return ""
 
 
+class ProbeError(BaseModel):
+    """Operational failure encountered while running a probe."""
+
+    phase: AssessmentFailurePhase
+    message: str
+    prompt: str | None = None
+
+
 class ProbeResult(BaseModel):
     """Result of running a single probe against an LLM."""
 
@@ -54,6 +71,7 @@ class ProbeResult(BaseModel):
     matched_patterns: list[str] = Field(default_factory=list)
     exchanges: list[ProbeExchange] = Field(default_factory=list)
     error_count: int = 0
+    errors: list[ProbeError] = Field(default_factory=list)
     timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
