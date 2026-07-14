@@ -61,9 +61,15 @@ BROWSER_CHOICES = ["chromium", "firefox", "webkit"]
 class TargetAssessmentFailure(click.ClickException):
     """A target-level failure with a stable machine-readable phase."""
 
-    def __init__(self, phase: str, message: str) -> None:
+    def __init__(
+        self,
+        phase: str,
+        message: str,
+        provider_hint: str | None = None,
+    ) -> None:
         super().__init__(message)
         self.phase = phase
+        self.provider_hint = provider_hint
 
 
 # ---------------------------------------------------------------------------
@@ -141,6 +147,12 @@ async def _collect_page_data(page, url: str):
     )
 
 
+async def _provider_hint_for_page(page, url: str) -> str | None:
+    """Identify a known chat provider on an already-open live page."""
+    page_data = await _collect_page_data(page, url)
+    return _create_detector().detect(page_data).provider_hint
+
+
 def _create_detector():
     """Create an LlmDetector with all deterministic checkers registered."""
     from webagentaudit.detection.detector import LlmDetector
@@ -173,8 +185,11 @@ async def _launch_browser(pw, browser: str, headful: bool,
     *closeable* is the object to ``await close()`` when done — either
     a BrowserContext (persistent) or a Browser instance.
     """
+    from webagentaudit.llm_channel.browser import effective_user_agent
+
     launcher = getattr(pw, browser)
-    launch_kw: dict = {"headless": not (headful or fullscreen)}
+    headless = not (headful or fullscreen)
+    launch_kw: dict = {"headless": headless}
     if browser_exe:
         launch_kw["executable_path"] = browser_exe
     launch_args = []
@@ -188,18 +203,33 @@ async def _launch_browser(pw, browser: str, headful: bool,
     viewport = None if fullscreen else {"width": 1280, "height": 720}
 
     if user_data_dir:
+        user_agent = effective_user_agent(browser, headless=headless)
+        context_kw = {
+            "viewport": viewport,
+            "ignore_https_errors": True,
+        }
+        if user_agent:
+            context_kw["user_agent"] = user_agent
         ctx = await launcher.launch_persistent_context(
-            user_data_dir, **launch_kw,
-            viewport=viewport,
-            ignore_https_errors=True,
+            user_data_dir, **launch_kw, **context_kw,
         )
         page = ctx.pages[0] if ctx.pages else await ctx.new_page()
         return page, ctx
     else:
         br = await launcher.launch(**launch_kw)
+        user_agent = effective_user_agent(
+            browser,
+            headless=headless,
+            browser_version=getattr(br, "version", None),
+        )
+        context_kw = {
+            "viewport": viewport,
+            "ignore_https_errors": True,
+        }
+        if user_agent:
+            context_kw["user_agent"] = user_agent
         ctx = await br.new_context(
-            viewport=viewport,
-            ignore_https_errors=True,
+            **context_kw,
         )
         page = await ctx.new_page()
         return page, br
@@ -343,7 +373,10 @@ async def _prompt(
     from playwright.async_api import async_playwright
 
     from webagentaudit.llm_channel.config import ChannelConfig
-    from webagentaudit.llm_channel.consts import DEFAULT_RESPONSE_SELECTORS_BY_HOST
+    from webagentaudit.llm_channel.consts import (
+        DEFAULT_RESPONSE_SELECTORS_BY_HOST,
+        DEFAULT_RESPONSE_SELECTORS_BY_PROVIDER,
+    )
     from webagentaudit.llm_channel.models import ChannelMessage, InteractionPlan
     from webagentaudit.llm_channel.playwright_channel import PlaywrightChannel
     from webagentaudit.llm_channel.strategies.custom import CustomStrategy
@@ -351,6 +384,7 @@ async def _prompt(
     plan: InteractionPlan | None = None
     discovered_page = None
     discovered_closeable = None
+    provider_hint = None
     pw = None
 
     if not input_selector:
@@ -369,6 +403,12 @@ async def _prompt(
         except BaseException:
             await pw.stop()
             raise
+        provider_hint = await _provider_hint_for_page(discovered_page, url)
+        if provider_hint:
+            click.echo(
+                f"  Identified provider: {_style(provider_hint, fg='green')}",
+                err=output_format == "json",
+            )
     if plan is None and input_selector:
         plan = InteractionPlan(
             input_selector=input_selector,
@@ -389,6 +429,7 @@ async def _prompt(
         "response_selector": (
             response_selector
             or DEFAULT_RESPONSE_SELECTORS_BY_HOST.get(host)
+            or DEFAULT_RESPONSE_SELECTORS_BY_PROVIDER.get(provider_hint or "")
             or plan.response_selector
         ),
     })
@@ -422,6 +463,14 @@ async def _prompt(
             await discovered_closeable.close()
         if pw:
             await pw.stop()
+
+    if provider_hint:
+        response = response.model_copy(update={
+            "metadata": {
+                **response.metadata,
+                "provider_hint": provider_hint,
+            }
+        })
 
     if output_format == "json":
         click.echo(response.model_dump_json(indent=2))
@@ -648,7 +697,11 @@ async def _open_and_auto_discover(
         ChannelResponseError,
         ChannelSubmissionError,
     )
-    from webagentaudit.llm_channel.auto_config import AlgorithmicAutoConfigurator
+    from webagentaudit.llm_channel.auto_config import (
+        AlgorithmicAutoConfigurator,
+        ChatbotComAutoConfigurator,
+        IntercomAutoConfigurator,
+    )
     from webagentaudit.llm_channel.auto_config._hint_matcher import parse_hint
     from webagentaudit.llm_channel.models import InteractionPlan
 
@@ -693,8 +746,22 @@ async def _open_and_auto_discover(
             await page.screenshot(path=str(ss_dir / "00_discovery.png"),
                                   full_page=False)
 
-        configurator = AlgorithmicAutoConfigurator(
-            progress_callback=progress_callback
+        provider_hint = None
+        for _ in range(4):
+            provider_hint = await _provider_hint_for_page(page, url)
+            if provider_hint:
+                break
+            await page.wait_for_timeout(1_000)
+        if provider_hint and progress_callback:
+            progress_callback("PROVIDER", provider_hint)
+        configurator = (
+            IntercomAutoConfigurator(progress_callback=progress_callback)
+            if provider_hint == "intercom"
+            else ChatbotComAutoConfigurator(progress_callback=progress_callback)
+            if provider_hint == "chatbot.com"
+            else AlgorithmicAutoConfigurator(
+                progress_callback=progress_callback
+            )
         )
         try:
             auto_result = await configurator.configure(
@@ -706,10 +773,12 @@ async def _open_and_auto_discover(
             )
         except ChannelSubmissionError as exc:
             raise TargetAssessmentFailure(
-                "prompt_submission", str(exc)
+                "prompt_submission", str(exc), provider_hint=provider_hint
             ) from exc
         except ChannelResponseError as exc:
-            raise TargetAssessmentFailure("response_read", str(exc)) from exc
+            raise TargetAssessmentFailure(
+                "response_read", str(exc), provider_hint=provider_hint
+            ) from exc
     except BaseException:
         await closeable.close()
         raise
@@ -781,9 +850,12 @@ async def _assess_file(
             )
         started_at = time.monotonic()
         active_phase = "chat_detection"
+        identified_provider: str | None = None
 
         def report_progress(phase: str, detail: str) -> None:
-            nonlocal active_phase
+            nonlocal active_phase, identified_provider
+            if phase == "PROVIDER":
+                identified_provider = detail
             if phase in {"DISCOVER", "BLOCKER", "TRIGGER"}:
                 active_phase = "chat_detection"
             elif phase in {"CHAT FOUND", "TYPED"}:
@@ -826,6 +898,7 @@ async def _assess_file(
                     vulnerabilities_found=(
                         assessment.summary.vulnerabilities_found
                     ),
+                    provider_hint=assessment.metadata.get("provider_hint"),
                     error_type="ProbeError",
                     assessment=assessment,
                 )
@@ -838,6 +911,7 @@ async def _assess_file(
                     vulnerabilities_found=(
                         assessment.summary.vulnerabilities_found
                     ),
+                    provider_hint=assessment.metadata.get("provider_hint"),
                     assessment=assessment,
                 )
         except TimeoutError:
@@ -850,6 +924,7 @@ async def _assess_file(
                     "interaction budget"
                 ),
                 error_type="TimeoutError",
+                provider_hint=identified_provider,
                 duration_ms=(time.monotonic() - started_at) * 1000,
             )
         except TargetAssessmentFailure as exc:
@@ -859,6 +934,7 @@ async def _assess_file(
                 failure_phase=exc.phase,
                 error=exc.message,
                 error_type=type(exc).__name__,
+                provider_hint=exc.provider_hint or identified_provider,
                 duration_ms=(time.monotonic() - started_at) * 1000,
             )
         except Exception as exc:
@@ -874,6 +950,7 @@ async def _assess_file(
                 failure_phase="assessment",
                 error=str(exc) or type(exc).__name__,
                 error_type=type(exc).__name__,
+                provider_hint=identified_provider,
                 duration_ms=(time.monotonic() - started_at) * 1000,
             )
 
@@ -947,7 +1024,10 @@ async def _assess(
     from webagentaudit.assessment.assessor import LlmAssessor
     from webagentaudit.assessment.config import AssessmentConfig
     from webagentaudit.llm_channel.config import ChannelConfig
-    from webagentaudit.llm_channel.consts import DEFAULT_RESPONSE_SELECTORS_BY_HOST
+    from webagentaudit.llm_channel.consts import (
+        DEFAULT_RESPONSE_SELECTORS_BY_HOST,
+        DEFAULT_RESPONSE_SELECTORS_BY_PROVIDER,
+    )
     from webagentaudit.llm_channel.models import InteractionAction, InteractionPlan
     from webagentaudit.llm_channel.playwright_channel import PlaywrightChannel
     from webagentaudit.llm_channel.strategies.custom import CustomStrategy
@@ -967,6 +1047,7 @@ async def _assess(
     # Single Playwright instance for the entire assess run
     async with async_playwright() as pw:
         plan: InteractionPlan | None = None
+        provider_hint = None
         discovered_page = None
         discovered_closeable = None
         if not input_selector:
@@ -984,6 +1065,11 @@ async def _assess(
                 progress_callback=progress_callback,
                 )
             )
+            provider_hint = await _provider_hint_for_page(discovered_page, url)
+            if provider_hint and progress_callback:
+                progress_callback("PROVIDER", provider_hint)
+            if provider_hint and emit_output and not is_json:
+                click.echo(f"  Identified provider: {provider_hint}")
         else:
             plan = InteractionPlan(
                 input_selector=input_selector,
@@ -1002,6 +1088,7 @@ async def _assess(
             raise TargetAssessmentFailure(
                 "chat_detection",
                 "Could not find a chat input element.",
+                provider_hint=provider_hint,
             )
 
         host = (urlparse(url).hostname or "").removeprefix("www.")
@@ -1010,6 +1097,7 @@ async def _assess(
             "response_selector": (
                 response_selector
                 or DEFAULT_RESPONSE_SELECTORS_BY_HOST.get(host)
+                or DEFAULT_RESPONSE_SELECTORS_BY_PROVIDER.get(provider_hint or "")
                 or plan.response_selector
             ),
         }
@@ -1028,6 +1116,8 @@ async def _assess(
         if emit_output and not is_json:
             _print_header("LLM Security Assessment")
             _print_kv("URL", url)
+            if provider_hint:
+                _print_kv("Provider", provider_hint)
             browser_mode = (
                 "full-screen" if fullscreen else "headed" if headful else "headless"
             )
@@ -1120,6 +1210,9 @@ async def _assess(
                 await shared_browser.close()
             elif discovered_closeable:
                 await discovered_closeable.close()
+
+        if provider_hint:
+            result.metadata["provider_hint"] = provider_hint
 
     if not emit_output:
         return result

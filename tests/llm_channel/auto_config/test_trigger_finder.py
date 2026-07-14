@@ -149,6 +149,52 @@ CHAT_LAUNCHER_HTML = """\
 </body></html>
 """
 
+INTERCOM_LAUNCHER_HTML = """\
+<!DOCTYPE html><html><body>
+<div class="intercom-lightweight-app-launcher intercom-launcher"
+     role="button" aria-label="Open Intercom Messenger" tabindex="0"
+     style="position: fixed; right: 20px; bottom: 20px; width: 48px; height: 48px"
+     onclick="document.getElementById('chat-panel').style.display='block'">
+</div>
+<div id="chat-panel" style="display: none"><textarea placeholder="Message us"></textarea></div>
+</body></html>
+"""
+
+CUSTOM_CHAT_ACTIVATOR_HTML = """\
+<!DOCTYPE html><html><body>
+<div id="livechat-activator-btn" class="livechat-button"
+     style="position: fixed; right: 20px; bottom: 20px; width: 100px; height: 48px"
+     onclick="document.getElementById('chat-panel').style.display='block'">
+  Need Help?
+</div>
+<div id="chat-panel" style="display: none"><textarea placeholder="Message us"></textarea></div>
+</body></html>
+"""
+
+INTERCOM_CONVERSATION_ACTION_HTML = """\
+<!DOCTYPE html><html><body>
+<div role="button" tabindex="0"
+     onclick="document.getElementById('chat-panel').style.display='block'">
+  Start a conversation
+</div>
+<div id="chat-panel" style="display: none"><textarea placeholder="Message us"></textarea></div>
+</body></html>
+"""
+
+INTERCOM_ASK_ACTION_HTML = INTERCOM_CONVERSATION_ACTION_HTML.replace(
+    "Start a conversation", "Ask a question"
+)
+INTERCOM_MESSAGE_ACTION_HTML = INTERCOM_CONVERSATION_ACTION_HTML.replace(
+    "Start a conversation", "Send us a message"
+)
+
+INTERCOM_ACTION_WITH_NAV_HTML = INTERCOM_ASK_ACTION_HTML.replace(
+    "</body>",
+    '<button id="spaces-messages-tab" style="position:fixed;right:20px;bottom:20px">'
+    '<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>Messages</button>'
+    "</body>",
+)
+
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -251,4 +297,36 @@ async def test_icon_only_chat_launcher(page, finder):
 
     assert result is not None
     assert result.mechanism == TriggerMechanism.SIDE_PANEL
+    assert await page.locator("textarea").is_visible()
+
+
+@pytest.mark.asyncio
+async def test_offscreen_icon_button_is_not_a_corner_launcher(page, finder):
+    await page.set_content(
+        '<button style="position:absolute;right:20px;top:2000px">'
+        '<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>'
+        "Next</button>"
+    )
+
+    assert await finder.ranked_candidates(page) == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "html",
+    [
+        INTERCOM_LAUNCHER_HTML,
+        CUSTOM_CHAT_ACTIVATOR_HTML,
+        INTERCOM_CONVERSATION_ACTION_HTML,
+        INTERCOM_ASK_ACTION_HTML,
+        INTERCOM_MESSAGE_ACTION_HTML,
+        INTERCOM_ACTION_WITH_NAV_HTML,
+    ],
+)
+async def test_non_button_chat_launchers(page, finder, html):
+    await page.set_content(html)
+
+    result = await finder.find_and_activate(page)
+
+    assert result is not None
     assert await page.locator("textarea").is_visible()

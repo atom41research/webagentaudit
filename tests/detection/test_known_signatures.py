@@ -287,6 +287,7 @@ class TestKnownSignatureAdditionalProviders:
     @pytest.mark.parametrize(
         "script_url,expected_provider",
         [
+            ("https://cdn.chatbot.com/widget/plugin.js", "chatbot.com"),
             ("https://static.zdassets.com/ekr/snippet.js", "zendesk"),
             ("https://wchat.freshchat.com/js/widget.js", "freshdesk"),
             ("https://client.crisp.chat/l.js", "crisp"),

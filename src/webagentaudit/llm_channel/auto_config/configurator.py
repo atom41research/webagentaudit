@@ -242,7 +242,7 @@ class AlgorithmicAutoConfigurator(BaseAutoConfigurator):
     ) -> tuple[ScoredElement, Page | Frame, FrameCandidate | None] | None:
         elapsed = 0
         while elapsed < consts.DISCOVERY_ACTION_WAIT_MS:
-            found = await self._find_input(page, input_hint)
+            found = await self._find_input(page, input_hint, chat_only=True)
             if found is not None:
                 return found
             await asyncio.sleep(consts.DISCOVERY_INPUT_POLL_MS / 1000)
@@ -250,10 +250,16 @@ class AlgorithmicAutoConfigurator(BaseAutoConfigurator):
         return None
 
     async def _find_input(
-        self, page: Page, input_hint: ElementHint | None
+        self,
+        page: Page,
+        input_hint: ElementHint | None,
+        *,
+        chat_only: bool = False,
     ) -> tuple[ScoredElement, Page | Frame, FrameCandidate | None] | None:
         best: tuple[ScoredElement, Page | Frame, FrameCandidate | None] | None = None
-        for context, frame_candidate in await self._contexts(page):
+        for context, frame_candidate in await self._contexts(
+            page, chat_only=chat_only
+        ):
             try:
                 scored = await self._input_finder.find(context, hint=input_hint)
             except Exception:
@@ -268,12 +274,27 @@ class AlgorithmicAutoConfigurator(BaseAutoConfigurator):
         self, page: Page
     ) -> list[tuple[str, list[str], TriggerCandidate]]:
         ranked: list[tuple[str, list[str], TriggerCandidate]] = []
+        try:
+            main_candidates = await self._trigger_finder.ranked_candidates(page)
+        except Exception:
+            main_candidates = []
+        if (
+            main_candidates
+            and main_candidates[0].score >= consts.TRIGGER_DECISIVE_SCORE
+        ):
+            return [
+                (f"::{candidate.candidate.selector}", [], candidate)
+                for candidate in main_candidates
+            ]
         for context, frame_candidate in await self._contexts(page):
             frame_path = frame_candidate.frame_path if frame_candidate else []
-            try:
-                candidates = await self._trigger_finder.ranked_candidates(context)
-            except Exception:
-                continue
+            if frame_candidate is None:
+                candidates = main_candidates
+            else:
+                try:
+                    candidates = await self._trigger_finder.ranked_candidates(context)
+                except Exception:
+                    continue
             for candidate in candidates:
                 fingerprint = f"{' > '.join(frame_path)}::{candidate.candidate.selector}"
                 ranked.append((fingerprint, frame_path, candidate))
@@ -283,13 +304,63 @@ class AlgorithmicAutoConfigurator(BaseAutoConfigurator):
         return ranked
 
     async def _contexts(
-        self, page: Page
+        self, page: Page, *, chat_only: bool = False
     ) -> list[tuple[Page | Frame, FrameCandidate | None]]:
         contexts: list[tuple[Page | Frame, FrameCandidate | None]] = []
+        if chat_only:
+            for frame in page.frames:
+                if frame is page.main_frame:
+                    continue
+                identity = f"{frame.name} {frame.url}".lower()
+                if not any(
+                    pattern in identity
+                    for pattern in [
+                        *consts.FRAME_URL_PATTERNS,
+                        "chat",
+                        "messenger",
+                        "widget",
+                    ]
+                ):
+                    continue
+                try:
+                    frame_path = await self._frame_finder.frame_path(frame)
+                except Exception:
+                    continue
+                contexts.append((frame, FrameCandidate(
+                    frame=frame,
+                    score=1.0,
+                    iframe_selector=frame_path[-1],
+                    src=frame.url,
+                    title=frame.name,
+                    has_input=False,
+                    frame_path=frame_path,
+                )))
+            if contexts:
+                return contexts
         for candidate in await self._frame_finder.find_chat_frames(page):
+            if chat_only and not self._is_known_chat_frame(candidate):
+                continue
             contexts.append((candidate.frame, candidate))
-        contexts.append((page, None))
+        if not chat_only or not contexts:
+            contexts.append((page, None))
         return contexts
+
+    @staticmethod
+    def _is_known_chat_frame(candidate: FrameCandidate) -> bool:
+        identity = " ".join([
+            candidate.src,
+            candidate.title,
+            candidate.iframe_selector,
+        ]).lower()
+        return any(
+            pattern in identity
+            for pattern in [
+                *consts.FRAME_URL_PATTERNS,
+                "chat",
+                "messenger",
+                "widget",
+            ]
+        )
 
     async def _build_result(
         self,

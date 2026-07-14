@@ -45,6 +45,10 @@ DEFAULT_RESPONSE_SELECTORS_BY_HOST = {
     "openai.com": '[data-message-author-role="assistant"]',
 }
 
+DEFAULT_RESPONSE_SELECTORS_BY_PROVIDER = {
+    "intercom": ".intercom-comment",
+}
+
 # Known typing indicator selectors that signal the LLM is still generating
 TYPING_INDICATOR_SELECTORS = [
     ".typing-indicator",

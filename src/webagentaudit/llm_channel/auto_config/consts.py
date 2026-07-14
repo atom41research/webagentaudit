@@ -146,8 +146,23 @@ TRIGGER_AI_LABEL_KEYWORDS = [
     "chat panel",
     "ai assistant",
     "ask question",
+    "ask a question",
     "message us",
     "support",
+    "messenger",
+    "start a conversation",
+    "send us a message",
+]
+
+TRIGGER_NEGATIVE_LABEL_KEYWORDS = [
+    "close",
+    "minimize",
+]
+
+TRIGGER_CONVERSATION_LABEL_KEYWORDS = [
+    "ask a question",
+    "start a conversation",
+    "send us a message",
 ]
 
 TRIGGER_DIALOG_SELECTORS = [
@@ -159,6 +174,13 @@ TRIGGER_MENU_SELECTORS = [
     'button[aria-controls*="dialog" i]',
     'button[aria-controls*="menu" i]',
     'button[aria-controls*="command" i]',
+]
+
+TRIGGER_CHAT_LAUNCHER_SELECTORS = [
+    '[role="button"][aria-label*="chat" i]',
+    '[role="button"][aria-label*="messenger" i]',
+    '[id*="chat" i][id*="activator" i]',
+    '[class*="chat" i][class*="launcher" i]',
 ]
 
 TRIGGER_CSS_VAR_PATTERNS = [
@@ -205,6 +227,10 @@ PREFLIGHT_DISMISS_KEYWORDS = [
     "got it",
     "dismiss",
     "close",
+    # Common localized consent labels (EasyTrack/Cookiebot).
+    "elfogadom",
+    "hozzájárulok",
+    "engedélyezem",
 ]
 # These labels are unambiguously setup/onboarding actions, even where a site
 # does not provide a dialog/overlay semantic wrapper.
@@ -311,3 +337,41 @@ FRAME_INPUT_CHECK_SELECTORS: list[str] = [
     "[contenteditable='true']",
     "[role='textbox']",
 ]
+
+# ---------------------------------------------------------------------------
+# Intercom
+# ---------------------------------------------------------------------------
+
+INTERCOM_MESSENGER_FRAME_SELECTOR = 'iframe[name="intercom-messenger-frame"]'
+INTERCOM_CONVERSATION_ACTION_PATTERN = (
+    r"ask a question|start a conversation|send us a message"
+)
+INTERCOM_FRAME_WAIT_MS = 8_000
+
+# ---------------------------------------------------------------------------
+# ChatBot.com
+# ---------------------------------------------------------------------------
+
+CHATBOT_COM_WAIT_MS = 15_000
+CHATBOT_COM_MAX_BLOCKERS = 3
+CHATBOT_COM_SETUP_SETTLE_MS = 3_000
+CHATBOT_COM_FRAME_SELECTOR = "iframe#chatbot-chat-frame"
+CHATBOT_COM_START_SELECTOR = "div.button"
+CHATBOT_COM_SUBMIT_SELECTOR = ".send-icon"
+CHATBOT_COM_ONBOARDING_SELECTORS = {
+    "royalmailpensionplan.co.uk": (
+        '[data-conversation-button-tittle="I don\'t know"]'
+    ),
+    "sanparks.org": (
+        '[data-conversation-button-tittle*="I know what to do"]'
+    ),
+}
+CHATBOT_COM_LIVECHAT_MINIMIZED_SELECTOR = "iframe#chat-widget-minimized"
+CHATBOT_COM_LIVECHAT_SELECTOR = "iframe#chat-widget"
+CHATBOT_COM_LIVECHAT_START_SELECTORS = {
+    "easytrack.hu": 'button:has-text("Beszélgessünk")',
+}
+CHATBOT_COM_MOMENT_SELECTOR = 'button[value^="https://url.chatbot.com/url2"]'
+CHATBOT_COM_MOMENT_FRAME_SELECTOR = 'iframe[data-testid="moment-app"]'
+CHATBOT_COM_HANDOFF_INPUT_SELECTOR = 'textarea[placeholder*="Ide írva kérdez"]'
+CHATBOT_COM_HANDOFF_SUBMIT_SELECTOR = 'button[aria-label="Send"]'

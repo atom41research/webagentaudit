@@ -73,6 +73,14 @@ class LlmDetector:
         ]
         if not provider_signals:
             return None
+        # ChatBot.com commonly loads the LiveChat runtime as a supporting
+        # script; prefer the direct platform signature when both are present.
+        chatbot_signals = [
+            s for s in provider_signals
+            if s.metadata.get("provider") == "chatbot.com"
+        ]
+        if chatbot_signals:
+            return "chatbot.com"
         best = max(provider_signals, key=lambda s: s.confidence.value)
         return best.metadata["provider"]
 

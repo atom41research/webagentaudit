@@ -31,7 +31,7 @@ class ProxyConfig(BaseModel):
 class InteractionAction(BaseModel):
     """One deterministic setup action needed to expose a chat input."""
 
-    kind: Literal["dismiss", "trigger"]
+    kind: Literal["dismiss", "trigger", "intercom_show", "chatbot_open"]
     selector: str
     frame_path: list[str] = Field(default_factory=list)
     optional: bool = False

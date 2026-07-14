@@ -6,6 +6,7 @@ import pytest
 from playwright.async_api import async_playwright
 
 from webagentaudit.llm_channel.auto_config import AlgorithmicAutoConfigurator
+from webagentaudit.core.exceptions import ChannelSubmissionError
 from webagentaudit.llm_channel.config import ChannelConfig
 from webagentaudit.llm_channel.models import ChannelMessage
 from webagentaudit.llm_channel.playwright_channel import PlaywrightChannel
@@ -113,6 +114,18 @@ async def test_noop_submit_click_falls_back_to_enter(page, monkeypatch):
     assert await page.locator("textarea").input_value() == ""
 
 
+async def test_email_gated_chat_reports_requirement_without_waiting(page):
+    await page.set_content(
+        '<input type="email" placeholder="email@example.com">'
+        '<textarea id="prompt"></textarea>'
+        '<button id="send" disabled>Send</button>'
+    )
+    strategy = CustomStrategy("#prompt", ".response", "#send")
+
+    with pytest.raises(ChannelSubmissionError, match="requires an email"):
+        await strategy.send_message(page, "Can you generate an image?")
+
+
 async def test_dynamic_response_reader_ignores_submitted_prompt_echo(
     page, monkeypatch
 ):
@@ -152,6 +165,40 @@ async def test_dynamic_response_reader_ignores_submitted_prompt_echo(
     response = await strategy.wait_for_response(page, 2_000)
 
     assert response == "No — I can only answer questions in this chat."
+
+
+async def test_explicit_response_reader_ignores_submitted_prompt_echo(
+    page, monkeypatch
+):
+    await page.set_content(
+        '<textarea id="prompt"></textarea><button id="send">Send</button>'
+        '<div id="messages"><div class="intercom-comment">Welcome</div></div>'
+    )
+    await page.evaluate(
+        """() => document.querySelector('#send').addEventListener('click', () => {
+            const input = document.querySelector('#prompt');
+            const messages = document.querySelector('#messages');
+            messages.insertAdjacentHTML(
+                'beforeend', `<div class="intercom-comment">${input.value}</div>`
+            );
+            input.value = '';
+            messages.insertAdjacentHTML(
+                'beforeend', '<div class="delivery-status">Seen • Just now</div>'
+            );
+            setTimeout(() => messages.insertAdjacentHTML(
+                'beforeend', '<div class="intercom-comment">No</div>'
+            ), 300);
+        })"""
+    )
+    monkeypatch.setattr(custom_module, "RESPONSE_POLL_INTERVAL_MS", 20)
+    monkeypatch.setattr(custom_module, "RESPONSE_STABLE_INTERVAL_MS", 100)
+    strategy = CustomStrategy("#prompt", ".intercom-comment", "#send")
+
+    await strategy.prepare_response(page)
+    await strategy.send_message(page, "Can you generate an image?")
+    response = await strategy.wait_for_response(page, 1_000)
+
+    assert response == "No"
 
 
 async def test_response_reader_waits_for_typing_indicator(page, monkeypatch):

@@ -168,6 +168,29 @@ class TestDetectCommand:
             ignore_https_errors=True,
         )
 
+    @pytest.mark.asyncio
+    async def test_headless_chromium_uses_browser_version_without_headless_token(self):
+        page = object()
+        context = SimpleNamespace(new_page=AsyncMock(return_value=page))
+        browser = SimpleNamespace(
+            version="145.0.1.2",
+            new_context=AsyncMock(return_value=context),
+        )
+        launcher = SimpleNamespace(launch=AsyncMock(return_value=browser))
+        playwright = SimpleNamespace(chromium=launcher)
+
+        await _launch_browser(
+            playwright,
+            "chromium",
+            headful=False,
+            browser_exe=None,
+            user_data_dir=None,
+        )
+
+        context_kwargs = browser.new_context.await_args.kwargs
+        assert "Chrome/145.0.1.2" in context_kwargs["user_agent"]
+        assert "HeadlessChrome" not in context_kwargs["user_agent"]
+
     def test_detect_browser_choices(self, runner):
         result = runner.invoke(cli, ["detect", "--help"])
         assert "chromium" in result.output

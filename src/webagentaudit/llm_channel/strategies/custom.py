@@ -82,6 +82,20 @@ class CustomStrategy(BaseInteractionStrategy):
         """Replay the successful discovery path in a fresh browser context."""
         for action in self._plan.setup_actions:
             try:
+                if action.kind == "intercom_show":
+                    await page.wait_for_function(
+                        "typeof window.Intercom === 'function'",
+                        timeout=8_000,
+                    )
+                    await page.evaluate("window.Intercom('show')")
+                    continue
+                if action.kind == "chatbot_open":
+                    await page.wait_for_function(
+                "window.BE_API && typeof window.BE_API.openChatWindow === 'function'",
+                        timeout=8_000,
+                    )
+                    await page.evaluate("window.BE_API.openChatWindow()")
+                    continue
                 target = await self._resolve_frame_path(page, action.frame_path)
                 control = target.locator(action.selector).locator("visible=true").first
                 await control.wait_for(state="visible", timeout=3_000)
@@ -180,6 +194,13 @@ class CustomStrategy(BaseInteractionStrategy):
         if self._submit_selector:
             submit_el = self._visible(page, self._submit_selector).first
             logger.debug("send_message: clicking submit '%s'", self._submit_selector)
+            if not await submit_el.is_enabled():
+                email_fields = page.locator('input[type="email"]:visible')
+                for index in range(await email_fields.count()):
+                    if not (await email_fields.nth(index).input_value()).strip():
+                        raise ChannelSubmissionError(
+                            "Chat requires an email address before a message can be sent"
+                        )
             try:
                 await submit_el.wait_for(state="visible")
                 await self._focus_element(submit_el)
@@ -300,6 +321,12 @@ class CustomStrategy(BaseInteractionStrategy):
             current_text = await self._get_response_text(page)
             current_html = await self.get_response_html(page) or ""
             if not current_text.strip():
+                stable_elapsed = 0.0
+                continue
+            if (
+                self._submitted_text
+                and current_text.strip() == self._submitted_text.strip()
+            ):
                 stable_elapsed = 0.0
                 continue
             current_signature = (

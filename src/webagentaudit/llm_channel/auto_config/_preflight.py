@@ -26,7 +26,11 @@ class PreflightDismissal:
         if control is None:
             return None
         selector = await self._selector_builder.build(control, page)
-        await control.click()
+        try:
+            await control.click()
+        except Exception:
+            # Consent banners can re-render between discovery and the click.
+            return None
         await asyncio.sleep(consts.PREFLIGHT_SETTLE_MS / 1000)
         return selector
 
@@ -44,7 +48,7 @@ class PreflightDismissal:
     async def _find_dismiss_control(
         self, page: Page | Frame
     ) -> ElementHandle | None:
-        controls = page.locator("button, [role='button']")
+        controls = page.locator("button, [role='button'], a[href]")
         match = await controls.evaluate_all(
             r"""(elements, options) => {
                 const matches = [];

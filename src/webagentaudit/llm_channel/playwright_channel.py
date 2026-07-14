@@ -15,6 +15,7 @@ from webagentaudit.core.exceptions import (
     ChannelTimeoutError,
 )
 from .base import BaseLlmChannel
+from .browser import effective_user_agent
 from .config import ChannelConfig
 from .consts import NEW_PAGE_HANDOFF_WAIT_MS, PAGE_SETTLE_MS
 from .models import ChannelMessage, ChannelResponse
@@ -63,11 +64,16 @@ class PlaywrightChannel(BaseLlmChannel):
             # Persistent context requires its own playwright/browser
             self._playwright = await async_playwright().start()
             launcher = getattr(self._playwright, self._config.browser)
+            user_agent = effective_user_agent(
+                self._config.browser,
+                headless=self._config.headless,
+                configured=self._config.user_agent,
+            )
             self._context = await launcher.launch_persistent_context(
                 self._config.user_data_dir,
                 headless=self._config.headless,
                 viewport=viewport,
-                user_agent=self._config.user_agent,
+                user_agent=user_agent,
                 extra_http_headers=self._config.extra_headers or {},
                 executable_path=self._config.executable_path,
                 args=launch_args or None,
@@ -76,9 +82,15 @@ class PlaywrightChannel(BaseLlmChannel):
             self._page = await self._context.new_page()
         elif self._external_browser:
             # Reuse external browser — only create context+page (cheap)
+            user_agent = effective_user_agent(
+                self._config.browser,
+                headless=self._config.headless,
+                configured=self._config.user_agent,
+                browser_version=self._external_browser.version,
+            )
             self._context = await self._external_browser.new_context(
                 viewport=viewport,
-                user_agent=self._config.user_agent,
+                user_agent=user_agent,
                 extra_http_headers=self._config.extra_headers or {},
                 ignore_https_errors=self._config.ignore_https_errors,
             )
@@ -92,9 +104,15 @@ class PlaywrightChannel(BaseLlmChannel):
                 executable_path=self._config.executable_path,
                 args=launch_args or None,
             )
+            user_agent = effective_user_agent(
+                self._config.browser,
+                headless=self._config.headless,
+                configured=self._config.user_agent,
+                browser_version=self._browser.version,
+            )
             self._context = await self._browser.new_context(
                 viewport=viewport,
-                user_agent=self._config.user_agent,
+                user_agent=user_agent,
                 extra_http_headers=self._config.extra_headers or {},
                 ignore_https_errors=self._config.ignore_https_errors,
             )

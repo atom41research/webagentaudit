@@ -23,6 +23,9 @@ Dependency graph: `core` ← `detection`, `llm_channel`, `assessment`. Assessmen
 - Dev deps go in `[dependency-groups].dev` so plain `uv sync` works
 - NEVER ignore import errors or dependency failures — they indicate broken environment
 - Web interaction via Playwright
+- Do not use the unrelated `webpage-analysis` skill, client, project, or
+  artifacts in this repository. Live-page inspection and interaction must use
+  this project's Playwright implementation through `uv`.
 
 ## Architecture Principles
 

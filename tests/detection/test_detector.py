@@ -327,6 +327,26 @@ class TestLlmDetectorProviderHint:
 
         assert result.provider_hint in ("drift", "intercom")
 
+    def test_chatbot_com_takes_precedence_over_livechat_runtime(self):
+        signals = [
+            _make_signal(
+                signal_type="known_provider",
+                confidence=0.85,
+                metadata={"provider": "livechat"},
+            ),
+            _make_signal(
+                signal_type="known_provider",
+                confidence=0.85,
+                metadata={"provider": "chatbot.com"},
+            ),
+        ]
+        detector = LlmDetector()
+        detector.register_checker(StubChecker(signals))
+
+        result = detector.detect(_make_page_data())
+
+        assert result.provider_hint == "chatbot.com"
+
     def test_provider_hint_ignored_if_metadata_missing_key(self):
         signals = [
             _make_signal(

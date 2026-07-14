@@ -132,7 +132,8 @@ class TriggerFinder:
         all_selectors = (
             consts.TRIGGER_DIALOG_SELECTORS
             + consts.TRIGGER_MENU_SELECTORS
-            + ["button"]
+            + consts.TRIGGER_CHAT_LAUNCHER_SELECTORS
+            + ["button", '[role="button"]']
         )
 
         for selector in all_selectors:
@@ -206,6 +207,8 @@ class TriggerFinder:
             candidate.title,
             candidate.data_testid,
         ]).lower()
+        if any(keyword in label for keyword in consts.TRIGGER_NEGATIVE_LABEL_KEYWORDS):
+            return 0.0, mechanism
         ai_label_score = 0.0
         for kw in consts.TRIGGER_AI_LABEL_KEYWORDS:
             if kw in label:
@@ -233,6 +236,11 @@ class TriggerFinder:
         # Detected via menu selectors in gather
         # Check class names for command/menu/dialog hints
         class_str = " ".join(candidate.classes).lower()
+        if any(
+            keyword in label
+            for keyword in consts.TRIGGER_CONVERSATION_LABEL_KEYWORDS
+        ):
+            aria_controls_score = 1.0
         if any(kw in class_str for kw in ("command", "menu", "dialog", "panel", "sheet", "chat")):
             aria_controls_score = 0.5
             if "command" in class_str or "menu" in class_str:
@@ -263,6 +271,10 @@ class TriggerFinder:
         is_corner_launcher = (
             viewport_width > 0
             and viewport_height > 0
+            and box.get("x", 0) >= 0
+            and box.get("y", 0) >= 0
+            and box.get("x", 0) < viewport_width
+            and box.get("y", 0) < viewport_height
             and box.get("x", 0) + box.get("width", 0) >= viewport_width * 0.75
             and box.get("y", 0) + box.get("height", 0) >= viewport_height * 0.65
         )
