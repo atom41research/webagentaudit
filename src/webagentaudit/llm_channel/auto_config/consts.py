@@ -354,6 +354,17 @@ CHATBASE_RESPONSE_SELECTOR = (
 )
 
 # ---------------------------------------------------------------------------
+# Botpress
+# ---------------------------------------------------------------------------
+
+BOTPRESS_WAIT_MS = 10_000
+BOTPRESS_INPUT_SELECTOR = "textarea.bpComposerInput"
+BOTPRESS_RESPONSE_SELECTOR = (
+    "div.bpMessageContainer:not(.bpMessageDeliveryStatus)"
+    ":not(:has(.bpMessageBlocksButton))"
+)
+
+# ---------------------------------------------------------------------------
 # Tidio
 # ---------------------------------------------------------------------------
 

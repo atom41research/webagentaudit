@@ -32,7 +32,8 @@ class InteractionAction(BaseModel):
     """One deterministic setup action needed to expose a chat input."""
 
     kind: Literal[
-        "dismiss", "trigger", "chatbase_open", "intercom_show",
+        "dismiss", "trigger", "botpress_open", "chatbase_open",
+        "intercom_show",
         "chatbot_open", "tidio_open"
     ]
     selector: str
