@@ -375,3 +375,15 @@ CHATBOT_COM_MOMENT_SELECTOR = 'button[value^="https://url.chatbot.com/url2"]'
 CHATBOT_COM_MOMENT_FRAME_SELECTOR = 'iframe[data-testid="moment-app"]'
 CHATBOT_COM_HANDOFF_INPUT_SELECTOR = 'textarea[placeholder*="Ide írva kérdez"]'
 CHATBOT_COM_HANDOFF_SUBMIT_SELECTOR = 'button[aria-label="Send"]'
+
+# ---------------------------------------------------------------------------
+# Denser
+# ---------------------------------------------------------------------------
+
+DENSER_WAIT_MS = 25_000
+DENSER_LAUNCHER_SELECTOR = 'denser-chatbot button[part="button"]'
+DENSER_FRAME_SELECTOR = 'iframe[title="Denser Chatbot"]'
+DENSER_INPUT_SELECTOR = "#message"
+DENSER_RESPONSE_SELECTOR = (
+    ".bg-incomingchat .text-incomingchat-foreground"
+)

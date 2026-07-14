@@ -700,6 +700,7 @@ async def _open_and_auto_discover(
     from webagentaudit.llm_channel.auto_config import (
         AlgorithmicAutoConfigurator,
         ChatbotComAutoConfigurator,
+        DenserAutoConfigurator,
         IntercomAutoConfigurator,
     )
     from webagentaudit.llm_channel.auto_config._hint_matcher import parse_hint
@@ -759,6 +760,8 @@ async def _open_and_auto_discover(
             if provider_hint == "intercom"
             else ChatbotComAutoConfigurator(progress_callback=progress_callback)
             if provider_hint == "chatbot.com"
+            else DenserAutoConfigurator(progress_callback=progress_callback)
+            if provider_hint == "denser"
             else AlgorithmicAutoConfigurator(
                 progress_callback=progress_callback
             )
@@ -838,11 +841,11 @@ async def _assess_file(
         for probe in registry.get_all()
         for conversation in probe.get_conversations()
     )
-    target_budget_seconds = (
-        60
-        + 20 * max(0, prompt_turns - 1)
-        + prompt_turns * assess_kwargs["post_success_wait"] / 1000
-    )
+    target_budget_seconds = 30 + prompt_turns * (
+        assess_kwargs["timeout"]
+        + assess_kwargs["post_send_wait"]
+        + assess_kwargs["post_success_wait"]
+    ) / 1000
     for index, target_url in enumerate(urls, start=1):
         if not is_json:
             click.echo(

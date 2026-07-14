@@ -73,6 +73,30 @@ class TestKnownSignatureIntercom:
         assert "intercom" in providers
 
 
+class TestKnownSignatureDenser:
+    """Test Denser provider detection."""
+
+    @pytest.mark.parametrize(
+        "html,scripts",
+        [
+            ("<denser-chatbot></denser-chatbot>", []),
+            (
+                "<html></html>",
+                [
+                    "https://cdn.jsdelivr.net/npm/"
+                    "@denserai/embed-chat@1/dist/web.min.js"
+                ],
+            ),
+        ],
+    )
+    def test_denser_embed_detected(self, checker, html, scripts):
+        signals = checker.check(_page(html=html, scripts=scripts))
+
+        assert "denser" in {
+            signal.metadata.get("provider") for signal in signals
+        }
+
+
 class TestKnownSignatureDrift:
     """Test Drift provider detection."""
 

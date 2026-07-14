@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+<body>
+  <denser-chatbot><a href="https://denser.ai">denser.ai</a></denser-chatbot>
+  <script>
+    customElements.define("denser-chatbot", class extends HTMLElement {
+      connectedCallback() {
+        const root = this.attachShadow({mode: "open"});
+        root.innerHTML = '<button part="button" aria-label="Open chatbot">Open</button>';
+        root.querySelector("button").addEventListener("click", () => {
+          if (root.querySelector("iframe")) return;
+          const frame = document.createElement("iframe");
+          frame.title = "Denser Chatbot";
+          frame.srcdoc = `
+            <style>#messages { height: 400px; }</style>
+            <div id="messages">
+              <div class="bg-incomingchat">
+                <div class="text-incomingchat-foreground"><p>Hello</p></div>
+              </div>
+              <form><button type="submit">Submit</button></form>
+            </div>
+            <button data-testid="scroll-to-bottom-button"></button>
+            <div id="composer">
+              <textarea id="message" placeholder="Ask your question here."></textarea>
+              <button type="button" aria-label="Start voice input"></button>
+              <button type="submit" onclick='
+                document.querySelector("#message").value = "";
+                const bubble = document.createElement("div");
+                bubble.className = "bg-incomingchat";
+                const content = document.createElement("div");
+                content.className = "text-incomingchat-foreground";
+                content.textContent = "No";
+                bubble.append(content);
+                document.querySelector("#messages").append(bubble);
+              '>Send</button>
+            </div>
+          `;
+          root.append(frame);
+        });
+      }
+    });
+  </script>
+</body>
+</html>

@@ -22,6 +22,17 @@ Fetched on: 2026-03-10
 
 ## Fixtures with confirmed chat widget embed scripts
 
+### `denser_embed_widget.html`
+- **Source URLs:** https://denser.ai/, https://www.eos.com.au/, https://premiere-concierge.com/
+- **Captured:** 2026-07-14
+- **Description:** Sanitized, replayable Denser embed structure preserving the live shadow-root launcher, iframe, composer, assistant bubble, transient scroll control, and competing lead-form submit control.
+- **Detection signals:**
+  - `<denser-chatbot>` custom element
+  - `button[part="button"]` launcher
+  - `iframe[title="Denser Chatbot"]`
+  - `textarea#message`
+- **Provider:** Denser
+
 ### `crisp_crisp.html`
 - **Source URL:** https://crisp.chat/en/
 - **Description:** Crisp's own homepage. Contains the Crisp chat widget embedded in static HTML.
@@ -155,6 +166,7 @@ Fetched on: 2026-03-10
 
 | File | Provider | Widget in static HTML? | Key detection pattern |
 |------|----------|----------------------|----------------------|
+| `denser_embed_widget.html` | Denser | Yes (replayable live structure) | `denser-chatbot`, `iframe[title="Denser Chatbot"]` |
 | `crisp_crisp.html` | Crisp | Yes | `$crisp`, `CRISP_WEBSITE_ID` |
 | `custom_chatbot_tawk.html` | tawk.to | Yes | `Tawk_API`, `embed.tawk.to` |
 | `custom_chatbot_livechat.html` | LiveChat (+HubSpot) | Yes | `LiveChatWidget`, `cdn.livechatinc.com`, `__lc.license` |

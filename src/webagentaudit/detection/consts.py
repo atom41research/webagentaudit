@@ -53,6 +53,7 @@ LLM_RESPONSE_INDICATORS = [
 # Known LLM provider script signatures (provider -> list of script URL fragments)
 KNOWN_PROVIDER_SCRIPTS: dict[str, list[str]] = {
     "chatbot.com": ["cdn.chatbot.com", "widget.chatbot.com"],
+    "denser": ["@denserai/embed-chat", "denser-chatbot"],
     "intercom": ["widget.intercom.io", "js.intercomcdn.com"],
     "drift": ["js.driftt.com", "js.drift.com"],
     "tidio": ["code.tidio.co"],
