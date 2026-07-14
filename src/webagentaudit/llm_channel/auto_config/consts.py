@@ -373,6 +373,29 @@ VOICEFLOW_INPUT_SELECTOR = "#voiceflow-chat textarea"
 VOICEFLOW_RESPONSE_SELECTOR = ".vfrc-system-response"
 
 # ---------------------------------------------------------------------------
+# Featurebase
+# ---------------------------------------------------------------------------
+
+FEATUREBASE_WAIT_MS = 15_000
+FEATUREBASE_FRAME_SELECTOR = 'iframe[name="fb-messenger-frame"]'
+FEATUREBASE_INPUT_SELECTOR = (
+    '[contenteditable="true"][role="textbox"][aria-label*="message" i]'
+)
+FEATUREBASE_SUBMIT_SELECTOR = 'button[aria-label="Submit message"]'
+FEATUREBASE_RESPONSE_SELECTOR = (
+    "[data-fb-conversation-parts-wrapper] > "
+    "[data-conversation-part-id]:has(.float-right) + "
+    "[data-conversation-part-id] .installation-content"
+)
+# The current SDK ignores showNewMessage without truthy initial text. The
+# shared strategy replaces this invisible draft before anything is submitted.
+FEATUREBASE_DISCOVERY_DRAFT = "\u200b"
+FEATUREBASE_INTERACTION_DESCRIPTION = (
+    "programmatic Featurebase SDK composer; the visible launcher may not "
+    "expose a chat box"
+)
+
+# ---------------------------------------------------------------------------
 # Tidio
 # ---------------------------------------------------------------------------
 

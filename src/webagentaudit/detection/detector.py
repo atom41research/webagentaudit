@@ -4,6 +4,7 @@ from typing import Optional
 
 from ..core.models import ConfidenceScore
 from .config import DetectionConfig
+from .consts import PROVIDER_HINT_PRIORITY
 from .deterministic.base import BaseSignalChecker
 from .models import DetectionResult, DetectionSignal, PageData
 
@@ -73,14 +74,12 @@ class LlmDetector:
         ]
         if not provider_signals:
             return None
-        # ChatBot.com commonly loads the LiveChat runtime as a supporting
-        # script; prefer the direct platform signature when both are present.
-        chatbot_signals = [
-            s for s in provider_signals
-            if s.metadata.get("provider") == "chatbot.com"
-        ]
-        if chatbot_signals:
-            return "chatbot.com"
+        for preferred in PROVIDER_HINT_PRIORITY:
+            if any(
+                signal.metadata.get("provider") == preferred
+                for signal in provider_signals
+            ):
+                return preferred
         best = max(provider_signals, key=lambda s: s.confidence.value)
         return best.metadata["provider"]
 

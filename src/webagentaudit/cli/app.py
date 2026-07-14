@@ -10,12 +10,16 @@ import time
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 import click
 
 from webagentaudit.core.consts import VERSION
 from webagentaudit.core.enums import ProbeCategory, Severity, Sophistication
+
+if TYPE_CHECKING:
+    from webagentaudit.llm_channel.models import InteractionPlan
 
 
 # ---------------------------------------------------------------------------
@@ -56,6 +60,24 @@ def _severity_color(severity: str) -> str:
 
 
 BROWSER_CHOICES = ["chromium", "firefox", "webkit"]
+
+
+def _interaction_description(
+    *,
+    provider_hint: str | None = None,
+    plan: InteractionPlan | None = None,
+) -> str | None:
+    """Describe provider API interaction that is not launcher-discoverable."""
+    is_featurebase_plan = plan and any(
+        action.kind == "featurebase_new_message" for action in plan.setup_actions
+    )
+    if provider_hint == "featurebase" or is_featurebase_plan:
+        from webagentaudit.llm_channel.auto_config.consts import (
+            FEATUREBASE_INTERACTION_DESCRIPTION,
+        )
+
+        return FEATUREBASE_INTERACTION_DESCRIPTION
+    return None
 
 
 class TargetAssessmentFailure(click.ClickException):
@@ -423,6 +445,10 @@ async def _prompt(
             "Could not find an input element. Use --input-selector."
         )
 
+    interaction = _interaction_description(
+        provider_hint=provider_hint,
+        plan=plan,
+    )
     host = (urlparse(url).hostname or "").removeprefix("www.")
     plan = plan.model_copy(update={
         "submit_selector": submit_selector or plan.submit_selector,
@@ -464,11 +490,12 @@ async def _prompt(
         if pw:
             await pw.stop()
 
-    if provider_hint:
+    if provider_hint or interaction:
         response = response.model_copy(update={
             "metadata": {
                 **response.metadata,
-                "provider_hint": provider_hint,
+                **({"provider_hint": provider_hint} if provider_hint else {}),
+                **({"interaction": interaction} if interaction else {}),
             }
         })
 
@@ -704,13 +731,12 @@ async def _open_and_auto_discover(
         ChatbaseAutoConfigurator,
         ChatbotComAutoConfigurator,
         DenserAutoConfigurator,
+        FeaturebaseAutoConfigurator,
         IntercomAutoConfigurator,
         TidioAutoConfigurator,
         VoiceflowAutoConfigurator,
     )
     from webagentaudit.llm_channel.auto_config._hint_matcher import parse_hint
-    from webagentaudit.llm_channel.models import InteractionPlan
-
     is_json = output_format == "json"
 
     if emit_output:
@@ -760,6 +786,9 @@ async def _open_and_auto_discover(
             await page.wait_for_timeout(1_000)
         if provider_hint and progress_callback:
             progress_callback("PROVIDER", provider_hint)
+        interaction = _interaction_description(provider_hint=provider_hint)
+        if interaction and emit_output:
+            click.echo(f"  Interaction: {interaction}", err=is_json)
         configurator = (
             BotpressAutoConfigurator(progress_callback=progress_callback)
             if provider_hint == "botpress"
@@ -771,6 +800,8 @@ async def _open_and_auto_discover(
             if provider_hint == "chatbot.com"
             else DenserAutoConfigurator(progress_callback=progress_callback)
             if provider_hint == "denser"
+            else FeaturebaseAutoConfigurator(progress_callback=progress_callback)
+            if provider_hint == "featurebase"
             else TidioAutoConfigurator(progress_callback=progress_callback)
             if provider_hint == "tidio"
             else VoiceflowAutoConfigurator(progress_callback=progress_callback)
@@ -871,11 +902,14 @@ async def _assess_file(
         started_at = time.monotonic()
         active_phase = "chat_detection"
         identified_provider: str | None = None
+        identified_interaction: str | None = None
 
         def report_progress(phase: str, detail: str) -> None:
-            nonlocal active_phase, identified_provider
+            nonlocal active_phase, identified_provider, identified_interaction
             if phase == "PROVIDER":
                 identified_provider = detail
+            elif phase == "INTERACTION":
+                identified_interaction = detail
             if phase in {"DISCOVER", "BLOCKER", "TRIGGER"}:
                 active_phase = "chat_detection"
             elif phase in {"CHAT FOUND", "TYPED"}:
@@ -919,6 +953,7 @@ async def _assess_file(
                         assessment.summary.vulnerabilities_found
                     ),
                     provider_hint=assessment.metadata.get("provider_hint"),
+                    interaction=assessment.metadata.get("interaction"),
                     error_type="ProbeError",
                     assessment=assessment,
                 )
@@ -932,6 +967,7 @@ async def _assess_file(
                         assessment.summary.vulnerabilities_found
                     ),
                     provider_hint=assessment.metadata.get("provider_hint"),
+                    interaction=assessment.metadata.get("interaction"),
                     assessment=assessment,
                 )
         except TimeoutError:
@@ -945,6 +981,7 @@ async def _assess_file(
                 ),
                 error_type="TimeoutError",
                 provider_hint=identified_provider,
+                interaction=identified_interaction,
                 duration_ms=(time.monotonic() - started_at) * 1000,
             )
         except TargetAssessmentFailure as exc:
@@ -955,6 +992,7 @@ async def _assess_file(
                 error=exc.message,
                 error_type=type(exc).__name__,
                 provider_hint=exc.provider_hint or identified_provider,
+                interaction=identified_interaction,
                 duration_ms=(time.monotonic() - started_at) * 1000,
             )
         except Exception as exc:
@@ -971,6 +1009,7 @@ async def _assess_file(
                 error=str(exc) or type(exc).__name__,
                 error_type=type(exc).__name__,
                 provider_hint=identified_provider,
+                interaction=identified_interaction,
                 duration_ms=(time.monotonic() - started_at) * 1000,
             )
 
@@ -1111,6 +1150,10 @@ async def _assess(
                 provider_hint=provider_hint,
             )
 
+        interaction = _interaction_description(
+            provider_hint=provider_hint,
+            plan=plan,
+        )
         host = (urlparse(url).hostname or "").removeprefix("www.")
         updates: dict = {
             "submit_selector": submit_selector or plan.submit_selector,
@@ -1233,6 +1276,8 @@ async def _assess(
 
         if provider_hint:
             result.metadata["provider_hint"] = provider_hint
+        if interaction:
+            result.metadata["interaction"] = interaction
 
     if not emit_output:
         return result

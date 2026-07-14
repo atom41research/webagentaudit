@@ -19,6 +19,7 @@ from ..auto_config._dom_utils import click_enabled_submit_after_fill
 from ..auto_config._response_finder import ResponseFinder
 from ..auto_config.botpress import open_botpress_widget
 from ..auto_config.chatbase import open_chatbase_widget
+from ..auto_config.featurebase import open_featurebase_composer
 from ..auto_config.tidio import open_tidio_widget
 from ..auto_config.voiceflow import open_voiceflow_widget
 from ..consts import (
@@ -91,6 +92,9 @@ class CustomStrategy(BaseInteractionStrategy):
                     continue
                 if action.kind == "chatbase_open":
                     await open_chatbase_widget(page)
+                    continue
+                if action.kind == "featurebase_new_message":
+                    await open_featurebase_composer(page)
                     continue
                 if action.kind == "intercom_show":
                     await page.wait_for_function(

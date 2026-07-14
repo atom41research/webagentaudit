@@ -19,8 +19,17 @@ from unittest.mock import AsyncMock
 import pytest
 from click.testing import CliRunner
 
-from webagentaudit.cli.app import _launch_browser, cli
+from webagentaudit.cli.app import (
+    TargetAssessmentFailure,
+    _interaction_description,
+    _launch_browser,
+    cli,
+)
 from webagentaudit.core.consts import VERSION
+from webagentaudit.llm_channel.auto_config.consts import (
+    FEATUREBASE_INTERACTION_DESCRIPTION,
+)
+from webagentaudit.llm_channel.models import InteractionAction, InteractionPlan
 
 pytestmark = pytest.mark.unit
 
@@ -71,6 +80,19 @@ class TestHelpAndVersion:
         assert result.exit_code == 0
         assert VERSION in result.output
         assert "webagentaudit" in result.output
+
+    def test_featurebase_interaction_description_is_explicit(self):
+        plan = InteractionPlan(
+            input_selector="#input",
+            setup_actions=[InteractionAction(
+                kind="featurebase_new_message",
+                selector="window.Featurebase",
+            )],
+        )
+
+        assert _interaction_description(plan=plan) == (
+            FEATUREBASE_INTERACTION_DESCRIPTION
+        )
 
     def test_detect_help(self, runner):
         result = runner.invoke(cli, ["detect", "--help"])
@@ -242,6 +264,39 @@ class TestAssessOptionParsing:
         ])
         assert result.exit_code != 0
         assert "either URL or --url-file" in result.output
+
+    def test_batch_preserves_programmatic_interaction_on_failure(
+        self, runner, tmp_path, monkeypatch,
+    ):
+        async def fail_after_featurebase_identification(**kwargs):
+            progress = kwargs["progress_callback"]
+            progress("PROVIDER", "featurebase")
+            progress("INTERACTION", FEATUREBASE_INTERACTION_DESCRIPTION)
+            raise TargetAssessmentFailure(
+                "chat_detection",
+                "Featurebase was identified, but its messenger was not booted",
+                provider_hint="featurebase",
+            )
+
+        monkeypatch.setattr(
+            "webagentaudit.cli.app._assess",
+            fail_after_featurebase_identification,
+        )
+        url_file = tmp_path / "urls.txt"
+        output_file = tmp_path / "results.json"
+        url_file.write_text("https://status.example.com\n")
+
+        result = runner.invoke(cli, [
+            "assess",
+            "--url-file", str(url_file),
+            "--output", "json",
+            "--output-file", str(output_file),
+        ])
+
+        assert result.exit_code == 1
+        target = json.loads(output_file.read_text())["targets"][0]
+        assert target["provider_hint"] == "featurebase"
+        assert target["interaction"] == FEATUREBASE_INTERACTION_DESCRIPTION
 
     def test_default_output_path_is_timestamped_json_artifact(self):
         from webagentaudit.cli.app import _default_output_path

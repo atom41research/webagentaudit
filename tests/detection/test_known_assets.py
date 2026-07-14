@@ -3,7 +3,7 @@
 import pytest
 
 from webagentaudit.detection.known_assets import KnownAssetsRegistry, AssetCategory, KnownAsset, ScriptSignature
-from webagentaudit.detection.known_assets.models import ApiSignature, DomSignature
+from webagentaudit.detection.known_assets.models import ApiSignature
 from webagentaudit.detection.known_assets.checker import KnownAssetsChecker
 from webagentaudit.detection.models import PageData
 
@@ -122,6 +122,17 @@ class TestKnownAssetsChecker:
         signals = checker.check(page)
         assert len(signals) >= 1
         assert any(s.metadata.get("asset_name") == "Intercom" for s in signals)
+
+    def test_detects_featurebase_by_script(self):
+        checker = KnownAssetsChecker()
+        signals = checker.check(make_page_data(
+            scripts=["https://do.featurebase.app/js/sdk.js"],
+        ))
+
+        assert any(
+            signal.metadata.get("asset_name") == "Featurebase"
+            for signal in signals
+        )
 
     def test_detects_crisp_by_inline_script(self):
         checker = KnownAssetsChecker()

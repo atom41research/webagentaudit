@@ -6,6 +6,7 @@ from .chatbase import ChatbaseAutoConfigurator
 from .chatbot_com import ChatbotComAutoConfigurator
 from .configurator import AlgorithmicAutoConfigurator
 from .denser import DenserAutoConfigurator
+from .featurebase import FeaturebaseAutoConfigurator
 from .intercom import IntercomAutoConfigurator
 from .models import AutoConfigResult
 from .tidio import TidioAutoConfigurator
@@ -17,6 +18,7 @@ __all__ = [
     "ChatbaseAutoConfigurator",
     "ChatbotComAutoConfigurator",
     "DenserAutoConfigurator",
+    "FeaturebaseAutoConfigurator",
     "IntercomAutoConfigurator",
     "TidioAutoConfigurator",
     "VoiceflowAutoConfigurator",

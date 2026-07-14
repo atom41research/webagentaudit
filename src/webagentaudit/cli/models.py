@@ -29,6 +29,7 @@ class BatchTargetResult(BaseModel):
     probes_run: int = 0
     vulnerabilities_found: int = 0
     provider_hint: str | None = None
+    interaction: str | None = None
     assessment: AssessmentResult | None = None
 
 

@@ -5,9 +5,37 @@ These are the traditional chat widget providers. Many have added AI/LLM features
 here with is_llm_powered indicating known AI capability.
 """
 
-from ..models import ApiSignature, AssetCategory, DomSignature, KnownAsset, ScriptSignature
+from ..models import AssetCategory, DomSignature, KnownAsset, ScriptSignature
 
 ASSETS: list[KnownAsset] = [
+    KnownAsset(
+        name="Featurebase",
+        category=AssetCategory.CHATBOT_PLATFORM,
+        description="Featurebase Messenger with Fibi AI support agent",
+        script_signatures=[
+            ScriptSignature(
+                url_fragment="do.featurebase.app/js/sdk.js",
+                description="Featurebase production SDK",
+            ),
+            ScriptSignature(
+                url_fragment="sdk-beta.featurebase.app/sdk.js",
+                description="Featurebase beta SDK",
+            ),
+        ],
+        dom_signatures=[
+            DomSignature(
+                selector='iframe[name="fb-messenger-frame"]',
+                description="Featurebase Messenger iframe",
+            ),
+            DomSignature(
+                selector=".featurebase-messenger-launcher-frame",
+                description="Featurebase Messenger launcher",
+            ),
+        ],
+        inline_script_patterns=[r"Featurebase\(", r"window\.Featurebase"],
+        vendor_url="https://featurebase.app",
+        is_llm_powered=True,
+    ),
     KnownAsset(
         name="Intercom",
         category=AssetCategory.CHATBOT_PLATFORM,

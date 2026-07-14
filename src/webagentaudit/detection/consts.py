@@ -68,9 +68,16 @@ KNOWN_PROVIDER_SCRIPTS: dict[str, list[str]] = {
     "chatwoot": ["app.chatwoot.com"],
     "botpress": ["cdn.botpress.cloud", "webchat.botpress.cloud"],
     "voiceflow": ["cdn.voiceflow.com"],
+    "featurebase": [
+        "do.featurebase.app/js/sdk.js",
+        "sdk-beta.featurebase.app/sdk.js",
+    ],
     "kommunicate": ["widget.kommunicate.io"],
     "ada": ["static.ada.support"],
 }
+
+# Direct widget signatures that should win over supporting vendor assets.
+PROVIDER_HINT_PRIORITY = ("chatbot.com", "featurebase")
 
 # API endpoint patterns suggesting LLM backends
 LLM_API_PATTERNS = [

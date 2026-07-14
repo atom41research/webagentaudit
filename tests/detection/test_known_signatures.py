@@ -91,6 +91,22 @@ class TestKnownSignatureChatbase:
         }
 
 
+class TestKnownSignatureFeaturebase:
+    @pytest.mark.parametrize(
+        "source",
+        [
+            "https://do.featurebase.app/js/sdk.js",
+            "https://sdk-beta.featurebase.app/sdk.js",
+        ],
+    )
+    def test_featurebase_sdk_detected(self, checker, source):
+        signals = checker.check(_page(scripts=[source]))
+
+        assert "featurebase" in {
+            signal.metadata.get("provider") for signal in signals
+        }
+
+
 class TestKnownSignatureDenser:
     """Test Denser provider detection."""
 

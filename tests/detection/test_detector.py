@@ -1,10 +1,8 @@
 """Tests for the LlmDetector orchestrator."""
 
-from unittest.mock import MagicMock
-
 import pytest
 
-from webagentaudit.core.enums import ConfidenceLevel, DetectionMethod
+from webagentaudit.core.enums import DetectionMethod
 from webagentaudit.core.models import ConfidenceScore
 from webagentaudit.detection.config import DetectionConfig
 from webagentaudit.detection.deterministic.base import BaseSignalChecker
@@ -346,6 +344,24 @@ class TestLlmDetectorProviderHint:
         result = detector.detect(_make_page_data())
 
         assert result.provider_hint == "chatbot.com"
+
+    def test_featurebase_takes_precedence_over_embedded_intercom_assets(self):
+        signals = [
+            _make_signal(
+                signal_type="known_provider",
+                confidence=0.85,
+                metadata={"provider": "intercom"},
+            ),
+            _make_signal(
+                signal_type="known_provider",
+                confidence=0.85,
+                metadata={"provider": "featurebase"},
+            ),
+        ]
+        detector = LlmDetector()
+        detector.register_checker(StubChecker(signals))
+
+        assert detector.detect(_make_page_data()).provider_hint == "featurebase"
 
     def test_provider_hint_ignored_if_metadata_missing_key(self):
         signals = [
