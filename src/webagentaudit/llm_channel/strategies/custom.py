@@ -20,6 +20,7 @@ from ..auto_config._response_finder import ResponseFinder
 from ..auto_config.botpress import open_botpress_widget
 from ..auto_config.chatbase import open_chatbase_widget
 from ..auto_config.tidio import open_tidio_widget
+from ..auto_config.voiceflow import open_voiceflow_widget
 from ..consts import (
     RESPONSE_POLL_INTERVAL_MS,
     RESPONSE_STABLE_INTERVAL_MS,
@@ -107,6 +108,9 @@ class CustomStrategy(BaseInteractionStrategy):
                     continue
                 if action.kind == "tidio_open":
                     await open_tidio_widget(page)
+                    continue
+                if action.kind == "voiceflow_open":
+                    await open_voiceflow_widget(page)
                     continue
                 target = await self._resolve_frame_path(page, action.frame_path)
                 control = target.locator(action.selector).locator("visible=true").first

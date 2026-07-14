@@ -340,6 +340,7 @@ class TestKnownSignatureAdditionalProviders:
             ("https://app.chatwoot.com/packs/js/sdk.js", "chatwoot"),
             ("https://cdn.botpress.cloud/webchat/v1/inject.js", "botpress"),
             ("https://cdn.voiceflow.com/widget/bundle.mjs", "voiceflow"),
+            ("https://cdn.voiceflow.com/widget-next/bundle.mjs", "voiceflow"),
             ("https://widget.kommunicate.io/v2/kommunicate.app", "kommunicate"),
             ("https://static.ada.support/embed.js", "ada"),
         ],

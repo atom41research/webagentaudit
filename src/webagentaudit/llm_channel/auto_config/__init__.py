@@ -9,6 +9,7 @@ from .denser import DenserAutoConfigurator
 from .intercom import IntercomAutoConfigurator
 from .models import AutoConfigResult
 from .tidio import TidioAutoConfigurator
+from .voiceflow import VoiceflowAutoConfigurator
 
 __all__ = [
     "AlgorithmicAutoConfigurator",
@@ -18,6 +19,7 @@ __all__ = [
     "DenserAutoConfigurator",
     "IntercomAutoConfigurator",
     "TidioAutoConfigurator",
+    "VoiceflowAutoConfigurator",
     "AutoConfigResult",
     "BaseAutoConfigurator",
 ]

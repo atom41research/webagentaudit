@@ -706,6 +706,7 @@ async def _open_and_auto_discover(
         DenserAutoConfigurator,
         IntercomAutoConfigurator,
         TidioAutoConfigurator,
+        VoiceflowAutoConfigurator,
     )
     from webagentaudit.llm_channel.auto_config._hint_matcher import parse_hint
     from webagentaudit.llm_channel.models import InteractionPlan
@@ -772,6 +773,8 @@ async def _open_and_auto_discover(
             if provider_hint == "denser"
             else TidioAutoConfigurator(progress_callback=progress_callback)
             if provider_hint == "tidio"
+            else VoiceflowAutoConfigurator(progress_callback=progress_callback)
+            if provider_hint == "voiceflow"
             else AlgorithmicAutoConfigurator(
                 progress_callback=progress_callback
             )
