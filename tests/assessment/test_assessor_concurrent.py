@@ -281,7 +281,9 @@ async def test_progress_callback_called():
         (ChannelResponseError("read failed"), "response_read"),
     ],
 )
-async def test_interaction_failure_phase_is_preserved(error, expected_phase):
+async def test_interaction_failure_phase_is_preserved(
+    error, expected_phase, caplog
+):
     class FailingChannel(StubChannel):
         async def send(self, message):
             raise error
@@ -299,3 +301,4 @@ async def test_interaction_failure_phase_is_preserved(error, expected_phase):
     assert probe_result.errors[0].phase == expected_phase
     assert probe_result.errors[0].message == str(error)
     assert probe_result.errors[0].prompt == "test prompt"
+    assert not caplog.records

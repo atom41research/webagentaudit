@@ -1,8 +1,11 @@
 """Regression tests for the bounded input-first discovery controller."""
 
+import asyncio
+
 import pytest
 
 from webagentaudit.llm_channel.auto_config import AlgorithmicAutoConfigurator
+from webagentaudit.llm_channel.auto_config import consts
 
 pytestmark = pytest.mark.browser
 
@@ -74,3 +77,24 @@ async def test_unknown_iframe_with_real_chat_input_is_discovered(page):
 
     assert result.input_selector == "#message"
     assert result.input_frame_path == ['iframe[name="vendor-widget"]']
+
+
+async def test_timed_out_discovery_result_is_consumed(page, monkeypatch):
+    configurator = AlgorithmicAutoConfigurator()
+    release = asyncio.Event()
+
+    async def finish_after_timeout(*args, **kwargs):
+        await release.wait()
+        raise RuntimeError("page closed after discovery timeout")
+
+    monkeypatch.setattr(configurator, "_configure_page", finish_after_timeout)
+    monkeypatch.setattr(consts, "DISCOVERY_TIMEOUT_MS", 1)
+
+    result = await configurator.configure(page, skip_response=True)
+    assert result.input_selector is None
+    assert len(configurator._background_tasks) == 1
+
+    release.set()
+    await asyncio.sleep(0)
+    await asyncio.sleep(0)
+    assert not configurator._background_tasks

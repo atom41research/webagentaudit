@@ -19,6 +19,7 @@ class ChannelConfig:
     post_success_wait_ms: int = 0
     post_send_screenshot_dir: str | None = None
     headless: bool = True
+    fullscreen: bool = False
     browser: str = "chromium"
     viewport_width: int = 1280
     viewport_height: int = 720
@@ -28,6 +29,10 @@ class ChannelConfig:
     executable_path: str | None = None
     browser_profile: str | None = None
     ignore_https_errors: bool = True
+
+    def __post_init__(self) -> None:
+        if self.fullscreen:
+            self.headless = False
 
 
 @dataclass

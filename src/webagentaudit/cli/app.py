@@ -83,6 +83,8 @@ def cli() -> None:
 @cli.command()
 @click.argument("url")
 @click.option("--headful", is_flag=True, help="Run browser in headed mode.")
+@click.option("--fullscreen", is_flag=True,
+              help="Run a headed browser in full-screen mode.")
 @click.option("--browser", type=click.Choice(BROWSER_CHOICES), default="chromium",
               help="Browser engine to use.")
 @click.option("--browser-exe", type=click.Path(exists=True), default=None,
@@ -93,14 +95,15 @@ def cli() -> None:
 @click.option("-v", "--verbose", is_flag=True, help="Enable verbose debug logging.")
 @click.option("--output", "output_format", type=click.Choice(["text", "json"]),
               default="text", help="Output format.")
-def detect(url: str, headful: bool, browser: str, browser_exe: str | None,
+def detect(url: str, headful: bool, fullscreen: bool, browser: str,
+           browser_exe: str | None,
            user_data_dir: str | None, timeout: int, verbose: bool,
            output_format: str) -> None:
     """Detect interactive LLMs on a webpage."""
     if verbose:
         logging.basicConfig(level=logging.DEBUG,
                             format="%(levelname)-5s %(name)s: %(message)s")
-    asyncio.run(_detect(url, headful, browser, browser_exe,
+    asyncio.run(_detect(url, headful, fullscreen, browser, browser_exe,
                         user_data_dir, timeout, output_format))
 
 
@@ -163,23 +166,31 @@ def _create_detector():
 async def _launch_browser(pw, browser: str, headful: bool,
                           browser_exe: str | None,
                           user_data_dir: str | None,
-                          browser_profile: str | None = None):
+                          browser_profile: str | None = None,
+                          fullscreen: bool = False):
     """Launch a Playwright browser, returning (page, closeable).
 
     *closeable* is the object to ``await close()`` when done — either
     a BrowserContext (persistent) or a Browser instance.
     """
     launcher = getattr(pw, browser)
-    launch_kw: dict = {"headless": not headful}
+    launch_kw: dict = {"headless": not (headful or fullscreen)}
     if browser_exe:
         launch_kw["executable_path"] = browser_exe
+    launch_args = []
     if browser_profile:
-        launch_kw["args"] = [f"--profile-directory={browser_profile}"]
+        launch_args.append(f"--profile-directory={browser_profile}")
+    if fullscreen:
+        launch_args.append("--start-fullscreen")
+    if launch_args:
+        launch_kw["args"] = launch_args
+
+    viewport = None if fullscreen else {"width": 1280, "height": 720}
 
     if user_data_dir:
         ctx = await launcher.launch_persistent_context(
             user_data_dir, **launch_kw,
-            viewport={"width": 1280, "height": 720},
+            viewport=viewport,
             ignore_https_errors=True,
         )
         page = ctx.pages[0] if ctx.pages else await ctx.new_page()
@@ -187,14 +198,14 @@ async def _launch_browser(pw, browser: str, headful: bool,
     else:
         br = await launcher.launch(**launch_kw)
         ctx = await br.new_context(
-            viewport={"width": 1280, "height": 720},
+            viewport=viewport,
             ignore_https_errors=True,
         )
         page = await ctx.new_page()
         return page, br
 
 
-async def _detect(url: str, headful: bool, browser: str,
+async def _detect(url: str, headful: bool, fullscreen: bool, browser: str,
                   browser_exe: str | None, user_data_dir: str | None,
                   timeout: int, output_format: str) -> None:
     from playwright.async_api import async_playwright
@@ -205,7 +216,8 @@ async def _detect(url: str, headful: bool, browser: str,
 
     async with async_playwright() as pw:
         page, closeable = await _launch_browser(
-            pw, browser, headful, browser_exe, user_data_dir)
+            pw, browser, headful, browser_exe, user_data_dir,
+            fullscreen=fullscreen)
 
         click.echo(f"Navigating to {_style(url, fg='cyan')}...", err=is_json)
         try:
@@ -274,6 +286,8 @@ async def _detect(url: str, headful: bool, browser: str,
 @click.argument("url")
 @click.argument("message")
 @click.option("--headful", is_flag=True, help="Run browser in headed mode.")
+@click.option("--fullscreen", is_flag=True,
+              help="Run a headed browser in full-screen mode.")
 @click.option("--browser", type=click.Choice(BROWSER_CHOICES), default="chromium",
               help="Browser engine to use.")
 @click.option("--browser-exe", type=click.Path(exists=True), default=None,
@@ -296,7 +310,7 @@ async def _detect(url: str, headful: bool, browser: str,
 @click.option("--output", "output_format", type=click.Choice(["text", "json"]),
               default="text", help="Output format.")
 def prompt(
-    url: str, message: str, headful: bool, browser: str,
+    url: str, message: str, headful: bool, fullscreen: bool, browser: str,
     browser_exe: str | None, user_data_dir: str | None,
     browser_profile: str | None, timeout: int, post_send_wait: int,
     input_selector: str | None, response_selector: str | None,
@@ -308,7 +322,8 @@ def prompt(
         logging.basicConfig(level=logging.DEBUG,
                             format="%(levelname)-5s %(name)s: %(message)s")
     asyncio.run(_prompt(
-        url=url, message=message, headful=headful, browser=browser,
+        url=url, message=message, headful=headful, fullscreen=fullscreen,
+        browser=browser,
         browser_exe=browser_exe, user_data_dir=user_data_dir,
         browser_profile=browser_profile, timeout=timeout,
         post_send_wait=post_send_wait, input_selector=input_selector,
@@ -318,7 +333,7 @@ def prompt(
 
 
 async def _prompt(
-    *, url: str, message: str, headful: bool, browser: str,
+    *, url: str, message: str, headful: bool, fullscreen: bool, browser: str,
     browser_exe: str | None, user_data_dir: str | None,
     browser_profile: str | None, timeout: int, post_send_wait: int,
     input_selector: str | None, response_selector: str | None,
@@ -345,6 +360,7 @@ async def _prompt(
                 url, pw=pw, browser=browser, headful=headful,
                 browser_exe=browser_exe, user_data_dir=user_data_dir,
                 browser_profile=browser_profile,
+                fullscreen=fullscreen,
                 timeout=timeout, wait_for_selector=None,
                 input_hint=None, submit_hint=None, response_hint=None,
                 screenshots=bool(screenshots_dir), screenshots_dir=screenshots_dir,
@@ -377,7 +393,8 @@ async def _prompt(
         ),
     })
     config = ChannelConfig(
-        headless=not headful,
+        headless=not (headful or fullscreen),
+        fullscreen=fullscreen,
         browser=browser,
         timeout_ms=timeout,
         post_send_wait_ms=post_send_wait,
@@ -429,6 +446,8 @@ async def _prompt(
 @click.option("--url-file", type=click.Path(exists=True, dir_okay=False,
               path_type=Path), help="Read target URLs from a file, one per line.")
 @click.option("--headful", is_flag=True, help="Run browser in headed mode.")
+@click.option("--fullscreen", is_flag=True,
+              help="Run a headed browser in full-screen mode.")
 @click.option("--browser", type=click.Choice(BROWSER_CHOICES), default="chromium",
               help="Browser engine to use.")
 @click.option("--browser-exe", type=click.Path(exists=True), default=None,
@@ -477,7 +496,8 @@ async def _prompt(
 @click.option("--output-file", type=click.Path(dir_okay=False, path_type=Path),
               help="Write complete JSON results here (default: timestamped artifact).")
 def assess(
-    url: str | None, url_file: Path | None, headful: bool, browser: str,
+    url: str | None, url_file: Path | None, headful: bool, fullscreen: bool,
+    browser: str,
     browser_exe: str | None, user_data_dir: str | None, timeout: int,
     post_send_wait: int, post_success_wait: int, workers: int,
     input_selector: str | None, response_selector: str | None,
@@ -503,7 +523,8 @@ def assess(
     output_file = output_file or _default_output_path()
 
     assess_kwargs = dict(
-        headful=headful, browser=browser, browser_exe=browser_exe,
+        headful=headful, fullscreen=fullscreen, browser=browser,
+        browser_exe=browser_exe,
         user_data_dir=user_data_dir, timeout=timeout, post_send_wait=post_send_wait,
         post_success_wait=post_success_wait, workers=workers,
         input_selector=input_selector, response_selector=response_selector,
@@ -618,6 +639,7 @@ async def _open_and_auto_discover(
     screenshots_dir: str | None = None, output_format: str = "text",
     skip_response: bool = False,
     browser_profile: str | None = None,
+    fullscreen: bool = False,
     emit_output: bool = True,
     progress_callback: Callable[[str, str], None] | None = None,
 ) -> "tuple[InteractionPlan | None, object, object]":
@@ -639,7 +661,8 @@ async def _open_and_auto_discover(
         )
 
     page, closeable = await _launch_browser(
-        pw, browser, headful, browser_exe, user_data_dir, browser_profile)
+        pw, browser, headful, browser_exe, user_data_dir, browser_profile,
+        fullscreen=fullscreen)
 
     try:
         try:
@@ -840,7 +863,11 @@ async def _assess_file(
             )
         except Exception as exc:
             logger = logging.getLogger(__name__)
-            logger.exception("Unexpected batch assessment failure for %s", target_url)
+            logger.debug(
+                "Unexpected batch assessment failure for %s",
+                target_url,
+                exc_info=True,
+            )
             target_result = BatchTargetResult(
                 url=target_url,
                 status="failed",
@@ -900,7 +927,8 @@ def _default_output_path() -> Path:
 
 
 async def _assess(
-    *, url: str, headful: bool, browser: str, browser_exe: str | None,
+    *, url: str, headful: bool, fullscreen: bool, browser: str,
+    browser_exe: str | None,
     user_data_dir: str | None, timeout: int, post_send_wait: int,
     post_success_wait: int, workers: int,
     input_selector: str | None, response_selector: str | None,
@@ -946,6 +974,7 @@ async def _assess(
                 await _open_and_auto_discover(
                 url, pw=pw, browser=browser, headful=headful,
                 browser_exe=browser_exe, user_data_dir=user_data_dir,
+                fullscreen=fullscreen,
                 timeout=timeout, wait_for_selector=wait_for_selector,
                 input_hint=input_hint, submit_hint=submit_hint,
                 response_hint=response_hint, screenshots=screenshots,
@@ -999,7 +1028,10 @@ async def _assess(
         if emit_output and not is_json:
             _print_header("LLM Security Assessment")
             _print_kv("URL", url)
-            _print_kv("Browser", f"{browser} ({'headed' if headful else 'headless'})")
+            browser_mode = (
+                "full-screen" if fullscreen else "headed" if headful else "headless"
+            )
+            _print_kv("Browser", f"{browser} ({browser_mode})")
             _print_kv("Input", plan.input_selector)
             _print_kv("Submit", plan.submit_selector or "Enter key")
             _print_kv(
@@ -1008,7 +1040,8 @@ async def _assess(
             _print_kv("Probes", str(len(all_probes)))
 
         channel_config = ChannelConfig(
-            headless=not headful,
+            headless=not (headful or fullscreen),
+            fullscreen=fullscreen,
             browser=browser,
             timeout_ms=timeout,
             post_send_wait_ms=post_send_wait,
@@ -1026,9 +1059,11 @@ async def _assess(
             shared_browser = discovered_closeable
         elif not user_data_dir:
             launcher = getattr(pw, browser)
-            launch_kw: dict = {"headless": not headful}
+            launch_kw: dict = {"headless": not (headful or fullscreen)}
             if browser_exe:
                 launch_kw["executable_path"] = browser_exe
+            if fullscreen:
+                launch_kw["args"] = ["--start-fullscreen"]
             shared_browser = await launcher.launch(**launch_kw)
 
         first_page = discovered_page

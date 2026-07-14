@@ -160,7 +160,7 @@ webagentaudit assess https://example.com \
 webagentaudit assess \
   --url-file urls.txt \
   --probes system_prompt_leak.image_generation_capability \
-  --headful \
+  --fullscreen \
   --post-success-wait 10000
 
 # Override the default timestamped JSON artifact path
@@ -187,6 +187,7 @@ Detect interactive LLMs on a webpage.
 | Flag | Default | Description |
 |---|---|---|
 | `--headful` | off | Run browser in headed mode |
+| `--fullscreen` | off | Run a headed browser full-screen using its native viewport |
 | `--browser` | `chromium` | Browser engine (`chromium`, `firefox`, `webkit`) |
 | `--browser-exe PATH` | — | Path to browser executable |
 | `--user-data-dir PATH` | — | Browser profile directory for authenticated sessions |
@@ -198,7 +199,7 @@ Detect interactive LLMs on a webpage.
 
 Assess AI agent security on one webpage or a file containing one URL per line. URL-file targets run sequentially and continue after operational failures. Blank lines and lines beginning with `#` are ignored.
 
-Batch output prints live `DISCOVER`, `BLOCKER`, `TRIGGER`, `CHAT FOUND`, `TYPED`, `SUBMITTED`, and `RESPONSE READ` checkpoints. It distinguishes `navigation`, `chat_detection`, `connection`, `prompt_submission`, `response_read`, and `assessment` failures. Every run also writes a timestamped `output/webagentaudit-<UTC timestamp>.json` file by default; `--output-file` overrides the path. Each target embeds its complete assessment, including probe verdicts, prompts, assistant responses, matches, and structured error details. The command exits with status 1 if any target has an operational failure.
+Batch output prints live `DISCOVER`, `BLOCKER`, `TRIGGER`, `CHAT FOUND`, `TYPED`, `SUBMITTED`, and `RESPONSE READ` checkpoints. It distinguishes `navigation`, `chat_detection`, `connection`, `prompt_submission`, `response_read`, and `assessment` failures. Expected per-target failures print one concise `FAIL` line; use `--verbose` when a diagnostic traceback is needed. Every run also writes a timestamped `output/webagentaudit-<UTC timestamp>.json` file by default; `--output-file` overrides the path. Each target embeds its complete assessment, including probe verdicts, prompts, assistant responses, matches, and structured error details. The command exits with status 1 if any target has an operational failure.
 
 Auto-discovery is input-first: it checks the page and accessible iframes before dismissing a recognised blocker or trying bounded chat-launcher branches. It does not send a discovery message or reload before the first conversation; the chosen probe is sent directly on the discovered live page. Later isolated conversations replay the saved plan in fresh pages. Batch targets receive a 60-second base budget plus 20 seconds for every additional probe turn. An intentional `--post-success-wait` is added to that budget. Playwright contexts ignore HTTPS certificate errors so a certificate warning does not prevent interaction testing.
 
@@ -208,6 +209,7 @@ Auto-discovery is input-first: it checks the page and accessible iframes before 
 |---|---|---|
 | `--url-file FILE` | — | Read target URLs from a file instead of using `<url>` |
 | `--headful` | off | Run browser in headed mode |
+| `--fullscreen` | off | Run a headed browser full-screen using its native viewport |
 | `--browser` | `chromium` | Browser engine (`chromium`, `firefox`, `webkit`) |
 | `--browser-exe PATH` | — | Path to browser executable |
 | `--user-data-dir PATH` | — | Browser profile directory for authenticated sessions |

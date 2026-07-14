@@ -174,7 +174,7 @@ class LlmAssessor:
                             message=str(exc) or type(exc).__name__,
                             prompt=turn.prompt,
                         ))
-                        logger.warning(
+                        logger.debug(
                             "Error during probe '%s' conversation turn",
                             probe.name,
                             exc_info=True,
@@ -188,7 +188,7 @@ class LlmAssessor:
                     ),
                     message=str(exc) or type(exc).__name__,
                 ))
-                logger.warning(
+                logger.debug(
                     "Error connecting probe '%s' to target",
                     probe.name,
                     exc_info=True,

@@ -39,6 +39,7 @@ class AlgorithmicAutoConfigurator(BaseAutoConfigurator):
         self._submit_finder = SubmitFinder(self._selector_builder)
         self._response_finder = ResponseFinder(self._selector_builder)
         self._progress_callback = progress_callback
+        self._background_tasks: set[asyncio.Task[AutoConfigResult]] = set()
 
     async def configure(
         self,
@@ -57,18 +58,36 @@ class AlgorithmicAutoConfigurator(BaseAutoConfigurator):
                 input_hint=input_hint,
                 submit_hint=submit_hint,
             )
+        task = asyncio.create_task(self._configure_page(
+            page,
+            skip_response=skip_response,
+            input_hint=input_hint,
+            submit_hint=submit_hint,
+        ))
+        done, _ = await asyncio.wait(
+            {task}, timeout=consts.DISCOVERY_TIMEOUT_MS / 1000
+        )
+        if done:
+            return task.result()
+
+        # Cancelling a pending Playwright protocol call can orphan its response
+        # future. Let page cleanup finish it, then consume that result quietly.
+        self._background_tasks.add(task)
+        task.add_done_callback(self._consume_background_result)
+        self._emit("DISCOVER", "time budget exhausted")
+        logger.debug("Chat discovery exceeded %dms", consts.DISCOVERY_TIMEOUT_MS)
+        return AutoConfigResult()
+
+    def _consume_background_result(
+        self, task: asyncio.Task[AutoConfigResult]
+    ) -> None:
+        self._background_tasks.discard(task)
         try:
-            async with asyncio.timeout(consts.DISCOVERY_TIMEOUT_MS / 1000):
-                return await self._configure_page(
-                    page,
-                    skip_response=skip_response,
-                    input_hint=input_hint,
-                    submit_hint=submit_hint,
-                )
-        except TimeoutError:
-            self._emit("DISCOVER", "time budget exhausted")
-            logger.warning("Chat discovery exceeded %dms", consts.DISCOVERY_TIMEOUT_MS)
-            return AutoConfigResult()
+            task.result()
+        except asyncio.CancelledError:
+            logger.debug("Timed-out chat discovery was cancelled")
+        except Exception:
+            logger.debug("Timed-out chat discovery stopped", exc_info=True)
 
     async def _configure_page(
         self,

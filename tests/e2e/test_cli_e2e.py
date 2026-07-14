@@ -286,7 +286,7 @@ class TestAssessE2E:
         assert result.exit_code == 0, f"Failed: {result.output}"
 
     def test_url_file_reports_each_operational_failure_phase(
-        self, runner, demo_server, tmp_path, monkeypatch,
+        self, runner, demo_server, tmp_path, monkeypatch, caplog,
     ):
         """Batch mode must continue and classify real interaction failures."""
         from webagentaudit.llm_channel.auto_config import consts as auto_consts
@@ -311,6 +311,8 @@ class TestAssessE2E:
         ])
 
         assert result.exit_code == 1
+        assert "Traceback" not in result.output
+        assert not caplog.records
         data = json.loads(result.stdout)
         assert data["summary"] == {"total": 4, "succeeded": 1, "failed": 3}
         by_url = {target["url"]: target for target in data["targets"]}

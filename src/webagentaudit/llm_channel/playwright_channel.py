@@ -44,10 +44,17 @@ class PlaywrightChannel(BaseLlmChannel):
         self._interaction_target: Page | Frame | None = None
 
     async def connect(self, url: str) -> None:
-        viewport = {
+        viewport = None if self._config.fullscreen else {
             "width": self._config.viewport_width,
             "height": self._config.viewport_height,
         }
+        launch_args = []
+        if self._config.browser_profile:
+            launch_args.append(
+                f"--profile-directory={self._config.browser_profile}"
+            )
+        if self._config.fullscreen:
+            launch_args.append("--start-fullscreen")
 
         if self._external_page:
             self._page = self._external_page
@@ -63,11 +70,7 @@ class PlaywrightChannel(BaseLlmChannel):
                 user_agent=self._config.user_agent,
                 extra_http_headers=self._config.extra_headers or {},
                 executable_path=self._config.executable_path,
-                args=(
-                    [f"--profile-directory={self._config.browser_profile}"]
-                    if self._config.browser_profile
-                    else None
-                ),
+                args=launch_args or None,
                 ignore_https_errors=self._config.ignore_https_errors,
             )
             self._page = await self._context.new_page()
@@ -87,6 +90,7 @@ class PlaywrightChannel(BaseLlmChannel):
             self._browser = await launcher.launch(
                 headless=self._config.headless,
                 executable_path=self._config.executable_path,
+                args=launch_args or None,
             )
             self._context = await self._browser.new_context(
                 viewport=viewport,

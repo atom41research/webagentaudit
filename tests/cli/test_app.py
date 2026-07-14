@@ -13,11 +13,13 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
 from click.testing import CliRunner
 
-from webagentaudit.cli.app import cli
+from webagentaudit.cli.app import _launch_browser, cli
 from webagentaudit.core.consts import VERSION
 
 pytestmark = pytest.mark.unit
@@ -74,6 +76,7 @@ class TestHelpAndVersion:
         result = runner.invoke(cli, ["detect", "--help"])
         assert result.exit_code == 0
         assert "--headful" in result.output
+        assert "--fullscreen" in result.output
         assert "--timeout" in result.output
         assert "--browser" in result.output
         assert "--output" in result.output
@@ -82,7 +85,8 @@ class TestHelpAndVersion:
         result = runner.invoke(cli, ["assess", "--help"])
         assert result.exit_code == 0
         for opt in [
-            "--headful", "--screenshots", "--screenshots-dir", "--input-selector",
+            "--headful", "--fullscreen", "--screenshots", "--screenshots-dir",
+            "--input-selector",
             "--response-selector", "--input-hint", "--submit-hint",
             "--trigger-selector",
             "--iframe-selector", "--wait-for", "--category",
@@ -104,7 +108,7 @@ class TestHelpAndVersion:
         result = runner.invoke(cli, ["prompt", "--help"])
         assert result.exit_code == 0
         for opt in [
-            "--headful", "--browser-exe", "--user-data-dir",
+            "--headful", "--fullscreen", "--browser-exe", "--user-data-dir",
             "--browser-profile", "--post-send-wait", "--input-selector",
             "--response-selector", "--submit-selector", "--screenshots-dir",
         ]:
@@ -130,9 +134,39 @@ class TestDetectCommand:
     def test_detect_help_shows_all_options(self, runner):
         result = runner.invoke(cli, ["detect", "--help"])
         assert result.exit_code == 0
-        for opt in ["--headful", "--browser", "--browser-exe",
+        for opt in ["--headful", "--fullscreen", "--browser", "--browser-exe",
                      "--user-data-dir", "--timeout", "--verbose", "--output"]:
             assert opt in result.output, f"Missing {opt}"
+
+    @pytest.mark.asyncio
+    async def test_fullscreen_launch_is_headed_and_uses_native_viewport(self):
+        page = object()
+        context = SimpleNamespace(new_page=AsyncMock(return_value=page))
+        browser = SimpleNamespace(
+            new_context=AsyncMock(return_value=context),
+        )
+        launcher = SimpleNamespace(launch=AsyncMock(return_value=browser))
+        playwright = SimpleNamespace(chromium=launcher)
+
+        launched_page, closeable = await _launch_browser(
+            playwright,
+            "chromium",
+            headful=False,
+            browser_exe=None,
+            user_data_dir=None,
+            fullscreen=True,
+        )
+
+        assert launched_page is page
+        assert closeable is browser
+        launcher.launch.assert_awaited_once_with(
+            headless=False,
+            args=["--start-fullscreen"],
+        )
+        browser.new_context.assert_awaited_once_with(
+            viewport=None,
+            ignore_https_errors=True,
+        )
 
     def test_detect_browser_choices(self, runner):
         result = runner.invoke(cli, ["detect", "--help"])

@@ -15,8 +15,7 @@ Dependency graph: `core` ← `detection`, `llm_channel`, `assessment`. Assessmen
 
 ## Git & Commits
 
-- NEVER mention yourself (Claude/AI) as a contributor in commits — no Co-Authored-By, no AI references
-- Don't mention yourself when committing or pushing
+- Do not attribute commits to an assistant or add Co-Authored-By/AI references.
 
 ## Tooling & Environment
 
@@ -40,16 +39,14 @@ Dependency graph: `core` ← `detection`, `llm_channel`, `assessment`. Assessmen
 
 See `workflow-rules.md` for the full workflow rules. Key highlights:
 
-### Subagents & Parallelism
-- Use subagents with git worktree for parallel work on independent modules
-- Each worktree agent works on one module at a time
-- Core module must be stable before parallel work on other modules
-- Always try to "break" modules into submodules that are self-contained
-- Use subagents liberally to keep main context window clean — one task per subagent
+### Parallel Work
+- Delegate only independent, bounded work when collaboration is available and allowed by the active execution environment.
+- Keep each agent focused on one module or task; stabilize shared core interfaces before parallel changes.
+- Prefer self-contained modules and avoid overlapping edits.
 
 ### Planning & Verification
-- Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
-- If something goes sideways, STOP and re-plan immediately
+- Write a concise plan for non-trivial tasks (3+ steps or architectural decisions).
+- If something goes sideways, stop and re-plan immediately.
 - Never mark a task complete without proving it works (run tests, check logs, demonstrate correctness)
 - Ask yourself: "Would a staff engineer approve this?"
 
@@ -108,7 +105,7 @@ All research, design decisions, and reference material lives in `kb/`. See `kb/_
 
 ```
 webagentaudit/
-├── CLAUDE.md
+├── AGENTS.md
 ├── pyproject.toml
 ├── kb/                          # Knowledgebase (research, design, domain knowledge)
 │   ├── _index.md

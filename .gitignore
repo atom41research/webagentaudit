@@ -22,8 +22,10 @@ tests/fixtures/rendered/*/screenshot.png
 
 # Developer-internal files
 kb/
-CLAUDE.md
 ARSENAL_SUBMISSION.md
+REVIEW.md
+artifacts/
+chatbot-sites.txt
 tasks/
 output/
 scripts/
