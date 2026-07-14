@@ -52,6 +52,7 @@ LLM_RESPONSE_INDICATORS = [
 
 # Known LLM provider script signatures (provider -> list of script URL fragments)
 KNOWN_PROVIDER_SCRIPTS: dict[str, list[str]] = {
+    "chatbase": ["chatbase.co/embed.min.js", "chatbase.co/chatbot-iframe/"],
     "chatbot.com": ["cdn.chatbot.com", "widget.chatbot.com"],
     "denser": ["@denserai/embed-chat", "denser-chatbot"],
     "intercom": ["widget.intercom.io", "js.intercomcdn.com"],

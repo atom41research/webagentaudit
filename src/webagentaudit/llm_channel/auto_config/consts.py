@@ -339,6 +339,21 @@ FRAME_INPUT_CHECK_SELECTORS: list[str] = [
 ]
 
 # ---------------------------------------------------------------------------
+# Chatbase
+# ---------------------------------------------------------------------------
+
+CHATBASE_WAIT_MS = 15_000
+CHATBASE_INITIAL_WAIT_MS = 1_000
+CHATBASE_GREETING_WAIT_MS = 3_000
+CHATBASE_LAUNCHER_SELECTOR = "#chatbase-bubble-button"
+CHATBASE_EMBED_SELECTOR = 'script[src*="chatbase.co/embed"]'
+CHATBASE_FRAME_SELECTOR = "#chatbase-bubble-window iframe"
+CHATBASE_INPUT_SELECTOR = "#message"
+CHATBASE_RESPONSE_SELECTOR = (
+    '[role="log"] [data-loading-assistant] .prose'
+)
+
+# ---------------------------------------------------------------------------
 # Tidio
 # ---------------------------------------------------------------------------
 

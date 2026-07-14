@@ -700,6 +700,7 @@ async def _open_and_auto_discover(
     )
     from webagentaudit.llm_channel.auto_config import (
         AlgorithmicAutoConfigurator,
+        ChatbaseAutoConfigurator,
         ChatbotComAutoConfigurator,
         DenserAutoConfigurator,
         IntercomAutoConfigurator,
@@ -758,7 +759,9 @@ async def _open_and_auto_discover(
         if provider_hint and progress_callback:
             progress_callback("PROVIDER", provider_hint)
         configurator = (
-            IntercomAutoConfigurator(progress_callback=progress_callback)
+            ChatbaseAutoConfigurator(progress_callback=progress_callback)
+            if provider_hint == "chatbase"
+            else IntercomAutoConfigurator(progress_callback=progress_callback)
             if provider_hint == "intercom"
             else ChatbotComAutoConfigurator(progress_callback=progress_callback)
             if provider_hint == "chatbot.com"

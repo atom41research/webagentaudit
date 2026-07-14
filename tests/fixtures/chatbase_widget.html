@@ -1,0 +1,30 @@
+<!doctype html>
+<button id="chatbase-bubble-button" onclick="openChatbase()">Open chat</button>
+<div id="chatbase-bubble-window">
+  <iframe title="Observed Chatbase widget"></iframe>
+</div>
+<script>
+function openChatbase() {
+  const frame = document.querySelector('#chatbase-bubble-window iframe');
+  if (frame.srcdoc) return;
+  frame.srcdoc = `<main role="dialog">
+    <div role="log">
+      <div aria-busy="false"><div data-loading-assistant="false">
+        <div class="prose">Hi! What can I help you with?</div>
+      </div></div>
+    </div>
+    <textarea id="message" aria-label="Message..." oninput="
+      document.querySelector('[aria-label=Send]').disabled = !this.value
+    "></textarea>
+    <button aria-label="Send" disabled onclick="
+      const input = document.querySelector('#message');
+      input.value = '';
+      setTimeout(() => document.querySelector('[role=log]').insertAdjacentHTML(
+        'beforeend',
+        '<div aria-busy=false><div data-loading-assistant=false>' +
+          '<div class=prose>No</div></div></div>'
+      ), 10)
+    ">Send</button>
+  </main>`;
+}
+</script>

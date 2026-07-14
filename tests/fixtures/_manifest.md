@@ -22,6 +22,14 @@ Fetched on: 2026-03-10
 
 ## Fixtures with confirmed chat widget embed scripts
 
+### `chatbase_widget.html`
+- **Source URLs:** https://billhuscher.com/, https://ruggedrestore.com/,
+  https://registocriminal.justica.gov.pt/, https://safespacebuildings.com/
+- **Captured:** 2026-07-14
+- **Description:** Sanitized current Chatbase launcher, iframe, composer, and
+  assistant-message structure.
+- **Provider:** Chatbase
+
 ### `denser_embed_widget.html`
 - **Source URLs:** https://denser.ai/, https://www.eos.com.au/, https://premiere-concierge.com/
 - **Captured:** 2026-07-14
@@ -166,6 +174,7 @@ Fetched on: 2026-03-10
 
 | File | Provider | Widget in static HTML? | Key detection pattern |
 |------|----------|----------------------|----------------------|
+| `chatbase_widget.html` | Chatbase | Yes (replayable live structure) | `#chatbase-bubble-button`, `#message` |
 | `denser_embed_widget.html` | Denser | Yes (replayable live structure) | `denser-chatbot`, `iframe[title="Denser Chatbot"]` |
 | `crisp_crisp.html` | Crisp | Yes | `$crisp`, `CRISP_WEBSITE_ID` |
 | `custom_chatbot_tawk.html` | tawk.to | Yes | `Tawk_API`, `embed.tawk.to` |

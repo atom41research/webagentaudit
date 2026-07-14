@@ -73,6 +73,24 @@ class TestKnownSignatureIntercom:
         assert "intercom" in providers
 
 
+class TestKnownSignatureChatbase:
+    """Test Chatbase provider detection."""
+
+    @pytest.mark.parametrize(
+        "source",
+        [
+            "https://www.chatbase.co/embed.min.js",
+            "https://www.chatbase.co/chatbot-iframe/example",
+        ],
+    )
+    def test_chatbase_script_or_frame_url_detected(self, checker, source):
+        signals = checker.check(_page(scripts=[source]))
+
+        assert "chatbase" in {
+            signal.metadata.get("provider") for signal in signals
+        }
+
+
 class TestKnownSignatureDenser:
     """Test Denser provider detection."""
 
