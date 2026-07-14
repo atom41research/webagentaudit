@@ -17,6 +17,7 @@ from webagentaudit.llm_channel.models import InteractionAction, InteractionPlan
 
 from ..auto_config._dom_utils import click_enabled_submit_after_fill
 from ..auto_config._response_finder import ResponseFinder
+from ..auto_config.tidio import open_tidio_widget
 from ..consts import (
     RESPONSE_POLL_INTERVAL_MS,
     RESPONSE_STABLE_INTERVAL_MS,
@@ -96,16 +97,21 @@ class CustomStrategy(BaseInteractionStrategy):
                     )
                     await page.evaluate("window.BE_API.openChatWindow()")
                     continue
+                if action.kind == "tidio_open":
+                    await open_tidio_widget(page)
+                    continue
                 target = await self._resolve_frame_path(page, action.frame_path)
                 control = target.locator(action.selector).locator("visible=true").first
                 await control.wait_for(state="visible", timeout=3_000)
                 await control.click(timeout=3_000)
-            except Exception:
+            except Exception as exc:
                 if action.optional:
                     continue
+                if isinstance(exc, ChannelNotReadyError):
+                    raise
                 raise ChannelNotReadyError(
                     f"Could not replay {action.kind} action '{action.selector}'"
-                )
+                ) from exc
         target = await self._resolve_frame_path(page, self._plan.input_frame_path)
         if not await self.find_input(target):
             raise ChannelNotReadyError(

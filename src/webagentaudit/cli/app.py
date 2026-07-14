@@ -694,6 +694,7 @@ async def _open_and_auto_discover(
 ) -> "tuple[InteractionPlan | None, object, object]":
     """Discover a chat plan and leave its live browser page open."""
     from webagentaudit.core.exceptions import (
+        ChannelNotReadyError,
         ChannelResponseError,
         ChannelSubmissionError,
     )
@@ -702,6 +703,7 @@ async def _open_and_auto_discover(
         ChatbotComAutoConfigurator,
         DenserAutoConfigurator,
         IntercomAutoConfigurator,
+        TidioAutoConfigurator,
     )
     from webagentaudit.llm_channel.auto_config._hint_matcher import parse_hint
     from webagentaudit.llm_channel.models import InteractionPlan
@@ -762,6 +764,8 @@ async def _open_and_auto_discover(
             if provider_hint == "chatbot.com"
             else DenserAutoConfigurator(progress_callback=progress_callback)
             if provider_hint == "denser"
+            else TidioAutoConfigurator(progress_callback=progress_callback)
+            if provider_hint == "tidio"
             else AlgorithmicAutoConfigurator(
                 progress_callback=progress_callback
             )
@@ -781,6 +785,10 @@ async def _open_and_auto_discover(
         except ChannelResponseError as exc:
             raise TargetAssessmentFailure(
                 "response_read", str(exc), provider_hint=provider_hint
+            ) from exc
+        except ChannelNotReadyError as exc:
+            raise TargetAssessmentFailure(
+                "chat_detection", str(exc), provider_hint=provider_hint
             ) from exc
     except BaseException:
         await closeable.close()
