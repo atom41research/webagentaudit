@@ -42,11 +42,13 @@ class LlmAssessor:
         channel_factory: Callable[[], BaseLlmChannel],
         registry: ProbeRegistry,
         progress_callback: Callable[[list[ProbeResult]], None] | None = None,
+        activity_callback: Callable[[str, str], None] | None = None,
     ) -> None:
         self._config = config
         self._channel_factory = channel_factory
         self._registry = registry
         self._progress_callback = progress_callback
+        self._activity_callback = activity_callback
         self._detector = PatternDetector()
 
     async def assess(self, url: str) -> AssessmentResult:
@@ -65,12 +67,19 @@ class LlmAssessor:
         results_lock = asyncio.Lock()
         vulnerability_found = asyncio.Event()
 
-        async def _run_probe(probe: BaseProbe) -> ProbeResult | None:
+        async def _run_probe(
+            probe_number: int, probe: BaseProbe,
+        ) -> ProbeResult | None:
             async with semaphore:
                 if self._config.stop_on_first and vulnerability_found.is_set():
                     return None
 
-                probe_result = await self._execute_probe(probe, url)
+                probe_result = await self._execute_probe(
+                    probe,
+                    url,
+                    probe_number=probe_number,
+                    total_probes=len(probes),
+                )
 
                 async with results_lock:
                     results.append(probe_result)
@@ -85,7 +94,10 @@ class LlmAssessor:
 
                 return probe_result
 
-        tasks = [asyncio.create_task(_run_probe(probe)) for probe in probes]
+        tasks = [
+            asyncio.create_task(_run_probe(number, probe))
+            for number, probe in enumerate(probes, start=1)
+        ]
 
         if self._config.stop_on_first:
             # Wait for either all tasks to finish or first vulnerability
@@ -137,22 +149,46 @@ class LlmAssessor:
             probe_results=results,
         )
 
-    async def _execute_probe(self, probe: BaseProbe, url: str) -> ProbeResult:
+    async def _execute_probe(
+        self,
+        probe: BaseProbe,
+        url: str,
+        *,
+        probe_number: int,
+        total_probes: int,
+    ) -> ProbeResult:
         """Execute a single probe's conversations, each with a fresh channel."""
         conversations = probe.get_conversations()
+        total_turns = sum(len(item.turns) for item in conversations)
+        if self._activity_callback:
+            noun = "interaction" if total_turns == 1 else "interactions"
+            self._activity_callback(
+                "PROBE START",
+                f"[{probe_number}/{total_probes}] {probe.name} "
+                f"({total_turns} planned {noun})",
+            )
         patterns = probe.get_detector_patterns()
         refusal_patterns = probe.get_refusal_patterns() or None
         all_matched: list[str] = []
         all_exchanges: list[ProbeExchange] = []
         conversations_run = 0
+        turns_started = 0
         errors: list[ProbeError] = []
 
         for conversation in conversations:
             conversations_run += 1
             channel = self._channel_factory()
+            if conversation.turns:
+                turns_started += 1
+                self._emit_turn_start(turns_started, total_turns, probe.name)
             try:
                 await channel.connect(url)
-                for turn in conversation.turns:
+                for turn_index, turn in enumerate(conversation.turns):
+                    if turn_index:
+                        turns_started += 1
+                        self._emit_turn_start(
+                            turns_started, total_turns, probe.name
+                        )
                     try:
                         response = await channel.send(ChannelMessage(text=turn.prompt))
                         turn_matched: list[str] = []
@@ -169,29 +205,31 @@ class LlmAssessor:
                             matched_patterns=turn_matched,
                         ))
                     except Exception as exc:
+                        phase = self._failure_phase(exc)
+                        message = str(exc) or type(exc).__name__
                         errors.append(ProbeError(
-                            phase=self._failure_phase(exc),
-                            message=str(exc) or type(exc).__name__,
+                            phase=phase,
+                            message=message,
                             prompt=turn.prompt,
                         ))
                         logger.debug(
-                            "Error during probe '%s' conversation turn",
+                            "Probe '%s' turn failed in %s: %s",
                             probe.name,
-                            exc_info=True,
+                            phase,
+                            message,
+                            exc_info=phase == "assessment",
                         )
             except Exception as exc:
+                expected = isinstance(exc, ChannelNotReadyError)
                 errors.append(ProbeError(
-                    phase=(
-                        "chat_detection"
-                        if isinstance(exc, ChannelNotReadyError)
-                        else "connection"
-                    ),
+                    phase="chat_detection" if expected else "connection",
                     message=str(exc) or type(exc).__name__,
                 ))
                 logger.debug(
-                    "Error connecting probe '%s' to target",
+                    "Probe '%s' could not connect: %s",
                     probe.name,
-                    exc_info=True,
+                    str(exc) or type(exc).__name__,
+                    exc_info=not expected,
                 )
             finally:
                 try:
@@ -208,6 +246,15 @@ class LlmAssessor:
             error_count=len(errors),
             errors=errors,
         )
+
+    def _emit_turn_start(
+        self, turn_number: int, total_turns: int, probe_name: str
+    ) -> None:
+        if self._activity_callback:
+            self._activity_callback(
+                "PROBE TURN",
+                f"[{turn_number}/{total_turns}] {probe_name}",
+            )
 
     @staticmethod
     def _failure_phase(exc: Exception) -> str:

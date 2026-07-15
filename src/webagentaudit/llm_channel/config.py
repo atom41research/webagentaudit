@@ -20,6 +20,7 @@ class ChannelConfig:
     post_send_screenshot_dir: str | None = None
     headless: bool = True
     fullscreen: bool = False
+    window_position: tuple[int, int] | None = None
     browser: str = "chromium"
     viewport_width: int = 1280
     viewport_height: int = 720
@@ -31,7 +32,9 @@ class ChannelConfig:
     ignore_https_errors: bool = True
 
     def __post_init__(self) -> None:
-        if self.fullscreen:
+        if self.window_position and self.browser != "chromium":
+            raise ValueError("window_position currently requires Chromium")
+        if self.fullscreen or self.window_position:
             self.headless = False
 
 

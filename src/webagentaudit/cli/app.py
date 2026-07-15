@@ -54,6 +54,82 @@ def _print_kv(key: str, value: str, indent: int = 2) -> None:
     click.echo(f"{prefix}{_style(key + ':', bold=True)} {value}")
 
 
+def _print_progress(
+    phase: str, detail: str, *, prefix: str = "", err: bool = False
+) -> None:
+    """Print clean operator-facing progress without logger diagnostics."""
+    if phase in {"PROMPT", "CHAT RESPONSE"}:
+        label = "Prompt" if phase == "PROMPT" else "Chat response"
+        click.echo(f"{prefix}{label}:", err=err)
+        for line in detail.splitlines() or [""]:
+            click.echo(f"  {line}", err=err)
+        return
+    if phase == "PROBE START":
+        click.echo(f"{prefix}Probe: {detail}", err=err)
+        return
+    if phase == "PROBE TURN":
+        click.echo(f"{prefix}Planned interaction: {detail}", err=err)
+        return
+    if phase.startswith("PROBE EXECUTION "):
+        status = phase.removeprefix("PROBE EXECUTION ")
+        click.echo(f"{prefix}Probe execution: {status} — {detail}", err=err)
+        return
+    if phase.startswith("SECURITY VERDICT "):
+        status = phase.removeprefix("SECURITY VERDICT ")
+        click.echo(f"{prefix}Security verdict: {status} — {detail}", err=err)
+        return
+    if phase == "PROVIDER":
+        click.echo(f"{prefix}Detected provider: {detail}", err=err)
+        return
+    if phase == "INTERACTION":
+        click.echo(f"{prefix}Interaction method: {detail}", err=err)
+        return
+    click.echo(f"{prefix}{phase:<13} {detail}", err=err)
+
+
+def _emit_probe_progress(probe_result, callback: Callable[[str, str], None]) -> None:
+    """Emit the readable evidence already captured in a completed probe result."""
+    for exchange in probe_result.exchanges:
+        if exchange.prompt:
+            callback("PROMPT", exchange.prompt)
+        if exchange.response:
+            callback("CHAT RESPONSE", exchange.response)
+    completed = len(probe_result.exchanges)
+    noun = "interaction" if completed == 1 else "interactions"
+    if probe_result.error_count:
+        error = probe_result.errors[0]
+        callback(
+            "PROBE EXECUTION ERROR",
+            f"{completed} {noun} completed; {probe_result.probe_name} "
+            f"[{error.phase}] {error.message}",
+        )
+    else:
+        callback(
+            "PROBE EXECUTION SUCCESS",
+            f"{completed} {noun} completed",
+        )
+
+    if probe_result.vulnerability_detected:
+        matched = (
+            f"; matched: {', '.join(probe_result.matched_patterns)}"
+            if probe_result.matched_patterns else ""
+        )
+        callback(
+            "SECURITY VERDICT VULNERABLE",
+            f"{probe_result.probe_name}{matched}",
+        )
+    elif probe_result.error_count:
+        callback(
+            "SECURITY VERDICT NOT DETERMINED",
+            f"{probe_result.probe_name} (execution error)",
+        )
+    else:
+        callback(
+            "SECURITY VERDICT PASS",
+            f"{probe_result.probe_name} (no vulnerability detected)",
+        )
+
+
 def _severity_color(severity: str) -> str:
     return {"critical": "red", "high": "red", "medium": "yellow",
             "low": "blue", "info": "white"}.get(severity, "white")
@@ -62,20 +138,29 @@ def _severity_color(severity: str) -> str:
 BROWSER_CHOICES = ["chromium", "firefox", "webkit"]
 
 
+def _validate_window_position(
+    browser: str, position: tuple[int, int] | None
+) -> None:
+    if position and browser != "chromium":
+        raise click.UsageError("--window-position currently requires Chromium.")
+
+
 def _interaction_description(
     *,
     provider_hint: str | None = None,
     plan: InteractionPlan | None = None,
 ) -> str | None:
     """Describe provider API interaction that is not launcher-discoverable."""
-    is_featurebase_plan = plan and any(
-        action.kind == "featurebase_new_message" for action in plan.setup_actions
+    from webagentaudit.llm_channel.auto_config.consts import (
+        FEATUREBASE_INTERACTION_DESCRIPTION,
+        PROGRAMMATIC_INTERACTION_DESCRIPTIONS,
     )
-    if provider_hint == "featurebase" or is_featurebase_plan:
-        from webagentaudit.llm_channel.auto_config.consts import (
-            FEATUREBASE_INTERACTION_DESCRIPTION,
-        )
 
+    if plan:
+        for action in plan.setup_actions:
+            if description := PROGRAMMATIC_INTERACTION_DESCRIPTIONS.get(action.kind):
+                return description
+    if provider_hint == "featurebase":
         return FEATUREBASE_INTERACTION_DESCRIPTION
     return None
 
@@ -113,6 +198,8 @@ def cli() -> None:
 @click.option("--headful", is_flag=True, help="Run browser in headed mode.")
 @click.option("--fullscreen", is_flag=True,
               help="Run a headed browser in full-screen mode.")
+@click.option("--window-position", type=(int, int), metavar="X Y",
+              help="Place the headed Chromium window at screen coordinates X Y.")
 @click.option("--browser", type=click.Choice(BROWSER_CHOICES), default="chromium",
               help="Browser engine to use.")
 @click.option("--browser-exe", type=click.Path(exists=True), default=None,
@@ -120,19 +207,25 @@ def cli() -> None:
 @click.option("--user-data-dir", type=click.Path(), default=None,
               help="Browser profile directory for authenticated sessions.")
 @click.option("--timeout", default=30000, type=int, help="Navigation timeout in ms.")
-@click.option("-v", "--verbose", is_flag=True, help="Enable verbose debug logging.")
+@click.option("-v", "--verbose", is_flag=True,
+              help="Show detailed operator-facing progress.")
+@click.option("--debug", is_flag=True, help="Enable developer debug logging.")
 @click.option("--output", "output_format", type=click.Choice(["text", "json"]),
               default="text", help="Output format.")
-def detect(url: str, headful: bool, fullscreen: bool, browser: str,
+def detect(url: str, headful: bool, fullscreen: bool,
+           window_position: tuple[int, int] | None, browser: str,
            browser_exe: str | None,
-           user_data_dir: str | None, timeout: int, verbose: bool,
+           user_data_dir: str | None, timeout: int, verbose: bool, debug: bool,
            output_format: str) -> None:
     """Detect interactive LLMs on a webpage."""
-    if verbose:
+    _validate_window_position(browser, window_position)
+    if debug:
         logging.basicConfig(level=logging.DEBUG,
                             format="%(levelname)-5s %(name)s: %(message)s")
-    asyncio.run(_detect(url, headful, fullscreen, browser, browser_exe,
-                        user_data_dir, timeout, output_format))
+    asyncio.run(_detect(
+        url, headful, fullscreen, window_position, browser, browser_exe,
+        user_data_dir, timeout, output_format, verbose,
+    ))
 
 
 async def _collect_page_data(page, url: str):
@@ -201,16 +294,21 @@ async def _launch_browser(pw, browser: str, headful: bool,
                           browser_exe: str | None,
                           user_data_dir: str | None,
                           browser_profile: str | None = None,
-                          fullscreen: bool = False):
+                          fullscreen: bool = False,
+                          window_position: tuple[int, int] | None = None):
     """Launch a Playwright browser, returning (page, closeable).
 
     *closeable* is the object to ``await close()`` when done — either
     a BrowserContext (persistent) or a Browser instance.
     """
-    from webagentaudit.llm_channel.browser import effective_user_agent
+    from webagentaudit.llm_channel.browser import (
+        apply_window_geometry,
+        effective_user_agent,
+        window_position_launch_args,
+    )
 
     launcher = getattr(pw, browser)
-    headless = not (headful or fullscreen)
+    headless = not (headful or fullscreen or window_position)
     launch_kw: dict = {"headless": headless}
     if browser_exe:
         launch_kw["executable_path"] = browser_exe
@@ -219,6 +317,7 @@ async def _launch_browser(pw, browser: str, headful: bool,
         launch_args.append(f"--profile-directory={browser_profile}")
     if fullscreen:
         launch_args.append("--start-fullscreen")
+    launch_args.extend(window_position_launch_args(window_position))
     if launch_args:
         launch_kw["args"] = launch_args
 
@@ -236,6 +335,10 @@ async def _launch_browser(pw, browser: str, headful: bool,
             user_data_dir, **launch_kw, **context_kw,
         )
         page = ctx.pages[0] if ctx.pages else await ctx.new_page()
+        await apply_window_geometry(
+            page, browser=browser, fullscreen=fullscreen,
+            position=window_position,
+        )
         return page, ctx
     else:
         br = await launcher.launch(**launch_kw)
@@ -254,12 +357,17 @@ async def _launch_browser(pw, browser: str, headful: bool,
             **context_kw,
         )
         page = await ctx.new_page()
+        await apply_window_geometry(
+            page, browser=browser, fullscreen=fullscreen,
+            position=window_position,
+        )
         return page, br
 
 
-async def _detect(url: str, headful: bool, fullscreen: bool, browser: str,
+async def _detect(url: str, headful: bool, fullscreen: bool,
+                  window_position: tuple[int, int] | None, browser: str,
                   browser_exe: str | None, user_data_dir: str | None,
-                  timeout: int, output_format: str) -> None:
+                  timeout: int, output_format: str, verbose: bool = False) -> None:
     from playwright.async_api import async_playwright
 
     is_json = output_format == "json"
@@ -269,7 +377,7 @@ async def _detect(url: str, headful: bool, fullscreen: bool, browser: str,
     async with async_playwright() as pw:
         page, closeable = await _launch_browser(
             pw, browser, headful, browser_exe, user_data_dir,
-            fullscreen=fullscreen)
+            fullscreen=fullscreen, window_position=window_position)
 
         click.echo(f"Navigating to {_style(url, fg='cyan')}...", err=is_json)
         try:
@@ -283,6 +391,14 @@ async def _detect(url: str, headful: bool, fullscreen: bool, browser: str,
         await page.wait_for_timeout(3000)
         page_data = await _collect_page_data(page, url)
         await closeable.close()
+
+    if verbose:
+        click.echo(
+            "Collected page data: "
+            f"{len(page_data.scripts)} scripts, "
+            f"{len(page_data.iframes)} iframes.",
+            err=is_json,
+        )
 
     click.echo("Running detection...", err=is_json)
     detector = _create_detector()
@@ -340,6 +456,8 @@ async def _detect(url: str, headful: bool, fullscreen: bool, browser: str,
 @click.option("--headful", is_flag=True, help="Run browser in headed mode.")
 @click.option("--fullscreen", is_flag=True,
               help="Run a headed browser in full-screen mode.")
+@click.option("--window-position", type=(int, int), metavar="X Y",
+              help="Place the headed Chromium window at screen coordinates X Y.")
 @click.option("--browser", type=click.Choice(BROWSER_CHOICES), default="chromium",
               help="Browser engine to use.")
 @click.option("--browser-exe", type=click.Path(exists=True), default=None,
@@ -358,39 +476,46 @@ async def _detect(url: str, headful: bool, fullscreen: bool, browser: str,
 @click.option("--submit-selector", type=str, help="CSS selector for submit button.")
 @click.option("--screenshots-dir", type=click.Path(), default=None,
               help="Save discovery and post-send screenshots in this directory.")
-@click.option("-v", "--verbose", is_flag=True, help="Enable verbose debug logging.")
+@click.option("-v", "--verbose", is_flag=True,
+              help="Show detailed operator-facing progress.")
+@click.option("--debug", is_flag=True, help="Enable developer debug logging.")
 @click.option("--output", "output_format", type=click.Choice(["text", "json"]),
               default="text", help="Output format.")
 def prompt(
-    url: str, message: str, headful: bool, fullscreen: bool, browser: str,
+    url: str, message: str, headful: bool, fullscreen: bool,
+    window_position: tuple[int, int] | None, browser: str,
     browser_exe: str | None, user_data_dir: str | None,
     browser_profile: str | None, timeout: int, post_send_wait: int,
     input_selector: str | None, response_selector: str | None,
     submit_selector: str | None, screenshots_dir: str | None,
-    verbose: bool, output_format: str,
+    verbose: bool, debug: bool, output_format: str,
 ) -> None:
     """Send one MESSAGE to a web-based LLM and return its response."""
-    if verbose:
+    _validate_window_position(browser, window_position)
+    if debug:
         logging.basicConfig(level=logging.DEBUG,
                             format="%(levelname)-5s %(name)s: %(message)s")
     asyncio.run(_prompt(
         url=url, message=message, headful=headful, fullscreen=fullscreen,
+        window_position=window_position,
         browser=browser,
         browser_exe=browser_exe, user_data_dir=user_data_dir,
         browser_profile=browser_profile, timeout=timeout,
         post_send_wait=post_send_wait, input_selector=input_selector,
         response_selector=response_selector, submit_selector=submit_selector,
         screenshots_dir=screenshots_dir, output_format=output_format,
+        verbose=verbose,
     ))
 
 
 async def _prompt(
     *, url: str, message: str, headful: bool, fullscreen: bool, browser: str,
+    window_position: tuple[int, int] | None,
     browser_exe: str | None, user_data_dir: str | None,
     browser_profile: str | None, timeout: int, post_send_wait: int,
     input_selector: str | None, response_selector: str | None,
     submit_selector: str | None, screenshots_dir: str | None,
-    output_format: str,
+    output_format: str, verbose: bool = False,
 ) -> None:
     from playwright.async_api import async_playwright
 
@@ -408,24 +533,36 @@ async def _prompt(
     discovered_closeable = None
     provider_hint = None
     pw = None
+    is_json = output_format == "json"
+    progress_callback = (
+        lambda phase, detail: _print_progress(
+            phase, detail, prefix="  ", err=is_json
+        )
+        if verbose else None
+    )
 
     if not input_selector:
         pw = await async_playwright().start()
         try:
-            plan, discovered_page, discovered_closeable = await _open_and_auto_discover(
+            (
+                plan,
+                discovered_page,
+                discovered_closeable,
+                provider_hint,
+            ) = await _open_and_auto_discover(
                 url, pw=pw, browser=browser, headful=headful,
                 browser_exe=browser_exe, user_data_dir=user_data_dir,
                 browser_profile=browser_profile,
-                fullscreen=fullscreen,
+                fullscreen=fullscreen, window_position=window_position,
                 timeout=timeout, wait_for_selector=None,
                 input_hint=None, submit_hint=None, response_hint=None,
                 screenshots=bool(screenshots_dir), screenshots_dir=screenshots_dir,
                 output_format=output_format, skip_response=True,
+                progress_callback=progress_callback,
             )
         except BaseException:
             await pw.stop()
             raise
-        provider_hint = await _provider_hint_for_page(discovered_page, url)
         if provider_hint:
             click.echo(
                 f"  Identified provider: {_style(provider_hint, fg='green')}",
@@ -460,8 +597,9 @@ async def _prompt(
         ),
     })
     config = ChannelConfig(
-        headless=not (headful or fullscreen),
+        headless=not (headful or fullscreen or window_position),
         fullscreen=fullscreen,
+        window_position=window_position,
         browser=browser,
         timeout_ms=timeout,
         post_send_wait_ms=post_send_wait,
@@ -474,7 +612,10 @@ async def _prompt(
         plan.model_copy(update={"setup_actions": []})
         if discovered_page else plan
     )
-    strategy = CustomStrategy(plan=active_plan)
+    strategy = CustomStrategy(
+        plan=active_plan,
+        progress_callback=progress_callback,
+    )
     channel = PlaywrightChannel(
         config=config,
         strategy=strategy,
@@ -507,6 +648,8 @@ async def _prompt(
     _print_kv("URL", url)
     _print_kv("Response Time", f"{response.response_time_ms / 1000:.1f}s")
     _print_kv("Images", response.metadata.get("image_count", "0"))
+    if interaction:
+        _print_kv("Interaction", interaction)
     if response.text:
         _print_section("Response")
         click.echo(response.text[:2000])
@@ -519,11 +662,16 @@ async def _prompt(
 
 @cli.command()
 @click.argument("url", required=False)
+@click.option("--url", "url_option", metavar="URL",
+              help="URL to assess; cannot be combined with positional URL "
+                   "or --url-file.")
 @click.option("--url-file", type=click.Path(exists=True, dir_okay=False,
               path_type=Path), help="Read target URLs from a file, one per line.")
 @click.option("--headful", is_flag=True, help="Run browser in headed mode.")
 @click.option("--fullscreen", is_flag=True,
               help="Run a headed browser in full-screen mode.")
+@click.option("--window-position", type=(int, int), metavar="X Y",
+              help="Place the headed Chromium window at screen coordinates X Y.")
 @click.option("--browser", type=click.Choice(BROWSER_CHOICES), default="chromium",
               help="Browser engine to use.")
 @click.option("--browser-exe", type=click.Path(exists=True), default=None,
@@ -566,13 +714,17 @@ async def _prompt(
               help="Save discovery and post-send screenshots.")
 @click.option("--screenshots-dir", type=click.Path(), default=None,
               help="Directory for screenshots (default: ./screenshots).")
-@click.option("-v", "--verbose", is_flag=True, help="Enable verbose debug logging.")
+@click.option("-v", "--verbose", is_flag=True,
+              help="Show probe/turn progress, responses, execution, and verdicts.")
+@click.option("--debug", is_flag=True, help="Enable developer debug logging.")
 @click.option("--output", "output_format", type=click.Choice(["text", "json"]),
               default="text", help="Output format.")
 @click.option("--output-file", type=click.Path(dir_okay=False, path_type=Path),
               help="Write complete JSON results here (default: timestamped artifact).")
 def assess(
-    url: str | None, url_file: Path | None, headful: bool, fullscreen: bool,
+    url: str | None, url_option: str | None, url_file: Path | None,
+    headful: bool, fullscreen: bool,
+    window_position: tuple[int, int] | None,
     browser: str,
     browser_exe: str | None, user_data_dir: str | None, timeout: int,
     post_send_wait: int, post_success_wait: int, workers: int,
@@ -583,23 +735,29 @@ def assess(
     category: str | None, sophistication: str | None,
     severity: str | None, probes: str | None,
     probe_dir: str | None, probe_file: tuple[str, ...], screenshots: bool,
-    screenshots_dir: str | None, verbose: bool, output_format: str,
+    screenshots_dir: str | None, verbose: bool, debug: bool, output_format: str,
     output_file: Path | None,
 ) -> None:
     """Assess AI agent security on a webpage.
 
+    Provide exactly one of positional URL, --url, or --url-file.
     Auto-discovers chat elements when selectors are not provided.
     Use --input-selector, --response-selector to override.
     """
-    if verbose:
+    _validate_window_position(browser, window_position)
+    if debug:
         logging.basicConfig(level=logging.DEBUG,
                             format="%(levelname)-5s %(name)s: %(message)s")
-    if (url is None) == (url_file is None):
-        raise click.UsageError("Provide either URL or --url-file, but not both.")
+    if sum(value is not None for value in (url, url_option, url_file)) != 1:
+        raise click.UsageError(
+            "Provide exactly one of positional URL, --url, or --url-file."
+        )
+    url = url or url_option
     output_file = output_file or _default_output_path()
 
     assess_kwargs = dict(
-        headful=headful, fullscreen=fullscreen, browser=browser,
+        headful=headful, fullscreen=fullscreen,
+        window_position=window_position, browser=browser,
         browser_exe=browser_exe,
         user_data_dir=user_data_dir, timeout=timeout, post_send_wait=post_send_wait,
         post_success_wait=post_success_wait, workers=workers,
@@ -613,7 +771,7 @@ def assess(
         severity=severity, probes=probes,
         probe_dir=probe_dir, probe_file=probe_file,
         screenshots=screenshots, screenshots_dir=screenshots_dir,
-        output_format=output_format,
+        output_format=output_format, verbose=verbose,
     )
     if url_file is not None:
         failed = asyncio.run(_assess_file(
@@ -716,9 +874,10 @@ async def _open_and_auto_discover(
     skip_response: bool = False,
     browser_profile: str | None = None,
     fullscreen: bool = False,
+    window_position: tuple[int, int] | None = None,
     emit_output: bool = True,
     progress_callback: Callable[[str, str], None] | None = None,
-) -> "tuple[InteractionPlan | None, object, object]":
+) -> "tuple[InteractionPlan | None, object, object, str | None]":
     """Discover a chat plan and leave its live browser page open."""
     from webagentaudit.core.exceptions import (
         ChannelNotReadyError,
@@ -747,7 +906,7 @@ async def _open_and_auto_discover(
 
     page, closeable = await _launch_browser(
         pw, browser, headful, browser_exe, user_data_dir, browser_profile,
-        fullscreen=fullscreen)
+        fullscreen=fullscreen, window_position=window_position)
 
     try:
         try:
@@ -846,7 +1005,7 @@ async def _open_and_auto_discover(
     elif emit_output:
         click.echo(_style("  Auto-discovery failed.", fg="red"), err=is_json)
 
-    return plan, page, closeable
+    return plan, page, closeable, provider_hint
 
 
 def _read_url_file(path: Path) -> list[str]:
@@ -918,9 +1077,13 @@ async def _assess_file(
                 active_phase = "response_read"
             elif phase == "RESPONSE READ":
                 active_phase = "assessment"
-            if not is_json:
-                click.echo(
-                    f"[{index}/{len(urls)}] {phase:<13} {detail}"
+            if not is_json and (
+                assess_kwargs["verbose"] or phase == "INTERACTION"
+            ):
+                _print_progress(
+                    phase,
+                    detail,
+                    prefix=f"[{index}/{len(urls)}] ",
                 )
 
         try:
@@ -1063,7 +1226,8 @@ def _default_output_path() -> Path:
 
 
 async def _assess(
-    *, url: str, headful: bool, fullscreen: bool, browser: str,
+    *, url: str, headful: bool, fullscreen: bool,
+    window_position: tuple[int, int] | None, browser: str,
     browser_exe: str | None,
     user_data_dir: str | None, timeout: int, post_send_wait: int,
     post_success_wait: int, workers: int,
@@ -1075,6 +1239,7 @@ async def _assess(
     severity: str | None, probes: str | None,
     probe_dir: str | None, probe_file: tuple[str, ...],
     screenshots: bool, screenshots_dir: str | None, output_format: str,
+    verbose: bool = False,
     emit_output: bool = True,
     progress_callback: Callable[[str, str], None] | None = None,
 ):
@@ -1086,12 +1251,17 @@ async def _assess(
     from webagentaudit.llm_channel.consts import (
         DEFAULT_RESPONSE_SELECTORS_BY_HOST,
         DEFAULT_RESPONSE_SELECTORS_BY_PROVIDER,
+        PAGE_SETTLE_MS,
     )
     from webagentaudit.llm_channel.models import InteractionAction, InteractionPlan
     from webagentaudit.llm_channel.playwright_channel import PlaywrightChannel
     from webagentaudit.llm_channel.strategies.custom import CustomStrategy
 
     is_json = output_format == "json"
+    if verbose and progress_callback is None and emit_output and not is_json:
+        progress_callback = lambda phase, detail: _print_progress(
+            phase, detail, prefix="  "
+        )
 
     registry = _load_registry(
         probe_dir=probe_dir, probe_file=probe_file,
@@ -1110,11 +1280,11 @@ async def _assess(
         discovered_page = None
         discovered_closeable = None
         if not input_selector:
-            plan, discovered_page, discovered_closeable = (
+            plan, discovered_page, discovered_closeable, provider_hint = (
                 await _open_and_auto_discover(
                 url, pw=pw, browser=browser, headful=headful,
                 browser_exe=browser_exe, user_data_dir=user_data_dir,
-                fullscreen=fullscreen,
+                fullscreen=fullscreen, window_position=window_position,
                 timeout=timeout, wait_for_selector=wait_for_selector,
                 input_hint=input_hint, submit_hint=submit_hint,
                 response_hint=response_hint, screenshots=screenshots,
@@ -1124,7 +1294,6 @@ async def _assess(
                 progress_callback=progress_callback,
                 )
             )
-            provider_hint = await _provider_hint_for_page(discovered_page, url)
             if provider_hint and progress_callback:
                 progress_callback("PROVIDER", provider_hint)
             if provider_hint and emit_output and not is_json:
@@ -1181,10 +1350,19 @@ async def _assess(
             _print_kv("URL", url)
             if provider_hint:
                 _print_kv("Provider", provider_hint)
+            if interaction:
+                _print_kv("Interaction", interaction)
             browser_mode = (
                 "full-screen" if fullscreen else "headed" if headful else "headless"
             )
+            if window_position and not fullscreen:
+                browser_mode = "headed"
             _print_kv("Browser", f"{browser} ({browser_mode})")
+            if window_position:
+                _print_kv(
+                    "Window Position",
+                    f"{window_position[0]}, {window_position[1]}",
+                )
             _print_kv("Input", plan.input_selector)
             _print_kv("Submit", plan.submit_selector or "Enter key")
             _print_kv(
@@ -1193,8 +1371,9 @@ async def _assess(
             _print_kv("Probes", str(len(all_probes)))
 
         channel_config = ChannelConfig(
-            headless=not (headful or fullscreen),
+            headless=not (headful or fullscreen or window_position),
             fullscreen=fullscreen,
+            window_position=window_position,
             browser=browser,
             timeout_ms=timeout,
             post_send_wait_ms=post_send_wait,
@@ -1206,25 +1385,35 @@ async def _assess(
             executable_path=browser_exe,
         )
 
-        # Reuse the discovery browser for later isolated conversations.
-        shared_browser = None
-        if discovered_closeable and hasattr(discovered_closeable, "new_context"):
-            shared_browser = discovered_closeable
-        elif not user_data_dir:
-            launcher = getattr(pw, browser)
-            launch_kw: dict = {"headless": not (headful or fullscreen)}
-            if browser_exe:
-                launch_kw["executable_path"] = browser_exe
-            if fullscreen:
-                launch_kw["args"] = ["--start-fullscreen"]
-            shared_browser = await launcher.launch(**launch_kw)
-
         first_page = discovered_page
+        if first_page is None:
+            first_page, discovered_closeable = await _launch_browser(
+                pw, browser, headful, browser_exe, user_data_dir,
+                fullscreen=fullscreen, window_position=window_position,
+            )
+            try:
+                await first_page.goto(
+                    url, wait_until="domcontentloaded", timeout=timeout
+                )
+                await first_page.wait_for_timeout(PAGE_SETTLE_MS)
+            except Exception as exc:
+                await discovered_closeable.close()
+                message = str(exc).split("\n")[0]
+                raise TargetAssessmentFailure(
+                    "navigation", f"Could not load {url}: {message}"
+                ) from exc
+        shared_context = first_page.context
+        reuse_live_page = workers == 1
+        keeper_page = None
+        if not reuse_live_page:
+            keeper_page = await shared_context.new_page()
+            await first_page.bring_to_front()
 
         def channel_factory() -> PlaywrightChannel:
             nonlocal first_page
             page = first_page
-            first_page = None
+            if not reuse_live_page:
+                first_page = None
             strategy = CustomStrategy(
                 plan=(
                     plan.model_copy(update={"setup_actions": []})
@@ -1234,8 +1423,9 @@ async def _assess(
             )
             return PlaywrightChannel(
                 config=channel_config, strategy=strategy,
-                browser=shared_browser if page is None else None,
                 page=page,
+                context=shared_context,
+                close_external_page=not reuse_live_page,
             )
 
         assess_config = AssessmentConfig(workers=workers)
@@ -1243,19 +1433,23 @@ async def _assess(
 
         def _on_progress(results) -> None:
             nonlocal completed
-            if is_json or not emit_output:
+            if len(results) <= completed:
                 return
-            if len(results) > completed:
-                latest = results[-1]
-                completed = len(results)
-                if latest.error_count:
-                    status = _style("ERROR", fg="red", bold=True)
-                elif latest.vulnerability_detected:
-                    status = _style("VULN", fg="red", bold=True)
-                else:
-                    status = _style("PASS", fg="green")
-                click.echo(f"  [{completed}/{len(all_probes)}] {status}"
-                           f" {latest.probe_name}")
+            latest = results[-1]
+            completed = len(results)
+            if progress_callback:
+                _emit_probe_progress(latest, progress_callback)
+            if is_json or not emit_output or verbose:
+                return
+            if latest.error_count:
+                status = _style("ERROR", fg="red", bold=True)
+            elif latest.vulnerability_detected:
+                status = _style("VULN", fg="red", bold=True)
+            else:
+                status = _style("PASS", fg="green")
+            click.echo(
+                f"  [{completed}/{len(all_probes)}] {status} {latest.probe_name}"
+            )
 
         if emit_output and not is_json:
             _print_section("Running Probes")
@@ -1265,13 +1459,14 @@ async def _assess(
             channel_factory=channel_factory,
             registry=registry,
             progress_callback=_on_progress,
+            activity_callback=progress_callback,
         )
         try:
             result = await assessor.assess(url)
         finally:
-            if shared_browser:
-                await shared_browser.close()
-            elif discovered_closeable:
+            if keeper_page:
+                await keeper_page.close()
+            if discovered_closeable:
                 await discovered_closeable.close()
 
         if provider_hint:

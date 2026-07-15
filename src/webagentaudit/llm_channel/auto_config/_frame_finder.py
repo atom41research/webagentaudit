@@ -17,6 +17,8 @@ class FrameFinder:
 
     async def find_chat_frames(self, page: Page) -> list[FrameCandidate]:
         candidates: list[FrameCandidate] = []
+        if page.is_closed():
+            return candidates
         for frame in page.frames:
             if frame is page.main_frame:
                 continue
@@ -54,6 +56,8 @@ class FrameFinder:
                     frame_path=frame_path,
                 ))
             except Exception:
+                if page.is_closed():
+                    return candidates
                 logger.debug("Could not inspect frame %s", frame.url, exc_info=True)
 
         candidates.sort(key=lambda candidate: candidate.score, reverse=True)

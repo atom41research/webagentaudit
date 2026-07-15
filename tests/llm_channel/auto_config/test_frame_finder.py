@@ -1,5 +1,7 @@
 """Tests for FrameFinder: chat widget iframe discovery."""
 
+import logging
+
 import pytest
 
 from webagentaudit.llm_channel.auto_config._frame_finder import FrameFinder
@@ -169,6 +171,26 @@ class TestFrameFinderNoIframes:
         await page.wait_for_timeout(300)
         candidates = await finder.find_chat_frames(page)
         assert candidates == []
+
+    async def test_page_closing_during_frame_inspection_is_quiet(
+        self, page, finder, caplog, monkeypatch
+    ):
+        """Browser cleanup after a discovery timeout is expected and quiet."""
+        await page.set_content(MULTIPLE_IFRAMES_HTML, wait_until="domcontentloaded")
+        frame = page.frames[1]
+        frame_element = frame.frame_element
+
+        async def close_page_then_inspect():
+            await page.close()
+            return await frame_element()
+
+        monkeypatch.setattr(frame, "frame_element", close_page_then_inspect)
+
+        with caplog.at_level(logging.DEBUG):
+            candidates = await finder.find_chat_frames(page)
+
+        assert candidates == []
+        assert "Could not inspect frame" not in caplog.text
 
 
 class TestFrameFinderURLPatterns:

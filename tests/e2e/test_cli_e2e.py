@@ -11,6 +11,8 @@ from __future__ import annotations
 import glob
 import json
 import socket
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 import pytest
@@ -34,6 +36,36 @@ def _find_free_port() -> int:
 @pytest.fixture
 def runner():
     return CliRunner()
+
+
+@pytest.fixture
+def denser_request_server():
+    html = (FIXTURES_DIR / "denser_embed_widget.html").read_bytes()
+
+    class Handler(BaseHTTPRequestHandler):
+        request_count = 0
+
+        def do_GET(self):
+            if self.path == "/":
+                type(self).request_count += 1
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(html)))
+            self.end_headers()
+            self.wfile.write(html)
+
+        def log_message(self, format, *args):
+            pass
+
+    server = HTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield f"http://127.0.0.1:{server.server_port}", Handler
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
 
 
 # ---------------------------------------------------------------------------
@@ -112,6 +144,32 @@ class TestDetectE2E:
             assert "checker_name" in signal
             assert "signal_type" in signal
             assert signal["confidence"]["value"] > 0
+
+
+# ---------------------------------------------------------------------------
+# prompt command e2e
+# ---------------------------------------------------------------------------
+
+
+class TestPromptE2E:
+    """End-to-end tests for sending one prompt through explicit controls."""
+
+    def test_prompt_json_response(self, runner, demo_server):
+        url = f"{demo_server}/interactive/reverse-llm.html"
+
+        result = runner.invoke(cli, [
+            "prompt", url, "hello",
+            "--input-selector", "#prompt-input",
+            "--response-selector", ".bot-message:last-child",
+            "--submit-selector", "#send-btn",
+            "--post-send-wait", "0",
+            "--timeout", "5000",
+            "--output", "json",
+        ])
+
+        assert result.exit_code == 0, result.output
+        response = json.loads(result.output)
+        assert response["text"] == "Reverse: olleh"
 
 
 # ---------------------------------------------------------------------------
@@ -213,6 +271,62 @@ class TestAssessE2E:
         assert result.exit_code == 0, f"Failed: {result.output}"
         assert "Results" in result.output
         assert "Total Probes" in result.output
+
+    def test_assess_verbose_shows_evidence_without_debug_logs(
+        self, runner, demo_server,
+    ):
+        url = f"{demo_server}/interactive/reverse-llm.html"
+
+        result = runner.invoke(cli, [
+            "assess", url,
+            "--input-selector", "#prompt-input",
+            "--response-selector", ".bot-message:last-child",
+            "--submit-selector", "#send-btn",
+            "--probe-file", SINGLE_PROBE_YAML,
+            "--probes", SINGLE_PROBE_NAME,
+            "--verbose",
+            "--output", "text",
+        ])
+
+        assert result.exit_code == 0, result.output
+        assert "Probe: [1/1] extraction.custom_direct_ask" in result.output
+        assert "Planned interaction: [1/3]" in result.output
+        assert "Prompt:" in result.output
+        assert "Chat response:" in result.output
+        assert "Probe execution: SUCCESS" in result.output
+        assert "Security verdict: PASS" in result.output
+        assert "DEBUG " not in result.output
+        assert "Traceback" not in result.output
+
+    def test_sequential_denser_probes_do_not_reload_target(
+        self, runner, denser_request_server, tmp_path, monkeypatch,
+    ):
+        from webagentaudit.cli import app
+
+        url, handler = denser_request_server
+        identify_provider = app._provider_hint_for_page
+        provider_checks = 0
+
+        async def count_provider_checks(page, target_url):
+            nonlocal provider_checks
+            provider_checks += 1
+            return await identify_provider(page, target_url)
+
+        monkeypatch.setattr(app, "_provider_hint_for_page", count_provider_checks)
+
+        result = runner.invoke(cli, [
+            "assess", "--url", url,
+            "--probes",
+            "prompt_injection.repetition_flood,"
+            "system_prompt_leak.image_generation_capability",
+            "--timeout", "5000",
+            "--output-file", str(tmp_path / "result.json"),
+        ])
+
+        assert result.exit_code == 0, result.output
+        assert handler.request_count == 1
+        assert provider_checks == 1
+        assert "ERROR" not in result.output
 
     def test_assess_vulnerable_finds_vuln(self, runner, demo_server):
         """assess against vulnerable page should find vulnerabilities."""

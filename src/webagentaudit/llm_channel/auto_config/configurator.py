@@ -75,6 +75,7 @@ class AlgorithmicAutoConfigurator(BaseAutoConfigurator):
         self._background_tasks.add(task)
         task.add_done_callback(self._consume_background_result)
         self._emit("DISCOVER", "time budget exhausted")
+        self._progress_callback = None
         logger.debug("Chat discovery exceeded %dms", consts.DISCOVERY_TIMEOUT_MS)
         return AutoConfigResult()
 
@@ -169,7 +170,7 @@ class AlgorithmicAutoConfigurator(BaseAutoConfigurator):
 
             if found is not None:
                 break
-            self._emit("DISCOVER", "reloading after unsuccessful trigger")
+            logger.debug("Reloading after unsuccessful trigger branch")
             try:
                 await page.reload(wait_until="domcontentloaded")
             except Exception:

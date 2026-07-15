@@ -1,15 +1,20 @@
 # WebAgentAudit
 
+[![Black Hat Arsenal](https://img.shields.io/badge/Black_Hat_Arsenal-USA_2026-black?style=flat-square&labelColor=red)](#)
 ![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue)
-![Tests 942 passed](https://img.shields.io/badge/tests-942%20passed-brightgreen)
+![Tests passing](https://img.shields.io/badge/tests-passing-brightgreen)
 ![48 built-in probes](https://img.shields.io/badge/probes-48%20built--in-orange)
 ![No API tokens required](https://img.shields.io/badge/API%20tokens-not%20required-green)
+[![Built by Atom41](https://img.shields.io/badge/Built%20by-Atom41-blueviolet)](https://www.atom41.com)
 
-Security auditing of web-based AI agents through browser automation.
+Security auditing of web-based AI agents through browser automation. Developed and maintained by the research team at [Atom41](https://www.atom41.com).
+
 
 ## The problem
 
 There are many tools for auditing AI agents. All of them require API access to the model under test. In practice, a large and growing number of AI agent deployments are web-only: chatbots, AI-powered assistants, and LLM widgets embedded in websites, often operated by third parties. For these, no API exists. The only interface is a chat widget on a webpage.
+
+That limitation becomes especially significant at scale. At [Atom41](https://www.atom41.com), we produce big data for AI and make it accessible to AI agents. With access to petabytes of information, our research team conducts large-scale data studies. As part of a study of chatbots and LLM interfaces across the web, we identified hundreds of thousands of interfaces and needed a practical, cost-effective way to analyze them at scale. WebAgentAudit enabled us to do that without adding AI/LLM API costs to the audit pipeline.
 
 ## Why it matters
 
@@ -64,7 +69,7 @@ docker run --rm --user $(id -u):$(id -g) \
 # Assess with screenshots (saved to host ./docker-output/screenshots/)
 docker run --rm --user $(id -u):$(id -g) \
   -v ./docker-output/screenshots:/data/screenshots \
-  webagentaudit assess https://example.com --screenshots
+  webagentaudit assess --url https://example.com --screenshots
 
 # List probes
 docker run --rm webagentaudit probes --output json
@@ -73,7 +78,7 @@ docker run --rm webagentaudit probes --output json
 # Set DOCKER_UID/DOCKER_GID so output files are owned by your user
 export DOCKER_UID=$(id -u) DOCKER_GID=$(id -g)
 docker compose run --rm webagentaudit detect https://example.com
-docker compose run --rm webagentaudit assess https://example.com --screenshots
+docker compose run --rm webagentaudit assess --url https://example.com --screenshots
 docker compose run --rm webagentaudit probes
 ```
 
@@ -102,7 +107,7 @@ Then in another terminal, run an assessment against the vulnerable demo page. Us
 
 ```bash
 # Assess the intentionally vulnerable demo page (headful so you can watch)
-webagentaudit assess http://localhost:8000/interactive/vulnerable-llm.html \
+webagentaudit assess --url http://localhost:8000/interactive/vulnerable-llm.html \
   --headful --screenshots
 ```
 
@@ -112,7 +117,7 @@ Now try the safe demo — this one refuses all probes:
 
 ```bash
 # Assess the safe demo page (should find no vulnerabilities)
-webagentaudit assess http://localhost:8000/interactive/safe-llm.html \
+webagentaudit assess --url http://localhost:8000/interactive/safe-llm.html \
   --headful --screenshots
 ```
 
@@ -122,37 +127,37 @@ There are 22 demo pages total covering detection, interaction, and negative case
 
 ```bash
 # Auto-discover chat widget and run security assessment
-webagentaudit assess https://example.com/support --headful --screenshots
+webagentaudit assess --url https://example.com/support --headful --screenshots
 
 # Provide selectors when auto-discovery needs help
-webagentaudit assess https://example.com/support \
+webagentaudit assess --url https://example.com/support \
   --input-selector "textarea.chat-input" \
   --response-selector ".bot-response"
 
 # Provide HTML hints for fuzzy element matching
-webagentaudit assess https://example.com/support \
+webagentaudit assess --url https://example.com/support \
   --input-hint '<textarea placeholder="Ask anything...">' \
   --submit-hint '<button aria-label="Send">'
 
 # Audit with authenticated session (logged-in user)
-webagentaudit assess https://internal.corp/assistant \
+webagentaudit assess --url https://internal.corp/assistant \
   --user-data-dir ~/.config/chromium/Default
 
 # Run only critical-severity probes
-webagentaudit assess https://example.com/chat \
+webagentaudit assess --url https://example.com/chat \
   --severity critical
 
 # Target specific attack categories
-webagentaudit assess https://example.com/chat \
+webagentaudit assess --url https://example.com/chat \
   --category prompt_injection,extraction \
   --sophistication advanced
 
 # Save screenshots to a specific directory
-webagentaudit assess https://example.com/support \
+webagentaudit assess --url https://example.com/support \
   --screenshots --screenshots-dir ./audit-results
 
 # Audit an iframe-embedded third-party chatbot
-webagentaudit assess https://example.com \
+webagentaudit assess --url https://example.com \
   --iframe-selector "iframe.chat-widget" \
   --wait-for ".chat-input"
 
@@ -161,6 +166,8 @@ webagentaudit assess \
   --url-file urls.txt \
   --probes system_prompt_leak.image_generation_capability \
   --fullscreen \
+  --window-position 0 0 \
+  --verbose \
   --post-success-wait 10000
 
 # Override the default timestamped JSON artifact path
@@ -180,6 +187,11 @@ webagentaudit probes --output json
 | `--version` | Show version and exit |
 | `--help` | Show help message and exit |
 
+On Linux Wayland sessions, `--window-position` runs Chromium through XWayland
+so absolute placement is available. The desktop may still keep normal windows
+inside its usable area, so `(0, 0)` is moved around reserved panels or docks;
+use `--fullscreen` when the window must cover the physical display corner.
+
 ### `webagentaudit detect <url>`
 
 Detect interactive LLMs on a webpage.
@@ -188,28 +200,86 @@ Detect interactive LLMs on a webpage.
 |---|---|---|
 | `--headful` | off | Run browser in headed mode |
 | `--fullscreen` | off | Run a headed browser full-screen using its native viewport |
+| `--window-position X Y` | — | Place the headed Chromium window at screen coordinates `X Y`; may be combined with `--fullscreen` to select a display |
 | `--browser` | `chromium` | Browser engine (`chromium`, `firefox`, `webkit`) |
 | `--browser-exe PATH` | — | Path to browser executable |
 | `--user-data-dir PATH` | — | Browser profile directory for authenticated sessions |
 | `--timeout MS` | `30000` | Navigation timeout in milliseconds |
-| `-v, --verbose` | off | Enable verbose debug logging |
+| `-v, --verbose` | off | Show detailed operator-facing progress |
+| `--debug` | off | Enable developer debug logging and exception diagnostics |
 | `--output FORMAT` | `text` | Output format (`text`, `json`) |
 
-### `webagentaudit assess [<url> | --url-file <file>]`
+### `webagentaudit prompt <url> <message>`
 
-Assess AI agent security on one webpage or a file containing one URL per line. URL-file targets run sequentially and continue after operational failures. Blank lines and lines beginning with `#` are ignored.
+Send one message to a web-based LLM and print its response. The command
+auto-discovers the chat controls unless explicit selectors are supplied.
 
-Batch output prints live `DISCOVER`, `BLOCKER`, `TRIGGER`, `CHAT FOUND`, `TYPED`, `SUBMITTED`, and `RESPONSE READ` checkpoints. It distinguishes `navigation`, `chat_detection`, `connection`, `prompt_submission`, `response_read`, and `assessment` failures. Expected per-target failures print one concise `FAIL` line; use `--verbose` when a diagnostic traceback is needed. Every run also writes a timestamped `output/webagentaudit-<UTC timestamp>.json` file by default; `--output-file` overrides the path. Each target embeds its complete assessment, including probe verdicts, prompts, assistant responses, matches, and structured error details. The command exits with status 1 if any target has an operational failure.
+| Flag | Default | Description |
+|---|---|---|
+| `--headful` | off | Run browser in headed mode |
+| `--fullscreen` | off | Run a headed browser full-screen using its native viewport |
+| `--window-position X Y` | — | Place the headed Chromium window at screen coordinates `X Y`; may be combined with `--fullscreen` |
+| `--browser` | `chromium` | Browser engine (`chromium`, `firefox`, `webkit`) |
+| `--browser-exe PATH` | — | Path to browser executable |
+| `--user-data-dir PATH` | — | Browser user-data root for authenticated sessions |
+| `--browser-profile NAME` | — | Named profile inside `--user-data-dir`, such as `Profile 1` |
+| `--timeout MS` | `120000` | Response timeout in milliseconds |
+| `--post-send-wait MS` | `60000` | Wait after sending before reading the response |
+| `--input-selector CSS` | — | CSS selector for the input element; skips auto-discovery |
+| `--response-selector CSS` | — | CSS selector for the response container |
+| `--submit-selector CSS` | — | CSS selector for the submit button; otherwise an enabled semantic submit or Enter is used |
+| `--screenshots-dir DIR` | — | Save discovery and post-send screenshots in this directory |
+| `-v, --verbose` | off | Show detailed operator-facing progress |
+| `--debug` | off | Enable developer debug logging and exception diagnostics |
+| `--output FORMAT` | `text` | Output format (`text`, `json`) |
 
-Auto-discovery is input-first: it checks the page and accessible iframes before dismissing a recognised blocker or trying bounded chat-launcher branches. It does not send a discovery message or reload before the first conversation; the chosen probe is sent directly on the discovered live page. Later isolated conversations replay the saved plan in fresh pages. Batch targets receive a 60-second base budget plus 20 seconds for every additional probe turn. An intentional `--post-success-wait` is added to that budget. Playwright contexts ignore HTTPS certificate errors so a certificate warning does not prevent interaction testing.
+### `webagentaudit assess [<url> | --url <url> | --url-file <file>]`
+
+Assess AI agent security on one webpage or a file containing one URL per line.
+For a single page, `--url URL` is the preferred spelling; the positional
+`<url>` remains supported for compatibility. URL-file targets run sequentially
+and continue after operational failures. Blank lines and lines beginning with
+`#` are ignored. Provide exactly one target source.
+
+Normal batch output prints concise `RUN`, `OK`, and phase-specific `FAIL` lines.
+Programmatic provider SDK/API interaction is always labeled. With `--verbose`,
+output also includes readable prompts, chat responses, probe verdicts, and
+`PROVIDER`, `DISCOVER`, `BLOCKER`, `TRIGGER`, `CHAT FOUND`, `TYPED`, `SUBMITTED`,
+and `RESPONSE READ` checkpoints. Verbose mode never enables raw logger output or
+exception traces, and repeated per-attempt reload details remain debug-only;
+use `--debug` explicitly for developer diagnostics.
+
+Each planned probe and interaction is labeled before it starts. Completion
+reports two independent outcomes: `Probe execution: SUCCESS/ERROR` says whether
+the browser interactions completed, while `Security verdict: PASS/VULNERABLE`
+says whether the responses demonstrated the tested vulnerability. A successful
+probe execution can therefore have a vulnerable security verdict.
+Every run writes a timestamped `output/webagentaudit-<UTC timestamp>.json` file
+by default; `--output-file` overrides the path. Each target embeds its complete
+assessment, including probe verdicts, prompts, assistant responses, matches,
+interaction method, and structured error details. The command exits with status
+1 if any target has an operational failure.
+
+Auto-discovery is input-first: it checks the page and accessible iframes before
+dismissing a recognised blocker or trying bounded chat-launcher branches. It
+does not send a discovery message or reload before the first conversation; the
+chosen probe is sent directly on the discovered live page. Sequential
+conversations retain that page; parallel conversations replay the saved plan
+on fresh pages. Each batch target receives
+a 30-second discovery allowance plus its configured response timeout,
+`--post-send-wait`, and `--post-success-wait` for every probe turn. Playwright
+contexts ignore HTTPS certificate errors so a certificate warning does not
+prevent interaction testing.
 
 **Browser options**
 
 | Flag | Default | Description |
 |---|---|---|
+| `--url URL` | — | Assess one URL; preferred alternative to the positional `<url>` |
 | `--url-file FILE` | — | Read target URLs from a file instead of using `<url>` |
 | `--headful` | off | Run browser in headed mode |
 | `--fullscreen` | off | Run a headed browser full-screen using its native viewport |
+| `--window-position X Y` | — | Place the headed Chromium window at screen coordinates `X Y`; negative coordinates are supported |
 | `--browser` | `chromium` | Browser engine (`chromium`, `firefox`, `webkit`) |
 | `--browser-exe PATH` | — | Path to browser executable |
 | `--user-data-dir PATH` | — | Browser profile directory for authenticated sessions |
@@ -255,7 +325,8 @@ Auto-discovery is input-first: it checks the page and accessible iframes before 
 | `--workers N` | `1` | Concurrent probe workers |
 | `--screenshots` | off | Save discovery and post-send screenshots |
 | `--screenshots-dir DIR` | `./screenshots` | Directory for saved screenshots |
-| `-v, --verbose` | off | Enable verbose debug logging |
+| `-v, --verbose` | off | Show probe names, planned interactions, prompts, responses, execution status, and security verdicts |
+| `--debug` | off | Enable developer debug logging and exception diagnostics |
 | `--output FORMAT` | `text` | Output format (`text`, `json`) |
 
 ### `webagentaudit probes`
@@ -286,7 +357,9 @@ WebAgentAudit has two layers.
 - Multiple sophistication levels (basic, intermediate, advanced)
 - Dynamic canary tokens for injection probes — anti-echo design prevents false positives
 - Deterministic pattern matching for reproducible results — no AI judge
-- Each probe runs in a fresh browser session for isolation
+- Sequential audits retain the discovered live page across probes, so a headed
+  browser neither reopens nor refreshes; parallel workers use fresh pages in
+  one assessment-owned context
 - Conversation logging in ChatML format
 - Structured output (JSON/text) with severity ratings, matched patterns
 
@@ -295,7 +368,7 @@ WebAgentAudit has two layers.
 ```
 ┌──────────────────────────────────────────────────────┐
 │                        CLI                           │
-│            webagentaudit assess <url>                 │
+│         webagentaudit assess --url <url>              │
 ├──────────────────────────────────────────────────────┤
 │                                                      │
 │  ┌───────────────────────┐    ┌───────────────────┐  │
@@ -323,7 +396,7 @@ WebAgentAudit has two layers.
 ### Prompt injection on Andi Search
 
 ```bash
-webagentaudit assess https://andisearch.com \
+webagentaudit assess --url https://andisearch.com \
   --category prompt_injection \
   --headful --screenshots
 ```
@@ -335,7 +408,7 @@ Andi Search treated the injection attempt as a regular search query and returned
 ### System prompt leak on Duck.ai
 
 ```bash
-webagentaudit assess https://duck.ai \
+webagentaudit assess --url https://duck.ai \
   --category system_prompt_leak \
   --headful --screenshots
 ```
@@ -393,10 +466,10 @@ detector_patterns:
 
 ```bash
 # Run custom probes from a directory
-webagentaudit assess https://example.com/chat --probe-dir ./my_probes/
+webagentaudit assess --url https://example.com/chat --probe-dir ./my_probes/
 
 # Run a specific probe file
-webagentaudit assess https://example.com/chat --probe-file ./my_probes/cookie_theft.yaml
+webagentaudit assess --url https://example.com/chat --probe-file ./my_probes/cookie_theft.yaml
 ```
 
 See [docs/custom-probes.md](docs/custom-probes.md) for the full format reference, multi-step examples, and end-to-end walkthrough.
@@ -430,3 +503,22 @@ There are several tools for LLM security testing. All of them focus on API-level
 | **Deterministic results** | Yes | Varies | Varies | Varies |
 
 WebAgentAudit is not a replacement for API-level testing. It covers the gap that API tools can't reach: the agent as deployed on the web, behind whatever web-layer processing, filtering, and custom prompting the operator has added. For a complete audit, use both.
+
+## Feedback and contributions
+
+Real-world interfaces help us improve WebAgentAudit. Please [open a GitHub issue](https://github.com/atom41research/webagentaudit/issues/new) to:
+
+- Request a feature or propose an improvement
+- Report a bug or regression
+- Share the URL of a chatbot or LLM interface that WebAgentAudit fails to detect, access, or assess correctly
+
+For compatibility reports, include the URL, the command you ran, the expected and actual behavior, your WebAgentAudit version, browser, and operating system. Add relevant logs or screenshots when possible, but redact credentials, session data, and other sensitive information. Only test interfaces you own or are authorized to assess.
+
+## 🤝 Connect with Atom41
+
+Are you attending **Black Hat Arsenal**? We'd love to chat!
+
+Atom41 is actively developing enterprise-grade security solutions for AI-driven automation. If you are a security practitioner, AI developer, or interested in partnering with us:
+
+- **Visit our website:** [atom41.com](https://atom41.com)
+- **Follow our research:** [@Atom41Research](https://x.com/atom41research)

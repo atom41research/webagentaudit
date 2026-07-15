@@ -7,12 +7,58 @@ from collections.abc import Callable
 
 from playwright.async_api import Frame, Page
 
+from webagentaudit.core.exceptions import ChannelNotReadyError
 from webagentaudit.core.models import ConfidenceScore
 from webagentaudit.llm_channel.models import InteractionAction
 
 from . import consts
 from .base import BaseAutoConfigurator
 from .models import AutoConfigResult, ElementHint
+
+
+async def _find_ready_denser_frame(
+    page: Page, *, timeout_ms: int
+) -> Frame | None:
+    elapsed = 0
+    while elapsed < timeout_ms:
+        for frame in page.frames:
+            if frame is page.main_frame:
+                continue
+            try:
+                owner = await frame.frame_element()
+                if (
+                    await owner.get_attribute("title") == "Denser Chatbot"
+                    and await frame.locator(
+                        consts.DENSER_INPUT_SELECTOR
+                    ).is_visible()
+                ):
+                    return frame
+            except Exception:
+                continue
+        await asyncio.sleep(consts.DISCOVERY_INPUT_POLL_MS / 1000)
+        elapsed += consts.DISCOVERY_INPUT_POLL_MS
+    return None
+
+
+async def open_denser_widget(page: Page) -> bool:
+    """Ensure the Denser composer is open; return whether a click was needed."""
+    if await _find_ready_denser_frame(page, timeout_ms=1_000) is not None:
+        return False
+
+    launcher = page.locator(consts.DENSER_LAUNCHER_SELECTOR).first
+    try:
+        await launcher.wait_for(state="visible", timeout=consts.DENSER_WAIT_MS)
+        await launcher.click(timeout=consts.DENSER_WAIT_MS)
+    except Exception as exc:
+        if await _find_ready_denser_frame(page, timeout_ms=1_000) is not None:
+            return False
+        raise ChannelNotReadyError("Denser launcher did not render") from exc
+
+    if await _find_ready_denser_frame(
+        page, timeout_ms=consts.DENSER_WAIT_MS
+    ) is None:
+        raise ChannelNotReadyError("Denser composer did not render")
+    return True
 
 
 class DenserAutoConfigurator(BaseAutoConfigurator):
@@ -37,28 +83,21 @@ class DenserAutoConfigurator(BaseAutoConfigurator):
         if not isinstance(page, Page):
             return AutoConfigResult()
 
-        frame = await self._find_ready_frame(page, timeout_ms=1_000)
-        setup_actions: list[InteractionAction] = []
-        if frame is None:
-            launcher = page.locator(consts.DENSER_LAUNCHER_SELECTOR).first
+        frame = await _find_ready_denser_frame(page, timeout_ms=1_000)
+        setup_actions = [InteractionAction(
+            kind="denser_open", selector=consts.DENSER_LAUNCHER_SELECTOR
+        )]
+        if frame is not None:
+            self._emit("DISCOVER", "Denser composer was already open")
+        else:
             try:
-                await launcher.wait_for(
-                    state="visible", timeout=consts.DENSER_WAIT_MS
-                )
-                await launcher.click(timeout=consts.DENSER_WAIT_MS)
-            except Exception:
-                frame = await self._find_ready_frame(page, timeout_ms=1_000)
-                if frame is None:
-                    self._emit("DISCOVER", "Denser launcher did not render")
-                    return AutoConfigResult()
-            else:
-                setup_actions.append(InteractionAction(
-                    kind="trigger", selector=consts.DENSER_LAUNCHER_SELECTOR
-                ))
-                self._emit("TRIGGER", "opened Denser chatbot")
-                frame = await self._find_ready_frame(
-                    page, timeout_ms=consts.DENSER_WAIT_MS
-                )
+                clicked = await open_denser_widget(page)
+            except ChannelNotReadyError as exc:
+                self._emit("DISCOVER", str(exc))
+                return AutoConfigResult()
+            if clicked:
+                self._emit("TRIGGER", "clicked the visible Denser launcher")
+            frame = await _find_ready_denser_frame(page, timeout_ms=1_000)
 
         if frame is None:
             self._emit("DISCOVER", "Denser composer did not render")
@@ -76,29 +115,6 @@ class DenserAutoConfigurator(BaseAutoConfigurator):
         )
         self._emit("CHAT FOUND", result.input_selector)
         return result
-
-    async def _find_ready_frame(
-        self, page: Page, *, timeout_ms: int
-    ) -> Frame | None:
-        elapsed = 0
-        while elapsed < timeout_ms:
-            for frame in page.frames:
-                if frame is page.main_frame:
-                    continue
-                try:
-                    owner = await frame.frame_element()
-                    if (
-                        await owner.get_attribute("title") == "Denser Chatbot"
-                        and await frame.locator(
-                            consts.DENSER_INPUT_SELECTOR
-                        ).is_visible()
-                    ):
-                        return frame
-                except Exception:
-                    continue
-            await asyncio.sleep(consts.DISCOVERY_INPUT_POLL_MS / 1000)
-            elapsed += consts.DISCOVERY_INPUT_POLL_MS
-        return None
 
     def _emit(self, phase: str, detail: str) -> None:
         if self._progress_callback:

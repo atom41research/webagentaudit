@@ -56,7 +56,7 @@ class BaseProbe(ABC):
     def get_conversations(self) -> list[Conversation]:
         """Return conversation flows to execute.
 
-        Each conversation gets a fresh browser session. The default wraps
+        Each conversation gets a fresh channel. The default wraps
         each prompt from ``get_prompts()`` as a single-turn conversation.
 
         Override this for multi-turn probes where multiple messages must

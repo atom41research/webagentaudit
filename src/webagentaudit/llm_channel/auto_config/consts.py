@@ -394,6 +394,29 @@ FEATUREBASE_INTERACTION_DESCRIPTION = (
     "programmatic Featurebase SDK composer; the visible launcher may not "
     "expose a chat box"
 )
+PROGRAMMATIC_INTERACTION_DESCRIPTIONS = {
+    "botpress_open": (
+        "programmatic Botpress widget API opening; prompt and response use "
+        "rendered chat controls"
+    ),
+    "featurebase_new_message": FEATUREBASE_INTERACTION_DESCRIPTION,
+    "intercom_show": (
+        "programmatic Intercom Messenger API opening; prompt and response use "
+        "rendered chat controls"
+    ),
+    "chatbot_open": (
+        "programmatic ChatBot.com widget API opening; prompt and response use "
+        "rendered chat controls"
+    ),
+    "tidio_open": (
+        "programmatic Tidio widget API opening; prompt and response use "
+        "rendered chat controls"
+    ),
+    "voiceflow_open": (
+        "programmatic Voiceflow widget API opening; prompt and response use "
+        "rendered chat controls"
+    ),
+}
 
 # ---------------------------------------------------------------------------
 # Tidio

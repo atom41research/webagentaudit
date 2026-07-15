@@ -14,13 +14,14 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from click.testing import CliRunner
 
 from webagentaudit.cli.app import (
     TargetAssessmentFailure,
+    _emit_probe_progress,
     _interaction_description,
     _launch_browser,
     cli,
@@ -28,6 +29,7 @@ from webagentaudit.cli.app import (
 from webagentaudit.core.consts import VERSION
 from webagentaudit.llm_channel.auto_config.consts import (
     FEATUREBASE_INTERACTION_DESCRIPTION,
+    PROGRAMMATIC_INTERACTION_DESCRIPTIONS,
 )
 from webagentaudit.llm_channel.models import InteractionAction, InteractionPlan
 
@@ -94,11 +96,103 @@ class TestHelpAndVersion:
             FEATUREBASE_INTERACTION_DESCRIPTION
         )
 
+    def test_programmatic_interaction_description_comes_from_plan(self):
+        plan = InteractionPlan(
+            input_selector="#input",
+            setup_actions=[InteractionAction(
+                kind="botpress_open",
+                selector="window.botpress",
+            )],
+        )
+
+        assert _interaction_description(plan=plan) == (
+            PROGRAMMATIC_INTERACTION_DESCRIPTIONS["botpress_open"]
+        )
+
+    def test_visible_denser_trigger_is_not_labeled_programmatic(self):
+        plan = InteractionPlan(
+            input_selector="#input",
+            setup_actions=[InteractionAction(
+                kind="trigger",
+                selector="denser-chat::shadow button",
+            )],
+        )
+
+        assert _interaction_description(provider_hint="denser", plan=plan) is None
+
+    def test_probe_progress_separates_execution_success_and_pass_verdict(self):
+        from webagentaudit.assessment.models import (
+            ChatMessage,
+            ProbeExchange,
+            ProbeResult,
+        )
+
+        events = []
+        result = ProbeResult(
+            probe_name="output_safety.custom_fibonacci",
+            exchanges=[ProbeExchange(messages=[
+                ChatMessage(role="user", content="Write Fibonacci"),
+                ChatMessage(role="assistant", content="def my_fibonacci(): ..."),
+            ])],
+        )
+
+        _emit_probe_progress(
+            result, lambda phase, detail: events.append((phase, detail))
+        )
+
+        assert events == [
+            ("PROMPT", "Write Fibonacci"),
+            ("CHAT RESPONSE", "def my_fibonacci(): ..."),
+            ("PROBE EXECUTION SUCCESS", "1 interaction completed"),
+            (
+                "SECURITY VERDICT PASS",
+                "output_safety.custom_fibonacci (no vulnerability detected)",
+            ),
+        ]
+
+    @pytest.mark.parametrize(
+        ("result_kwargs", "expected_phase", "expected_detail"),
+        [
+            (
+                {
+                    "vulnerability_detected": True,
+                    "matched_patterns": ["my_fibonacci"],
+                },
+                "SECURITY VERDICT VULNERABLE",
+                "probe.name; matched: my_fibonacci",
+            ),
+            (
+                {
+                    "error_count": 1,
+                    "errors": [{
+                        "phase": "response_read",
+                        "message": "No response",
+                    }],
+                },
+                "PROBE EXECUTION ERROR",
+                "0 interactions completed; probe.name [response_read] No response",
+            ),
+        ],
+    )
+    def test_probe_progress_emits_non_pass_verdicts(
+        self, result_kwargs, expected_phase, expected_detail,
+    ):
+        from webagentaudit.assessment.models import ProbeResult
+
+        events = []
+        _emit_probe_progress(
+            ProbeResult(probe_name="probe.name", **result_kwargs),
+            lambda phase, detail: events.append((phase, detail)),
+        )
+
+        assert (expected_phase, expected_detail) in events
+
     def test_detect_help(self, runner):
         result = runner.invoke(cli, ["detect", "--help"])
         assert result.exit_code == 0
         assert "--headful" in result.output
         assert "--fullscreen" in result.output
+        assert "--window-position" in result.output
         assert "--timeout" in result.output
         assert "--browser" in result.output
         assert "--output" in result.output
@@ -108,13 +202,14 @@ class TestHelpAndVersion:
         assert result.exit_code == 0
         for opt in [
             "--headful", "--fullscreen", "--screenshots", "--screenshots-dir",
+            "--window-position",
             "--input-selector",
             "--response-selector", "--input-hint", "--submit-hint",
             "--trigger-selector",
             "--iframe-selector", "--wait-for", "--category",
             "--sophistication", "--probe-dir", "--probe-file",
             "--probes", "--workers", "--timeout",
-            "--url-file", "--post-send-wait", "--post-success-wait",
+            "--url", "--url-file", "--post-send-wait", "--post-success-wait",
             "--output-file",
         ]:
             assert opt in result.output, f"Missing option {opt} in assess --help"
@@ -131,14 +226,36 @@ class TestHelpAndVersion:
         assert result.exit_code == 0
         for opt in [
             "--headful", "--fullscreen", "--browser-exe", "--user-data-dir",
+            "--window-position",
             "--browser-profile", "--post-send-wait", "--input-selector",
             "--response-selector", "--submit-selector", "--screenshots-dir",
+            "--verbose", "--debug", "--output",
         ]:
             assert opt in result.output
 
     def test_unknown_command(self, runner):
         result = runner.invoke(cli, ["nonexistent"])
         assert result.exit_code != 0
+
+    @pytest.mark.parametrize("command_name", ["detect", "prompt", "assess", "probes"])
+    def test_readme_documents_every_command_parameter(self, command_name):
+        readme = (Path(__file__).parents[2] / "README.md").read_text()
+        heading = f"### `webagentaudit {command_name}"
+        start = readme.index(heading)
+        end = readme.find("\n### `webagentaudit ", start + len(heading))
+        if end == -1:
+            end = readme.find("\n## ", start + len(heading))
+        section = readme[start:end if end != -1 else None]
+
+        for parameter in cli.commands[command_name].params:
+            options = getattr(parameter, "opts", ())
+            if options:
+                for option in options:
+                    assert option in section, (
+                        f"README {command_name} section is missing {option}"
+                    )
+            else:
+                assert f"<{parameter.name}>" in section
 
 
 # ---------------------------------------------------------------------------
@@ -157,13 +274,25 @@ class TestDetectCommand:
         result = runner.invoke(cli, ["detect", "--help"])
         assert result.exit_code == 0
         for opt in ["--headful", "--fullscreen", "--browser", "--browser-exe",
-                     "--user-data-dir", "--timeout", "--verbose", "--output"]:
+                     "--window-position", "--user-data-dir", "--timeout",
+                     "--verbose", "--debug", "--output"]:
             assert opt in result.output, f"Missing {opt}"
 
     @pytest.mark.asyncio
-    async def test_fullscreen_launch_is_headed_and_uses_native_viewport(self):
-        page = object()
-        context = SimpleNamespace(new_page=AsyncMock(return_value=page))
+    async def test_fullscreen_launch_syncs_page_to_window_bounds(self):
+        session = AsyncMock()
+        session.send.side_effect = [
+            {"windowId": 7},
+            {},
+            {"bounds": {"width": 1920, "height": 1200}},
+            {},
+        ]
+        context = SimpleNamespace(
+            new_page=AsyncMock(),
+            new_cdp_session=AsyncMock(return_value=session),
+        )
+        page = SimpleNamespace(context=context)
+        context.new_page.return_value = page
         browser = SimpleNamespace(
             new_context=AsyncMock(return_value=context),
         )
@@ -189,6 +318,161 @@ class TestDetectCommand:
             viewport=None,
             ignore_https_errors=True,
         )
+        assert session.send.await_args_list[1].args == (
+            "Browser.setWindowBounds",
+            {"windowId": 7, "bounds": {"windowState": "fullscreen"}},
+        )
+        assert session.send.await_args_list[-1].args == (
+            "Emulation.setDeviceMetricsOverride",
+            {
+                "width": 1920,
+                "height": 1200,
+                "deviceScaleFactor": 0,
+                "mobile": False,
+                "screenWidth": 1920,
+                "screenHeight": 1200,
+            },
+        )
+
+    @pytest.mark.asyncio
+    async def test_window_position_is_applied_to_headed_chromium(
+        self, monkeypatch,
+    ):
+        monkeypatch.setenv("WAYLAND_DISPLAY", "wayland-0")
+        session = AsyncMock()
+        session.send.side_effect = [
+            {"windowId": 9},
+            {},
+            {
+                "bounds": {
+                    "windowState": "normal",
+                    "left": 44,
+                    "top": 653,
+                }
+            },
+        ]
+        context = SimpleNamespace(
+            new_page=AsyncMock(),
+            new_cdp_session=AsyncMock(return_value=session),
+        )
+        page = SimpleNamespace(context=context)
+        context.new_page.return_value = page
+        browser = SimpleNamespace(new_context=AsyncMock(return_value=context))
+        launcher = SimpleNamespace(launch=AsyncMock(return_value=browser))
+        playwright = SimpleNamespace(chromium=launcher)
+
+        await _launch_browser(
+            playwright,
+            "chromium",
+            headful=False,
+            browser_exe=None,
+            user_data_dir=None,
+            window_position=(0, 640),
+        )
+
+        launcher.launch.assert_awaited_once_with(
+            headless=False,
+            args=["--ozone-platform=x11", "--window-position=0,640"],
+        )
+        assert session.send.await_args_list[1].args == (
+            "Browser.setWindowBounds",
+            {
+                "windowId": 9,
+                "bounds": {
+                    "windowState": "normal",
+                    "left": 0,
+                    "top": 640,
+                },
+            },
+        )
+        assert session.send.await_args_list[-1].args == (
+            "Browser.getWindowBounds",
+            {"windowId": 9},
+        )
+
+    @pytest.mark.asyncio
+    async def test_persistent_profile_combines_position_and_fullscreen(
+        self, monkeypatch,
+    ):
+        monkeypatch.setenv("WAYLAND_DISPLAY", "wayland-0")
+        session = AsyncMock()
+        session.send.side_effect = [
+            {"windowId": 11},
+            {},
+            {
+                "bounds": {
+                    "windowState": "normal",
+                    "left": -1920,
+                    "top": 0,
+                }
+            },
+            {},
+            {"bounds": {"width": 1920, "height": 1200}},
+            {},
+        ]
+        context = SimpleNamespace(
+            pages=[],
+            new_page=AsyncMock(),
+            new_cdp_session=AsyncMock(return_value=session),
+        )
+        page = SimpleNamespace(context=context)
+        context.new_page.return_value = page
+        launcher = SimpleNamespace(
+            launch_persistent_context=AsyncMock(return_value=context)
+        )
+        playwright = SimpleNamespace(chromium=launcher)
+
+        launched_page, closeable = await _launch_browser(
+            playwright,
+            "chromium",
+            headful=False,
+            browser_exe="/browser",
+            user_data_dir="/browser-data",
+            browser_profile="Profile 1",
+            fullscreen=True,
+            window_position=(-1920, 0),
+        )
+
+        assert launched_page is page
+        assert closeable is context
+        launcher.launch_persistent_context.assert_awaited_once_with(
+            "/browser-data",
+            headless=False,
+            executable_path="/browser",
+            args=[
+                "--profile-directory=Profile 1",
+                "--start-fullscreen",
+                "--ozone-platform=x11",
+                "--window-position=-1920,0",
+            ],
+            viewport=None,
+            ignore_https_errors=True,
+        )
+        assert session.send.await_args_list[1].args[1]["bounds"] == {
+            "windowState": "normal",
+            "left": -1920,
+            "top": 0,
+        }
+        assert session.send.await_args_list[3].args[1]["bounds"] == {
+            "windowState": "fullscreen"
+        }
+        assert session.send.await_args_list[-1].args[1] == {
+            "width": 1920,
+            "height": 1200,
+            "deviceScaleFactor": 0,
+            "mobile": False,
+            "screenWidth": 1920,
+            "screenHeight": 1200,
+        }
+
+    def test_window_position_rejects_non_chromium_browser(self, runner):
+        result = runner.invoke(cli, [
+            "detect", "https://example.com", "--browser", "firefox",
+            "--window-position", "0", "0",
+        ])
+
+        assert result.exit_code != 0
+        assert "requires Chromium" in result.output
 
     @pytest.mark.asyncio
     async def test_headless_chromium_uses_browser_version_without_headless_token(self):
@@ -219,6 +503,113 @@ class TestDetectCommand:
         assert "firefox" in result.output
         assert "webkit" in result.output
 
+    def test_all_detect_options_are_forwarded(
+        self, runner, tmp_path, monkeypatch,
+    ):
+        detect_call = AsyncMock()
+        configure_logging = Mock()
+        monkeypatch.setattr("webagentaudit.cli.app._detect", detect_call)
+        monkeypatch.setattr(
+            "webagentaudit.cli.app.logging.basicConfig", configure_logging
+        )
+        browser_exe = tmp_path / "chromium"
+        browser_exe.touch()
+        user_data_dir = tmp_path / "browser-data"
+
+        result = runner.invoke(cli, [
+            "detect", "https://example.com",
+            "--headful", "--fullscreen",
+            "--window-position", "-10", "20",
+            "--browser", "chromium",
+            "--browser-exe", str(browser_exe),
+            "--user-data-dir", str(user_data_dir),
+            "--timeout", "1234",
+            "--verbose",
+            "--debug",
+            "--output", "json",
+        ])
+
+        assert result.exit_code == 0, result.output
+        detect_call.assert_awaited_once_with(
+            "https://example.com", True, True, (-10, 20), "chromium",
+            str(browser_exe), str(user_data_dir), 1234, "json", True,
+        )
+        configure_logging.assert_called_once()
+
+    def test_verbose_does_not_enable_debug_logging(
+        self, runner, monkeypatch,
+    ):
+        detect_call = AsyncMock()
+        configure_logging = Mock()
+        monkeypatch.setattr("webagentaudit.cli.app._detect", detect_call)
+        monkeypatch.setattr(
+            "webagentaudit.cli.app.logging.basicConfig", configure_logging
+        )
+
+        result = runner.invoke(cli, [
+            "detect", "https://example.com", "--verbose",
+        ])
+
+        assert result.exit_code == 0
+        configure_logging.assert_not_called()
+
+
+class TestPromptOptionParsing:
+    """Test that every prompt option reaches the async implementation."""
+
+    def test_all_prompt_options_are_forwarded(
+        self, runner, tmp_path, monkeypatch,
+    ):
+        prompt_call = AsyncMock()
+        configure_logging = Mock()
+        monkeypatch.setattr("webagentaudit.cli.app._prompt", prompt_call)
+        monkeypatch.setattr(
+            "webagentaudit.cli.app.logging.basicConfig", configure_logging
+        )
+        browser_exe = tmp_path / "chromium"
+        browser_exe.touch()
+
+        result = runner.invoke(cli, [
+            "prompt", "https://example.com", "hello",
+            "--headful", "--fullscreen",
+            "--window-position", "-10", "20",
+            "--browser", "chromium",
+            "--browser-exe", str(browser_exe),
+            "--user-data-dir", str(tmp_path / "browser-data"),
+            "--browser-profile", "Profile 1",
+            "--timeout", "4321",
+            "--post-send-wait", "25",
+            "--input-selector", "#input",
+            "--response-selector", ".response",
+            "--submit-selector", "#send",
+            "--screenshots-dir", str(tmp_path / "screenshots"),
+            "--verbose",
+            "--debug",
+            "--output", "json",
+        ])
+
+        assert result.exit_code == 0, result.output
+        prompt_call.assert_awaited_once_with(
+            url="https://example.com",
+            message="hello",
+            headful=True,
+            fullscreen=True,
+            window_position=(-10, 20),
+            browser="chromium",
+            browser_exe=str(browser_exe),
+            user_data_dir=str(tmp_path / "browser-data"),
+            browser_profile="Profile 1",
+            timeout=4321,
+            post_send_wait=25,
+            input_selector="#input",
+            response_selector=".response",
+            submit_selector="#send",
+            screenshots_dir=str(tmp_path / "screenshots"),
+            output_format="json",
+            verbose=True,
+        )
+        configure_logging.assert_called_once()
+
 
 # ---------------------------------------------------------------------------
 # Assess command option parsing
@@ -231,6 +622,94 @@ class TestAssessOptionParsing:
     def test_assess_missing_url(self, runner):
         result = runner.invoke(cli, ["assess"])
         assert result.exit_code != 0
+
+    def test_all_assess_options_are_forwarded(
+        self, runner, tmp_path, monkeypatch, yaml_probes_dir,
+        single_turn_yaml, multi_turn_yaml,
+    ):
+        from webagentaudit.assessment.models import AssessmentResult
+
+        assess_call = AsyncMock(return_value=AssessmentResult())
+        configure_logging = Mock()
+        monkeypatch.setattr("webagentaudit.cli.app._assess", assess_call)
+        monkeypatch.setattr(
+            "webagentaudit.cli.app.logging.basicConfig", configure_logging
+        )
+        browser_exe = tmp_path / "chromium"
+        browser_exe.touch()
+        output_file = tmp_path / "result.json"
+
+        result = runner.invoke(cli, [
+            "assess", "--url", "https://example.com",
+            "--headful", "--fullscreen",
+            "--window-position", "-10", "20",
+            "--browser", "chromium",
+            "--browser-exe", str(browser_exe),
+            "--user-data-dir", str(tmp_path / "browser-data"),
+            "--timeout", "1234",
+            "--post-send-wait", "25",
+            "--post-success-wait", "50",
+            "--workers", "3",
+            "--input-selector", "#input",
+            "--response-selector", ".response",
+            "--submit-selector", "#send",
+            "--trigger-selector", "#open-chat",
+            "--input-hint", "<textarea>",
+            "--submit-hint", "<button>Send</button>",
+            "--response-hint", "<div class='response'>",
+            "--iframe-selector", "iframe.chat",
+            "--wait-for", "#ready",
+            "--category", "extraction",
+            "--sophistication", "advanced",
+            "--severity", "high",
+            "--probes", "extraction.custom_direct_ask",
+            "--probe-dir", yaml_probes_dir,
+            "--probe-file", single_turn_yaml,
+            "--probe-file", multi_turn_yaml,
+            "--screenshots",
+            "--screenshots-dir", str(tmp_path / "screenshots"),
+            "--verbose",
+            "--debug",
+            "--output", "text",
+            "--output-file", str(output_file),
+        ])
+
+        assert result.exit_code == 0, result.output
+        assess_call.assert_awaited_once_with(
+            url="https://example.com",
+            emit_output=True,
+            headful=True,
+            fullscreen=True,
+            window_position=(-10, 20),
+            browser="chromium",
+            browser_exe=str(browser_exe),
+            user_data_dir=str(tmp_path / "browser-data"),
+            timeout=1234,
+            post_send_wait=25,
+            post_success_wait=50,
+            workers=3,
+            input_selector="#input",
+            response_selector=".response",
+            submit_selector="#send",
+            trigger_selector="#open-chat",
+            input_hint="<textarea>",
+            submit_hint="<button>Send</button>",
+            response_hint="<div class='response'>",
+            iframe_selector="iframe.chat",
+            wait_for_selector="#ready",
+            category="extraction",
+            sophistication="advanced",
+            severity="high",
+            probes="extraction.custom_direct_ask",
+            probe_dir=yaml_probes_dir,
+            probe_file=(single_turn_yaml, multi_turn_yaml),
+            screenshots=True,
+            screenshots_dir=str(tmp_path / "screenshots"),
+            output_format="text",
+            verbose=True,
+        )
+        configure_logging.assert_called_once()
+        assert output_file.exists()
 
     def test_assess_help_has_user_data_dir(self, runner):
         result = runner.invoke(cli, ["assess", "--help"])
@@ -263,7 +742,24 @@ class TestAssessOptionParsing:
             "assess", "https://example.org", "--url-file", str(url_file),
         ])
         assert result.exit_code != 0
-        assert "either URL or --url-file" in result.output
+        assert "exactly one of positional URL, --url, or --url-file" in result.output
+
+    def test_assess_rejects_positional_url_and_url_option(self, runner):
+        result = runner.invoke(cli, [
+            "assess", "https://example.org", "--url", "https://example.com",
+        ])
+        assert result.exit_code != 0
+        assert "exactly one of positional URL, --url, or --url-file" in result.output
+
+    def test_assess_rejects_url_option_and_url_file(self, runner, tmp_path):
+        url_file = tmp_path / "urls.txt"
+        url_file.write_text("https://example.com\n")
+        result = runner.invoke(cli, [
+            "assess", "--url", "https://example.org",
+            "--url-file", str(url_file),
+        ])
+        assert result.exit_code != 0
+        assert "exactly one of positional URL, --url, or --url-file" in result.output
 
     def test_batch_preserves_programmatic_interaction_on_failure(
         self, runner, tmp_path, monkeypatch,
@@ -297,6 +793,84 @@ class TestAssessOptionParsing:
         target = json.loads(output_file.read_text())["targets"][0]
         assert target["provider_hint"] == "featurebase"
         assert target["interaction"] == FEATUREBASE_INTERACTION_DESCRIPTION
+
+    @pytest.mark.parametrize(
+        ("verbose", "shows_details"),
+        [(False, False), (True, True)],
+    )
+    def test_batch_verbose_controls_phase_detail_but_not_interaction_label(
+        self, runner, tmp_path, monkeypatch, verbose, shows_details,
+    ):
+        from webagentaudit.assessment.models import (
+            AssessmentResult,
+            AssessmentSummary,
+        )
+
+        description = PROGRAMMATIC_INTERACTION_DESCRIPTIONS["botpress_open"]
+
+        async def succeed_with_progress(**kwargs):
+            progress = kwargs["progress_callback"]
+            progress("PROVIDER", "botpress")
+            progress("INTERACTION", description)
+            progress("CHAT FOUND", "textarea.bpComposerInput")
+            progress("TYPED", "prompt text verified in chat input")
+            progress("SUBMITTED", "prompt left the chat input")
+            progress("RESPONSE READ", "assistant output became stable")
+            progress(
+                "PROBE START",
+                "[1/1] output_safety.custom_fibonacci "
+                "(1 planned interaction)",
+            )
+            progress(
+                "PROBE TURN", "[1/1] output_safety.custom_fibonacci"
+            )
+            progress("PROMPT", "Write Fibonacci")
+            progress("CHAT RESPONSE", "def my_fibonacci(): ...")
+            progress(
+                "PROBE EXECUTION SUCCESS",
+                "1 interaction completed",
+            )
+            progress(
+                "SECURITY VERDICT PASS",
+                "output_safety.custom_fibonacci (no vulnerability detected)",
+            )
+            return AssessmentResult(
+                summary=AssessmentSummary(
+                    total_probes=1,
+                    target_url=kwargs["url"],
+                ),
+                metadata={
+                    "provider_hint": "botpress",
+                    "interaction": description,
+                },
+            )
+
+        monkeypatch.setattr(
+            "webagentaudit.cli.app._assess",
+            succeed_with_progress,
+        )
+        url_file = tmp_path / "urls.txt"
+        output_file = tmp_path / "results.json"
+        url_file.write_text("https://botpress.example.com\n")
+        args = [
+            "assess", "--url-file", str(url_file),
+            "--output-file", str(output_file),
+        ]
+        if verbose:
+            args.append("--verbose")
+
+        result = runner.invoke(cli, args)
+
+        assert result.exit_code == 0
+        assert description in result.output
+        assert ("RESPONSE READ" in result.output) is shows_details
+        assert ("Chat response:" in result.output) is shows_details
+        assert ("Probe: [1/1]" in result.output) is shows_details
+        assert ("Planned interaction: [1/1]" in result.output) is shows_details
+        assert ("Probe execution: SUCCESS" in result.output) is shows_details
+        assert ("Security verdict: PASS" in result.output) is shows_details
+        assert "DEBUG " not in result.output
+        assert "Traceback" not in result.output
 
     def test_default_output_path_is_timestamped_json_artifact(self):
         from webagentaudit.cli.app import _default_output_path
@@ -406,6 +980,16 @@ class TestProbesCommand:
         result = runner.invoke(cli, ["probes", "--sophistication", "basic"])
         assert result.exit_code == 0
 
+    def test_probes_with_valid_severity(self, runner):
+        result = runner.invoke(cli, [
+            "probes", "--severity", "critical", "--output", "json",
+        ])
+
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data
+        assert {probe["severity"] for probe in data} == {"critical"}
+
     def test_probes_with_probe_dir(self, runner, yaml_probes_dir):
         result = runner.invoke(cli, [
             "probes", "--probe-dir", yaml_probes_dir,
@@ -460,6 +1044,12 @@ class TestProbesValidation:
     def test_invalid_sophistication(self, runner):
         result = runner.invoke(cli, ["probes", "--sophistication", "mega"])
         assert result.exit_code != 0
+
+    def test_invalid_severity(self, runner):
+        result = runner.invoke(cli, ["probes", "--severity", "urgent"])
+
+        assert result.exit_code != 0
+        assert "Invalid severity" in result.output
 
     def test_mixed_valid_invalid_category(self, runner):
         """A comma-separated list with one invalid category should error."""
@@ -570,6 +1160,17 @@ class TestAssessValidation:
         ])
         assert result.exit_code != 0
         assert "Invalid sophistication" in result.output or "Error" in result.output
+
+    def test_assess_invalid_severity(self, runner):
+        result = runner.invoke(cli, [
+            "assess", "http://example.com",
+            "--input-selector", "#input",
+            "--response-selector", "#resp",
+            "--severity", "urgent",
+        ])
+
+        assert result.exit_code != 0
+        assert "Invalid severity" in result.output
 
 
 # ---------------------------------------------------------------------------

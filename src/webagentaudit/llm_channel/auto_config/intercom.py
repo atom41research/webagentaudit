@@ -59,6 +59,10 @@ class IntercomAutoConfigurator(BaseAutoConfigurator):
                 "typeof window.Intercom === 'function'",
                 timeout=consts.INTERCOM_FRAME_WAIT_MS,
             )
+            self._emit(
+                "INTERACTION",
+                consts.PROGRAMMATIC_INTERACTION_DESCRIPTIONS["intercom_show"],
+            )
             await page.evaluate("window.Intercom('show')")
         except Exception:
             self._emit("DISCOVER", "Intercom API was unavailable")

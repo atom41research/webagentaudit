@@ -87,6 +87,10 @@ class TidioAutoConfigurator(BaseAutoConfigurator):
         if not isinstance(page, Page):
             return AutoConfigResult()
 
+        self._emit(
+            "INTERACTION",
+            consts.PROGRAMMATIC_INTERACTION_DESCRIPTIONS["tidio_open"],
+        )
         await open_tidio_widget(page)
         self._emit("TRIGGER", "opened Tidio widget")
 

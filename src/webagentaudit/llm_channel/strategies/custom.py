@@ -19,6 +19,7 @@ from ..auto_config._dom_utils import click_enabled_submit_after_fill
 from ..auto_config._response_finder import ResponseFinder
 from ..auto_config.botpress import open_botpress_widget
 from ..auto_config.chatbase import open_chatbase_widget
+from ..auto_config.denser import open_denser_widget
 from ..auto_config.featurebase import open_featurebase_composer
 from ..auto_config.tidio import open_tidio_widget
 from ..auto_config.voiceflow import open_voiceflow_widget
@@ -84,7 +85,7 @@ class CustomStrategy(BaseInteractionStrategy):
         self._progress_callback = progress_callback
 
     async def prepare_page(self, page: Page) -> Page | Frame:
-        """Replay the successful discovery path in a fresh browser context."""
+        """Prepare the retained or fresh page from the discovery plan."""
         for action in self._plan.setup_actions:
             try:
                 if action.kind == "botpress_open":
@@ -92,6 +93,9 @@ class CustomStrategy(BaseInteractionStrategy):
                     continue
                 if action.kind == "chatbase_open":
                     await open_chatbase_widget(page)
+                    continue
+                if action.kind == "denser_open":
+                    await open_denser_widget(page)
                     continue
                 if action.kind == "featurebase_new_message":
                     await open_featurebase_composer(page)

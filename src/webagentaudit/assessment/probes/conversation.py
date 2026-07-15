@@ -19,10 +19,11 @@ class ConversationTurn:
 
 @dataclass
 class Conversation:
-    """A sequence of turns that must share the same browser session.
+    """A sequence of turns that must share the same channel session.
 
-    Each conversation gets a fresh browser session to avoid contamination
-    from other conversations or probes.
+    Each conversation gets a fresh channel so it does not reuse in-memory
+    channel history. Browser page ownership is selected by the CLI execution
+    mode.
     """
 
     turns: list[ConversationTurn] = field(default_factory=list)

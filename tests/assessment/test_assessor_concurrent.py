@@ -1,6 +1,7 @@
 """Tests for concurrent probe execution in LlmAssessor."""
 
 import asyncio
+import logging
 
 import pytest
 
@@ -11,8 +12,10 @@ from webagentaudit.assessment.probes.registry import ProbeRegistry
 from webagentaudit.core.enums import ProbeCategory, Severity, Sophistication
 from webagentaudit.core.exceptions import (
     AssessmentError,
+    ChannelNotReadyError,
     ChannelResponseError,
     ChannelSubmissionError,
+    ChannelTimeoutError,
 )
 from webagentaudit.llm_channel.base import BaseLlmChannel
 from webagentaudit.llm_channel.config import ChannelConfig
@@ -274,11 +277,33 @@ async def test_progress_callback_called():
 
 
 @pytest.mark.asyncio
+async def test_activity_callback_labels_planned_probe_interactions():
+    events = []
+    probe = SimpleProbe("probe_name", prompts=["first", "second"])
+    assessor = LlmAssessor(
+        config=AssessmentConfig(workers=1, inter_probe_delay_ms=0),
+        channel_factory=lambda: StubChannel(delay_ms=0),
+        registry=_make_registry([probe]),
+        activity_callback=lambda phase, detail: events.append((phase, detail)),
+    )
+
+    result = await assessor.assess("http://example.com")
+
+    assert events == [
+        ("PROBE START", "[1/1] probe_name (2 planned interactions)"),
+        ("PROBE TURN", "[1/2] probe_name"),
+        ("PROBE TURN", "[2/2] probe_name"),
+    ]
+    assert len(result.probe_results[0].exchanges) == 2
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("error", "expected_phase"),
     [
         (ChannelSubmissionError("submit failed"), "prompt_submission"),
         (ChannelResponseError("read failed"), "response_read"),
+        (ChannelTimeoutError("response timed out"), "response_read"),
     ],
 )
 async def test_interaction_failure_phase_is_preserved(
@@ -294,11 +319,58 @@ async def test_interaction_failure_phase_is_preserved(
         registry=_make_registry([SimpleProbe("failure_probe")]),
     )
 
-    result = await assessor.assess("http://example.com")
+    with caplog.at_level(logging.DEBUG):
+        result = await assessor.assess("http://example.com")
 
     probe_result = result.probe_results[0]
     assert probe_result.error_count == 1
     assert probe_result.errors[0].phase == expected_phase
     assert probe_result.errors[0].message == str(error)
     assert probe_result.errors[0].prompt == "test prompt"
-    assert not caplog.records
+    assert len(caplog.records) == 1
+    assert not caplog.records[0].exc_info
+
+
+async def test_unexpected_turn_failure_retains_debug_traceback(caplog):
+    class FailingChannel(StubChannel):
+        async def send(self, message):
+            raise RuntimeError("unexpected bug")
+
+    assessor = LlmAssessor(
+        config=AssessmentConfig(inter_probe_delay_ms=0),
+        channel_factory=FailingChannel,
+        registry=_make_registry([SimpleProbe("failure_probe")]),
+    )
+
+    with caplog.at_level(logging.DEBUG):
+        await assessor.assess("http://example.com")
+
+    assert len(caplog.records) == 1
+    assert caplog.records[0].exc_info is not None
+
+
+@pytest.mark.parametrize(
+    ("error", "has_traceback"),
+    [
+        (ChannelNotReadyError("chat unavailable"), False),
+        (RuntimeError("unexpected bug"), True),
+    ],
+)
+async def test_connection_failure_debug_traceback_policy(
+    error, has_traceback, caplog
+):
+    class FailingChannel(StubChannel):
+        async def connect(self, url):
+            raise error
+
+    assessor = LlmAssessor(
+        config=AssessmentConfig(inter_probe_delay_ms=0),
+        channel_factory=FailingChannel,
+        registry=_make_registry([SimpleProbe("failure_probe")]),
+    )
+
+    with caplog.at_level(logging.DEBUG):
+        await assessor.assess("http://example.com")
+
+    assert len(caplog.records) == 1
+    assert bool(caplog.records[0].exc_info) is has_traceback

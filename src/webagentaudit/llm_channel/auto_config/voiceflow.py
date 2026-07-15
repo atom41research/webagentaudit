@@ -51,6 +51,10 @@ class VoiceflowAutoConfigurator(BaseAutoConfigurator):
         if not isinstance(page, Page):
             return AutoConfigResult()
 
+        self._emit(
+            "INTERACTION",
+            consts.PROGRAMMATIC_INTERACTION_DESCRIPTIONS["voiceflow_open"],
+        )
         await open_voiceflow_widget(page)
         self._emit("TRIGGER", "opened Voiceflow widget")
         try:

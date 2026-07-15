@@ -75,6 +75,12 @@ class ChatbotComAutoConfigurator(BaseAutoConfigurator):
                         "window.BE_API && typeof window.BE_API.openChatWindow === 'function'",
                         timeout=consts.DISCOVERY_INPUT_POLL_MS,
                     )
+                    self._emit(
+                        "INTERACTION",
+                        consts.PROGRAMMATIC_INTERACTION_DESCRIPTIONS[
+                            "chatbot_open"
+                        ],
+                    )
                     await page.evaluate("window.BE_API.openChatWindow()")
                     break
                 except Exception:

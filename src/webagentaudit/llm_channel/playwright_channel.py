@@ -15,7 +15,11 @@ from webagentaudit.core.exceptions import (
     ChannelTimeoutError,
 )
 from .base import BaseLlmChannel
-from .browser import effective_user_agent
+from .browser import (
+    apply_window_geometry,
+    effective_user_agent,
+    window_position_launch_args,
+)
 from .config import ChannelConfig
 from .consts import NEW_PAGE_HANDOFF_WAIT_MS, PAGE_SETTLE_MS
 from .models import ChannelMessage, ChannelResponse
@@ -33,11 +37,15 @@ class PlaywrightChannel(BaseLlmChannel):
         strategy: BaseStrategy,
         browser: Browser | None = None,
         page: Page | None = None,
+        context: BrowserContext | None = None,
+        close_external_page: bool = True,
     ) -> None:
         super().__init__(config=config)
         self._strategy = strategy
         self._external_browser = browser
         self._external_page = page
+        self._external_context = context
+        self._close_external_page = close_external_page
         self._playwright = None
         self._browser: Browser | None = None
         self._context: BrowserContext | None = None
@@ -56,10 +64,16 @@ class PlaywrightChannel(BaseLlmChannel):
             )
         if self._config.fullscreen:
             launch_args.append("--start-fullscreen")
+        launch_args.extend(
+            window_position_launch_args(self._config.window_position)
+        )
 
         if self._external_page:
             self._page = self._external_page
             self._context = self._page.context
+        elif self._external_context:
+            self._context = self._external_context
+            self._page = await self._context.new_page()
         elif self._config.user_data_dir:
             # Persistent context requires its own playwright/browser
             self._playwright = await async_playwright().start()
@@ -117,6 +131,14 @@ class PlaywrightChannel(BaseLlmChannel):
                 ignore_https_errors=self._config.ignore_https_errors,
             )
             self._page = await self._context.new_page()
+
+        await apply_window_geometry(
+            self._page,
+            browser=self._config.browser,
+            fullscreen=self._config.fullscreen,
+            position=self._config.window_position,
+        )
+        await self._page.bring_to_front()
 
         if not self._external_page:
             await self._page.goto(
@@ -258,7 +280,11 @@ class PlaywrightChannel(BaseLlmChannel):
         return ChannelResponse(text=text, timestamp=datetime.now(UTC))
 
     async def disconnect(self) -> None:
-        if self._context:
+        if self._external_context and self._page:
+            if self._close_external_page:
+                await self._page.close()
+            self._context = None
+        elif self._context:
             await self._context.close()
             self._context = None
         if self._browser:
@@ -268,6 +294,7 @@ class PlaywrightChannel(BaseLlmChannel):
             await self._playwright.stop()
             self._playwright = None
         self._page = None
+        self._interaction_target = None
 
     async def is_ready(self) -> bool:
         return self._page is not None

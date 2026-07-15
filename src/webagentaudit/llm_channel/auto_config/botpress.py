@@ -57,6 +57,10 @@ class BotpressAutoConfigurator(BaseAutoConfigurator):
         if not isinstance(page, Page):
             return AutoConfigResult()
 
+        self._emit(
+            "INTERACTION",
+            consts.PROGRAMMATIC_INTERACTION_DESCRIPTIONS["botpress_open"],
+        )
         await open_botpress_widget(page)
         self._emit("TRIGGER", "opened Botpress widget")
 
