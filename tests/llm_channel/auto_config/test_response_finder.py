@@ -1,6 +1,9 @@
 """Tests for ResponseFinder: interactive response element discovery via DOM diffing."""
 
+from pathlib import Path
+
 import pytest
+from bs4 import BeautifulSoup
 
 from webagentaudit.core.exceptions import ChannelResponseError
 from webagentaudit.llm_channel.auto_config._response_finder import ResponseFinder
@@ -209,6 +212,34 @@ class TestResponseFinderBasic:
         with pytest.raises(ChannelResponseError, match="no response"):
             await finder.find(
                 page, input_selector="#input", submit_selector="#send"
+            )
+
+    async def test_control_only_change_is_not_an_assistant_response(
+        self, page, finder
+    ):
+        snapshot = (
+            Path(__file__).parents[2]
+            / "fixtures/rendered/andi_search/rendered_dom.html"
+        ).read_text()
+        messages = BeautifulSoup(snapshot, "html.parser").select_one("#messages")
+        assert messages is not None
+        await page.set_content(
+            f"""{messages}
+            <textarea id="audit-input"></textarea>
+            <button id="audit-send">Send</button>
+            <script>document.querySelector('#audit-send').onclick = () => {{
+              document.querySelector('#audit-input').value = '';
+              const action = document.createElement('button');
+              action.textContent = 'Generate Code';
+              document.querySelector('#messages').append(action);
+            }};</script>"""
+        )
+
+        with pytest.raises(ChannelResponseError, match="trustworthy assistant"):
+            await finder.find(
+                page,
+                input_selector="#audit-input",
+                submit_selector="#audit-send",
             )
 
     async def test_response_candidate_has_context_score(self, page, finder):

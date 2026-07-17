@@ -66,6 +66,19 @@ docker build -t webagentaudit .
 docker run --rm --user $(id -u):$(id -g) \
   webagentaudit detect https://example.com
 
+# Headed Chromium on a Linux X11/XWayland desktop
+# The render device is required: without it Chrome's frame clock can stall,
+# causing Playwright actionability checks to time out even when a window appears.
+docker run --rm --user $(id -u):$(id -g) --ipc=host \
+  --device /dev/dri/renderD128 \
+  --group-add "$(stat -c '%g' /dev/dri/renderD128)" \
+  -e DISPLAY \
+  -e WAYLAND_DISPLAY \
+  -e XAUTHORITY=/tmp/xauthority \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
+  -v "$XAUTHORITY":/tmp/xauthority:ro \
+  webagentaudit detect https://example.com --headful
+
 # Assess with screenshots (saved to host ./docker-output/screenshots/)
 docker run --rm --user $(id -u):$(id -g) \
   -v ./docker-output/screenshots:/data/screenshots \
@@ -83,6 +96,10 @@ docker compose run --rm webagentaudit probes
 ```
 
 Inside the container, screenshots default to `/data/screenshots` (via `WEBAGENTAUDIT_SCREENSHOTS_DIR`). Mount that path to access them on the host. Do not use `--screenshots-dir` with Docker — use the volume mount instead.
+
+The Dockerfiles pin the official Playwright image to the exact Playwright
+package version in `pyproject.toml`. Upgrade both together; the image already
+contains the matching browser binaries and system dependencies.
 
 ### Verify your installation
 
@@ -257,19 +274,48 @@ probe execution can therefore have a vulnerable security verdict.
 Every run writes a timestamped `output/webagentaudit-<UTC timestamp>.json` file
 by default; `--output-file` overrides the path. Each target embeds its complete
 assessment, including probe verdicts, prompts, assistant responses, matches,
-interaction method, and structured error details. The command exits with status
-1 if any target has an operational failure.
+response classification, accepted/rejected part counts, selector scope,
+interaction method, and structured error details. System acknowledgements,
+delayed greetings, timestamps, controls, date separators, and customer echoes
+do not count as assistant answers. Batch schema 3 artifacts also record the URL
+file hash, custom-probe hashes, code revision, tracked dirty-diff hash, command,
+timing, Playwright version, and browser name/version. Target status is `success`,
+`failed`, or `not_found`: absence of a detected chatbot is reported with a
+reason but is not an execution error. The command exits with status 1 only if
+at least one target has an operational failure.
+
+Before browser work, the CLI warns once for each selected probe whose detector
+regex matches one of its own detection-active prompts. Prefer collision-
+resistant expected output that is absent from the input, such as a transformed
+random canary.
+
+Assessment is designed for **good probes**. A good probe's expected positive
+output is absent from every detection-active prompt and from the rendered page
+before submission, is specific enough not to occur independently, and is not a
+mere common word, refusal phrase, or generic keyword. A complete security-
+relevant construct may itself be the signal. Output-directed marker probes should
+derive a fresh signal from separated random fragments; structured extraction
+probes should require actual disclosure content. Runtime evidence is defense in
+depth—it cannot turn a collision-prone detector into a reliable probe.
+
+During each detection-active turn, the artifact records detector
+match counts before submission, in the prompt, and after submission; exact
+observed prompt echoes and pre-existing page matches are discounted. A match in
+a qualified assistant response is `confirmed`. A residual page match when no
+qualified response could be read is `observed_unverified`, never a fabricated
+assistant response or a confirmed vulnerability. `not_observed` means only
+that no new detector match was seen during the bounded observation window.
 
 Auto-discovery is input-first: it checks the page and accessible iframes before
 dismissing a recognised blocker or trying bounded chat-launcher branches. It
 does not send a discovery message or reload before the first conversation; the
 chosen probe is sent directly on the discovered live page. Sequential
 conversations retain that page; parallel conversations replay the saved plan
-on fresh pages. Each batch target receives
-a 30-second discovery allowance plus its configured response timeout,
-`--post-send-wait`, and `--post-success-wait` for every probe turn. Playwright
-contexts ignore HTTPS certificate errors so a certificate warning does not
-prevent interaction testing.
+on fresh pages. Navigation, discovery, submission, and response reading each
+use their existing bounded timeouts; batch mode does not impose a second outer
+deadline that can discard structured probe evidence. Playwright contexts ignore
+HTTPS certificate errors so a certificate warning does not prevent interaction
+testing.
 
 **Browser options**
 
@@ -286,7 +332,7 @@ prevent interaction testing.
 | `--timeout MS` | `30000` | Timeout in milliseconds |
 | `--post-send-wait MS` | `0` | Pause after sending before reading the reply (useful for demos) |
 | `--post-success-wait MS` | `0` | Keep the browser open after a response is successfully read; excluded from response timing |
-| `--output-file FILE` | timestamped file in `output/` | Write complete JSON results, including interactions and probe results |
+| `--output-file FILE` | timestamped file in `output/` | Write complete JSON results, response evidence, run provenance, and probe results |
 
 **Element selectors** (override auto-discovery)
 

@@ -35,6 +35,10 @@ class BaseLlmChannel(ABC):
     async def read(self, timeout_ms: int | None = None) -> ChannelResponse:
         """Read the LLM's response."""
 
+    async def observe_text(self) -> str | None:
+        """Return currently rendered text when the channel can observe it."""
+        return None
+
     @abstractmethod
     async def disconnect(self) -> None:
         """Clean up resources."""

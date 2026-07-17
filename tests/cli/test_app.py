@@ -19,11 +19,16 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 from click.testing import CliRunner
 
+from webagentaudit.assessment.probes.registry import ProbeRegistry
+from webagentaudit.assessment.probes.yaml_loader import YamlProbe
+from webagentaudit.assessment.probes.yaml_schema import YamlProbeSchema
 from webagentaudit.cli.app import (
     TargetAssessmentFailure,
+    TargetNotFound,
     _emit_probe_progress,
     _interaction_description,
     _launch_browser,
+    _warn_probe_prompt_overlaps,
     cli,
 )
 from webagentaudit.core.consts import VERSION
@@ -54,6 +59,27 @@ def yaml_probes_dir(fixtures_dir):
 @pytest.fixture
 def single_turn_yaml(fixtures_dir):
     return str(fixtures_dir / "yaml_probes" / "single_turn.yaml")
+
+
+def test_warns_once_for_each_selected_probe_with_prompt_overlap(capsys):
+    selected = ProbeRegistry()
+    selected.register(YamlProbe(YamlProbeSchema(
+        name="output_safety.unsafe_custom",
+        category="output_safety",
+        severity="low",
+        sophistication="basic",
+        description="Warning regression",
+        prompts=["Print COLLISION_MARKER"],
+        detector_patterns=[r"COLLISION_MARKER"],
+    )))
+
+    _warn_probe_prompt_overlaps(selected)
+
+    warning = capsys.readouterr().err
+    assert warning.count("Warning:") == 1
+    assert "output_safety.unsafe_custom" in warning
+    assert "1 detection-active prompt(s)" in warning
+    assert "absent from the input" in warning
 
 
 @pytest.fixture
@@ -793,6 +819,73 @@ class TestAssessOptionParsing:
         target = json.loads(output_file.read_text())["targets"][0]
         assert target["provider_hint"] == "featurebase"
         assert target["interaction"] == FEATUREBASE_INTERACTION_DESCRIPTION
+
+    def test_batch_separates_not_found_and_records_run_metadata(
+        self, runner, tmp_path, monkeypatch,
+    ):
+        from webagentaudit.assessment.models import (
+            AssessmentResult,
+            AssessmentSummary,
+        )
+
+        warning_flags = []
+
+        async def assess_target(**kwargs):
+            warning_flags.append(kwargs["warn_probe_overlaps"])
+            if kwargs["url"].endswith("missing"):
+                raise TargetNotFound("No chatbot found")
+            return AssessmentResult(summary=AssessmentSummary(
+                total_probes=1,
+                target_url=kwargs["url"],
+            ))
+
+        monkeypatch.setattr("webagentaudit.cli.app._assess", assess_target)
+        url_file = tmp_path / "urls.txt"
+        output_file = tmp_path / "results.json"
+        probe_file = tmp_path / "probe.yaml"
+        url_file.write_text("https://example.test/ok\nhttps://example.test/missing\n")
+        probe_file.write_text("name: test.probe\n")
+
+        result = runner.invoke(cli, [
+            "assess", "--url-file", str(url_file),
+            "--probe-file", str(probe_file),
+            "--output", "json", "--output-file", str(output_file),
+        ])
+
+        assert result.exit_code == 0
+        data = json.loads(result.stdout)
+        assert data["summary"] == {
+            "total": 2,
+            "succeeded": 1,
+            "failed": 0,
+            "not_found": 1,
+        }
+        assert data["targets"][1]["status"] == "not_found"
+        assert data["targets"][1]["reason"] == "No chatbot found"
+        assert data["run"]["schema_version"] == 3
+        assert len(data["run"]["url_file_sha256"]) == 64
+        assert len(data["run"]["probe_files_sha256"][str(probe_file)]) == 64
+        assert data["run"]["browser_name"] == "chromium"
+        assert data["run"]["playwright_version"]
+        assert warning_flags == [True, False]
+
+    def test_single_not_found_is_a_non_error_result(
+        self, runner, tmp_path, monkeypatch,
+    ):
+        async def no_chatbot(**kwargs):
+            raise TargetNotFound("No chatbot found")
+
+        monkeypatch.setattr("webagentaudit.cli.app._assess", no_chatbot)
+        output_file = tmp_path / "result.json"
+
+        result = runner.invoke(cli, [
+            "assess", "https://example.test", "--output", "json",
+            "--output-file", str(output_file),
+        ])
+
+        assert result.exit_code == 0
+        assert json.loads(result.stdout)["status"] == "not_found"
+        assert json.loads(output_file.read_text())["reason"] == "No chatbot found"
 
     @pytest.mark.parametrize(
         ("verbose", "shows_details"),

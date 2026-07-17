@@ -1,5 +1,6 @@
-# Test image: includes dev deps, test files, and Playwright browser
-FROM mcr.microsoft.com/playwright/python:v1.58.0-noble
+# Keep this tag aligned with the exact Playwright dependency in pyproject.toml.
+# The image includes the matching browsers and their system dependencies.
+FROM mcr.microsoft.com/playwright/python:v1.61.0-noble
 
 WORKDIR /app
 
@@ -12,9 +13,6 @@ COPY src/ src/
 
 # Install ALL dependencies including dev (no --no-dev flag)
 RUN uv sync --frozen --no-editable
-
-# Install Playwright browsers
-RUN uv run playwright install --with-deps chromium
 
 # Copy test files and demo pages (needed by e2e HTTP server)
 COPY tests/ tests/

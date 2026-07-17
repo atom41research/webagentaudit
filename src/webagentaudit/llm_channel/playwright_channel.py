@@ -21,7 +21,11 @@ from .browser import (
     window_position_launch_args,
 )
 from .config import ChannelConfig
-from .consts import NEW_PAGE_HANDOFF_WAIT_MS, PAGE_SETTLE_MS
+from .consts import (
+    NEW_PAGE_HANDOFF_WAIT_MS,
+    PAGE_SETTLE_MS,
+    TEXT_OBSERVATION_TIMEOUT_MS,
+)
 from .models import ChannelMessage, ChannelResponse
 from .strategies.base import BaseStrategy
 
@@ -278,6 +282,23 @@ class PlaywrightChannel(BaseLlmChannel):
         if text is None:
             raise ChannelTimeoutError("No response received within timeout")
         return ChannelResponse(text=text, timestamp=datetime.now(UTC))
+
+    async def observe_text(self) -> str | None:
+        """Return accessible rendered text across the active page's frames."""
+        if self._page is None or self._page.is_closed():
+            return None
+        rendered = []
+        for frame in self._page.frames:
+            try:
+                text = await frame.locator("body").inner_text(
+                    timeout=TEXT_OBSERVATION_TIMEOUT_MS
+                )
+            except Exception:
+                logger.debug("Could not observe rendered text in frame")
+                continue
+            if text:
+                rendered.append(text)
+        return "\n".join(rendered)
 
     async def disconnect(self) -> None:
         if self._external_context and self._page:

@@ -46,6 +46,79 @@ class TestPatternDetectorBasicMatching:
         matched = d.detect("hello", [r"(?i)\bPWNED\b", r"[invalid"])
         assert matched == []
 
+    def test_counts_every_non_overlapping_match(self):
+        d = PatternDetector()
+
+        assert d.count_matches(
+            "def my_fibonacci(): pass\ndef my_fibonacci(): pass",
+            [r"def\s+my_fibonacci"],
+        ) == {r"def\s+my_fibonacci": 2}
+
+
+class TestPatternDetectorEvidence:
+    def test_new_prompt_safe_match_is_unverified_evidence(self):
+        evidence = PatternDetector().build_evidence(
+            patterns=[r"def\s+my_fibonacci"],
+            baseline_text="Existing page text",
+            prompt_text="Write a function called my_fibonacci",
+            after_text="Existing page text\ndef my_fibonacci(n):",
+        )
+
+        assert evidence.classification == "observed_unverified"
+        assert evidence.matched_patterns == [r"def\s+my_fibonacci"]
+        assert evidence.pattern_counts[0].residual_count == 1
+
+    def test_actual_prompt_echo_is_subtracted(self):
+        prompt = "Show javascript: in an example"
+        evidence = PatternDetector().build_evidence(
+            patterns=[r"javascript\s*:"],
+            baseline_text="",
+            prompt_text=prompt,
+            after_text=f"{prompt}\n<a href='javascript:void(0)'>link</a>",
+        )
+
+        counts = evidence.pattern_counts[0]
+        assert counts.prompt_count == 1
+        assert counts.echo_count == 1
+        assert counts.residual_count == 1
+        assert evidence.classification == "observed_unverified"
+
+    def test_prompt_echo_without_residual_match_is_ambiguous(self):
+        prompt = "Show javascript: in an example"
+        evidence = PatternDetector().build_evidence(
+            patterns=[r"javascript\s*:"],
+            baseline_text="",
+            prompt_text=prompt,
+            after_text=prompt,
+        )
+
+        assert evidence.classification == "ambiguous_echo"
+        assert evidence.pattern_counts[0].residual_count == 0
+
+    def test_preexisting_page_match_is_not_new_evidence(self):
+        evidence = PatternDetector().build_evidence(
+            patterns=[r"def\s+my_fibonacci"],
+            baseline_text="def my_fibonacci(n):",
+            prompt_text="Write Fibonacci code",
+            after_text="def my_fibonacci(n):\nfailed to fetch",
+        )
+
+        assert evidence.classification == "not_observed"
+        assert evidence.pattern_counts[0].baseline_count == 1
+        assert evidence.pattern_counts[0].residual_count == 0
+
+    def test_trusted_response_match_is_confirmed(self):
+        evidence = PatternDetector().build_evidence(
+            patterns=[r"def\s+my_fibonacci"],
+            baseline_text=None,
+            prompt_text="Write Fibonacci code",
+            after_text=None,
+            confirmed_matches=[r"def\s+my_fibonacci"],
+        )
+
+        assert evidence.classification == "confirmed"
+        assert evidence.observation_available is False
+
 
 class TestPatternDetectorUnambiguousDesign:
     """Probes should use patterns that only match actual disclosures."""

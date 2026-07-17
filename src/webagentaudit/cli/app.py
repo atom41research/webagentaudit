@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
+import subprocess
 import sys
 import time
 from collections.abc import Callable
 from datetime import UTC, datetime
+from importlib.metadata import version
 from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
@@ -177,6 +180,10 @@ class TargetAssessmentFailure(click.ClickException):
         super().__init__(message)
         self.phase = phase
         self.provider_hint = provider_hint
+
+
+class TargetNotFound(click.ClickException):
+    """A target without provider evidence or a usable chat input."""
 
 
 # ---------------------------------------------------------------------------
@@ -784,11 +791,31 @@ def assess(
             raise click.exceptions.Exit(1)
         return
 
-    result = asyncio.run(_assess(
-        url=url,
-        emit_output=output_format != "json",
-        **assess_kwargs,
-    ))
+    started_at = time.monotonic()
+    try:
+        result = asyncio.run(_assess(
+            url=url,
+            emit_output=output_format != "json",
+            **assess_kwargs,
+        ))
+    except TargetNotFound as exc:
+        from webagentaudit.cli.models import BatchTargetResult
+
+        target = BatchTargetResult(
+            url=url,
+            status="not_found",
+            reason=exc.message,
+            duration_ms=(time.monotonic() - started_at) * 1000,
+        )
+        if output_file:
+            _write_json_output(output_file, target)
+        if output_format == "json":
+            click.echo(target.model_dump_json(indent=2))
+        else:
+            click.echo(f"NONE {url}: {exc.message}")
+            if output_file:
+                click.echo(f"Wrote complete JSON results to {output_file}")
+        return
     if output_file:
         result = result.model_copy(update={
             "metadata": {
@@ -862,6 +889,26 @@ def _load_registry(
         return new_reg
 
     return registry
+
+
+def _warn_probe_prompt_overlaps(registry) -> None:
+    """Warn once per probe whose detector can match its own sent prompt."""
+    from webagentaudit.assessment.validation import find_prompt_pattern_overlaps
+
+    for probe in registry.get_all():
+        overlaps = find_prompt_pattern_overlaps(probe)
+        if not overlaps:
+            continue
+        patterns = sorted({
+            pattern for overlap in overlaps for pattern in overlap.patterns
+        })
+        click.echo(
+            f"Warning: probe '{probe.name}' is not echo-safe: "
+            f"{len(overlaps)} detection-active prompt(s) match detector "
+            f"pattern(s) {patterns!r}. Prompt echoes can create ambiguous "
+            "evidence; prefer expected output that is absent from the input.",
+            err=True,
+        )
 
 
 async def _open_and_auto_discover(
@@ -1017,6 +1064,58 @@ def _read_url_file(path: Path) -> list[str]:
     ]
 
 
+def _git_provenance() -> tuple[str | None, bool | None, str | None]:
+    """Return best-effort repository state without affecting assessment."""
+    cwd = Path(__file__).resolve().parent
+    try:
+        revision = subprocess.run(
+            ["git", "-C", str(cwd), "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=2,
+        ).stdout.strip()
+        dirty = bool(subprocess.run(
+            ["git", "-C", str(cwd), "status", "--porcelain"],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=2,
+        ).stdout.strip())
+        diff = subprocess.run(
+            ["git", "-C", str(cwd), "diff", "--binary", "HEAD", "--"],
+            check=True,
+            capture_output=True,
+            timeout=2,
+        ).stdout
+        return (
+            revision,
+            dirty,
+            hashlib.sha256(diff).hexdigest() if dirty else None,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None, None, None
+
+
+def _file_sha256(path: Path) -> str:
+    with path.open("rb") as input_file:
+        return hashlib.file_digest(input_file, "sha256").hexdigest()
+
+
+def _probe_file_hashes(assess_kwargs: dict) -> dict[str, str]:
+    """Hash custom probe sources used by a batch run."""
+    paths = {Path(path) for path in assess_kwargs["probe_file"]}
+    if probe_dir := assess_kwargs["probe_dir"]:
+        paths.update(
+            path for path in Path(probe_dir).rglob("*")
+            if path.suffix.lower() in {".yaml", ".yml"}
+        )
+    hashes = {}
+    for path in sorted(paths):
+        hashes[str(path)] = _file_sha256(path)
+    return hashes
+
+
 async def _assess_file(
     *, url_file: Path, assess_kwargs: dict, output_format: str,
     output_file: Path | None = None,
@@ -1024,6 +1123,7 @@ async def _assess_file(
     """Assess URL-file targets sequentially and report operational failures."""
     from webagentaudit.cli.models import (
         BatchAssessmentResult,
+        BatchRunMetadata,
         BatchAssessmentSummary,
         BatchTargetResult,
     )
@@ -1034,25 +1134,10 @@ async def _assess_file(
 
     targets: list[BatchTargetResult] = []
     is_json = output_format == "json"
-    registry = _load_registry(
-        probe_dir=assess_kwargs["probe_dir"],
-        probe_file=assess_kwargs["probe_file"],
-        category=assess_kwargs["category"],
-        sophistication=assess_kwargs["sophistication"],
-        severity=assess_kwargs["severity"],
-        probes=assess_kwargs["probes"],
-        emit_output=False,
-    )
-    prompt_turns = sum(
-        len(conversation.turns)
-        for probe in registry.get_all()
-        for conversation in probe.get_conversations()
-    )
-    target_budget_seconds = 30 + prompt_turns * (
-        assess_kwargs["timeout"]
-        + assess_kwargs["post_send_wait"]
-        + assess_kwargs["post_success_wait"]
-    ) / 1000
+    run_started_at = datetime.now(UTC)
+    git_revision, git_dirty, git_diff_sha256 = _git_provenance()
+    probe_file_hashes = _probe_file_hashes(assess_kwargs)
+    browser_version: str | None = None
     for index, target_url in enumerate(urls, start=1):
         if not is_json:
             click.echo(
@@ -1087,14 +1172,15 @@ async def _assess_file(
                 )
 
         try:
-            assessment = await asyncio.wait_for(
-                _assess(
-                    url=target_url,
-                    emit_output=False,
-                    progress_callback=report_progress,
-                    **assess_kwargs,
-                ),
-                timeout=target_budget_seconds,
+            assessment = await _assess(
+                url=target_url,
+                emit_output=False,
+                warn_probe_overlaps=index == 1,
+                progress_callback=report_progress,
+                **assess_kwargs,
+            )
+            browser_version = (
+                browser_version or assessment.metadata.get("browser_version")
             )
             probe_error = next(
                 (
@@ -1133,15 +1219,19 @@ async def _assess_file(
                     interaction=assessment.metadata.get("interaction"),
                     assessment=assessment,
                 )
+        except TargetNotFound as exc:
+            target_result = BatchTargetResult(
+                url=target_url,
+                status="not_found",
+                reason=exc.message,
+                duration_ms=(time.monotonic() - started_at) * 1000,
+            )
         except TimeoutError:
             target_result = BatchTargetResult(
                 url=target_url,
                 status="failed",
                 failure_phase=active_phase,
-                error=(
-                    f"Target exceeded its {target_budget_seconds:.0f}s "
-                    "interaction budget"
-                ),
+                error=f"Target timed out during {active_phase}",
                 error_type="TimeoutError",
                 provider_hint=identified_provider,
                 interaction=identified_interaction,
@@ -1183,6 +1273,11 @@ async def _assess_file(
                 click.echo(
                     f"[{index}/{len(urls)}] OK   {target_url} ({seconds:.1f}s)"
                 )
+            elif target_result.status == "not_found":
+                click.echo(
+                    f"[{index}/{len(urls)}] NONE {target_url}: "
+                    f"{target_result.reason}"
+                )
             else:
                 click.echo(
                     f"[{index}/{len(urls)}] FAIL {target_url} "
@@ -1190,13 +1285,29 @@ async def _assess_file(
                 )
 
     failed = sum(target.status == "failed" for target in targets)
+    not_found = sum(target.status == "not_found" for target in targets)
     batch_result = BatchAssessmentResult(
         summary=BatchAssessmentSummary(
             total=len(targets),
-            succeeded=len(targets) - failed,
+            succeeded=len(targets) - failed - not_found,
             failed=failed,
+            not_found=not_found,
         ),
         targets=targets,
+        run=BatchRunMetadata(
+            started_at=run_started_at,
+            completed_at=datetime.now(UTC),
+            webagentaudit_version=VERSION,
+            git_revision=git_revision,
+            git_dirty=git_dirty,
+            git_diff_sha256=git_diff_sha256,
+            command=list(sys.argv),
+            url_file_sha256=_file_sha256(url_file),
+            probe_files_sha256=probe_file_hashes,
+            browser_name=assess_kwargs["browser"],
+            browser_version=browser_version,
+            playwright_version=version("playwright"),
+        ),
         output_file=str(output_file) if output_file else None,
     )
     if is_json:
@@ -1204,8 +1315,8 @@ async def _assess_file(
     else:
         click.echo()
         click.echo(
-            f"Batch complete: {len(targets) - failed} succeeded, "
-            f"{failed} failed, {len(targets)} total."
+            f"Batch complete: {len(targets) - failed - not_found} succeeded, "
+            f"{not_found} not found, {failed} failed, {len(targets)} total."
         )
     if output_file:
         _write_json_output(output_file, batch_result)
@@ -1241,6 +1352,7 @@ async def _assess(
     screenshots: bool, screenshots_dir: str | None, output_format: str,
     verbose: bool = False,
     emit_output: bool = True,
+    warn_probe_overlaps: bool = True,
     progress_callback: Callable[[str, str], None] | None = None,
 ):
     from playwright.async_api import async_playwright
@@ -1272,6 +1384,8 @@ async def _assess(
     all_probes = registry.get_all()
     if not all_probes:
         raise TargetAssessmentFailure("assessment", "No probes to run.")
+    if warn_probe_overlaps:
+        _warn_probe_prompt_overlaps(registry)
 
     # Single Playwright instance for the entire assess run
     async with async_playwright() as pw:
@@ -1313,9 +1427,14 @@ async def _assess(
         if plan is None:
             if discovered_closeable:
                 await discovered_closeable.close()
+            if provider_hint is None:
+                raise TargetNotFound(
+                    "No chatbot provider or usable chat input was found."
+                )
             raise TargetAssessmentFailure(
                 "chat_detection",
-                "Could not find a chat input element.",
+                "A chatbot provider was detected, but no usable chat input "
+                "was found.",
                 provider_hint=provider_hint,
             )
 
@@ -1461,6 +1580,10 @@ async def _assess(
             progress_callback=_on_progress,
             activity_callback=progress_callback,
         )
+        browser_instance = shared_context.browser
+        browser_version = (
+            browser_instance.version if browser_instance is not None else None
+        )
         try:
             result = await assessor.assess(url)
         finally:
@@ -1473,6 +1596,9 @@ async def _assess(
             result.metadata["provider_hint"] = provider_hint
         if interaction:
             result.metadata["interaction"] = interaction
+        result.metadata["browser_name"] = browser
+        if browser_version:
+            result.metadata["browser_version"] = browser_version
 
     if not emit_output:
         return result

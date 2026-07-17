@@ -157,7 +157,8 @@ async def test_dynamic_response_reader_ignores_submitted_prompt_echo(
         })"""
     )
     monkeypatch.setattr(custom_module, "RESPONSE_POLL_INTERVAL_MS", 20)
-    monkeypatch.setattr(custom_module, "RESPONSE_STABLE_INTERVAL_MS", 500)
+    # Keep the test's stability contract longer than the delayed second chunk.
+    monkeypatch.setattr(custom_module, "RESPONSE_STABLE_INTERVAL_MS", 900)
     strategy = CustomStrategy("#prompt", None, "#send")
 
     await strategy.prepare_response(page)
@@ -278,6 +279,27 @@ async def test_channel_reuses_injected_discovery_page_without_navigation(page):
         assert await page.locator("#prompt").count() == 1
     finally:
         await channel.disconnect()
+
+
+async def test_channel_observes_rendered_text_across_page_frames(page):
+    await page.set_content(
+        '<main>Outer baseline</main><iframe srcdoc="<p>Inner evidence</p>"></iframe>'
+    )
+    channel = PlaywrightChannel(
+        ChannelConfig(timeout_ms=500),
+        strategy=CustomStrategy("main", "body"),
+        page=page,
+    )
+
+    try:
+        await channel.connect("https://must-not-be-requested.invalid/")
+        observed = await channel.observe_text()
+    finally:
+        await channel.disconnect()
+
+    assert observed is not None
+    assert "Outer baseline" in observed
+    assert "Inner evidence" in observed
 
 
 async def test_channel_follows_popup_created_after_click(tmp_path, monkeypatch):

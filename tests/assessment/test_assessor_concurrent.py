@@ -44,6 +44,7 @@ class StubChannel(BaseLlmChannel):
         return ChannelResponse(
             text="I'm a helpful AI assistant.",
             response_time_ms=self._delay_s * 1000,
+            metadata={"response_mode": "explicit"},
         )
 
     async def send(self, message: ChannelMessage) -> ChannelResponse:
@@ -119,6 +120,21 @@ async def test_workers_1_runs_sequentially():
     result = await assessor.assess("http://example.com")
     assert result.summary.total_probes == 4
     assert len(channels_created) == 4
+
+
+@pytest.mark.asyncio
+async def test_response_metadata_is_preserved_in_exchange():
+    assessor = LlmAssessor(
+        config=AssessmentConfig(workers=1, inter_probe_delay_ms=0),
+        channel_factory=lambda: StubChannel(delay_ms=0),
+        registry=_make_registry([SimpleProbe("probe")]),
+    )
+
+    result = await assessor.assess("http://example.com")
+
+    assert result.probe_results[0].exchanges[0].metadata == {
+        "response_mode": "explicit"
+    }
 
 
 @pytest.mark.asyncio
@@ -329,6 +345,86 @@ async def test_interaction_failure_phase_is_preserved(
     assert probe_result.errors[0].prompt == "test prompt"
     assert len(caplog.records) == 1
     assert not caplog.records[0].exc_info
+
+
+async def test_response_rejection_evidence_is_preserved():
+    error = ChannelResponseError(
+        "unqualified response",
+        metadata={"response_classification": "system"},
+    )
+
+    class FailingChannel(StubChannel):
+        async def send(self, message):
+            raise error
+
+    assessor = LlmAssessor(
+        config=AssessmentConfig(inter_probe_delay_ms=0),
+        channel_factory=FailingChannel,
+        registry=_make_registry([SimpleProbe("failure_probe")]),
+    )
+
+    result = await assessor.assess("http://example.com")
+
+    assert result.probe_results[0].errors[0].metadata == {
+        "response_classification": "system"
+    }
+
+
+async def test_response_failure_records_residual_detector_evidence():
+    class EvidenceChannel(StubChannel):
+        def __init__(self):
+            super().__init__(delay_ms=0)
+            self.observations = iter([
+                "Existing page def old_function(): pass",
+                "Existing page def old_function(): pass\ndef my_fibonacci(n):",
+            ])
+
+        async def observe_text(self):
+            return next(self.observations)
+
+        async def send(self, message):
+            raise ChannelResponseError("no qualified response")
+
+    class FibonacciProbe(SimpleProbe):
+        def get_detector_patterns(self):
+            return [r"def\s+my_fibonacci"]
+
+    assessor = LlmAssessor(
+        config=AssessmentConfig(inter_probe_delay_ms=0),
+        channel_factory=EvidenceChannel,
+        registry=_make_registry([FibonacciProbe(
+            "fibonacci", ["Write a function called my_fibonacci"]
+        )]),
+    )
+
+    result = await assessor.assess("http://example.com")
+
+    probe_result = result.probe_results[0]
+    evidence = probe_result.errors[0].detector_evidence
+    assert probe_result.vulnerability_detected is False
+    assert evidence is not None
+    assert evidence.classification == "observed_unverified"
+    assert evidence.matched_patterns == [r"def\s+my_fibonacci"]
+
+
+async def test_probe_result_records_prompt_detector_overlap():
+    class EchoProbe(SimpleProbe):
+        def get_detector_patterns(self):
+            return [r"javascript\s*:"]
+
+    assessor = LlmAssessor(
+        config=AssessmentConfig(inter_probe_delay_ms=0),
+        channel_factory=lambda: StubChannel(delay_ms=0),
+        registry=_make_registry([EchoProbe(
+            "echo_probe", ["Show a javascript: link"]
+        )]),
+    )
+
+    result = await assessor.assess("http://example.com")
+
+    probe_result = result.probe_results[0]
+    assert probe_result.echo_safe is False
+    assert probe_result.prompt_matched_patterns == [r"javascript\s*:"]
 
 
 async def test_unexpected_turn_failure_retains_debug_traceback(caplog):

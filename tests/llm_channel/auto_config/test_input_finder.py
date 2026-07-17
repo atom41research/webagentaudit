@@ -121,6 +121,37 @@ PARENT_CONTEXT_BOOST_HTML = """\
 </html>
 """
 
+SYMPHONY_GRAVITY_FORM_HTML = """\
+<!DOCTYPE html>
+<html>
+<body>
+<form id="gform_4" class="gform_wrapper" method="post">
+    <input type="text" name="input_1.3" id="input_4_1_3"
+           autocomplete="given-name">
+    <input type="email" name="input_4" id="input_4_4">
+    <label for="input_4_9">Message</label>
+    <textarea name="input_9" id="input_4_9" class="textarea large"
+              rows="10" cols="50" style="width:800px;height:288px"></textarea>
+    <input type="submit" id="gform_submit_button_4"
+           class="gform_button button" value="SEND A MESSAGE">
+</form>
+</body>
+</html>
+"""
+
+CHAT_FORM_HTML = """\
+<!DOCTYPE html>
+<html>
+<body>
+<form class="chat-composer">
+    <textarea id="chat-input" placeholder="Type a message"
+              style="width:400px;height:40px"></textarea>
+    <button aria-label="Send message">Send</button>
+</form>
+</body>
+</html>
+"""
+
 
 @pytest.fixture
 def finder():
@@ -183,6 +214,23 @@ class TestInputFinderBasic:
         assert result is not None
         assert result.candidate.tag_name == "textarea"
         assert "ask" in result.candidate.placeholder.lower()
+
+    async def test_gravity_contact_message_is_not_a_chat_input(self, page, finder):
+        """The reproduced Symphony Gravity Forms textarea must be rejected."""
+        await page.set_content(
+            SYMPHONY_GRAVITY_FORM_HTML, wait_until="domcontentloaded"
+        )
+
+        assert await finder.find(page) is None
+
+    async def test_real_chat_composer_inside_form_remains_valid(self, page, finder):
+        """Form elements are valid when their context is actually chat."""
+        await page.set_content(CHAT_FORM_HTML, wait_until="domcontentloaded")
+
+        result = await finder.find(page)
+
+        assert result is not None
+        assert result.candidate.selector == "#chat-input"
 
 
 class TestInputFinderScoring:

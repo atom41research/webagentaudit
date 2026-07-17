@@ -1,5 +1,7 @@
 """Voiceflow-specific discovery, replay, and response regressions."""
 
+import json
+
 import pytest
 
 from webagentaudit.core.exceptions import ChannelNotReadyError
@@ -13,12 +15,13 @@ from webagentaudit.llm_channel.strategies.custom import CustomStrategy
 pytestmark = pytest.mark.browser
 
 
-def _widget_html(*, legacy: bool) -> str:
+def _widget_html(*, legacy: bool, responses: list[str] | None = None) -> str:
     greeting = (
         '<div class="vfrc-system-response vfrc-system-response--message">Hello</div>'
         if legacy else ""
     )
     placeholder = "Message…" if legacy else "Type a message..."
+    responses_json = json.dumps(responses or ["No"])
     return f"""<!doctype html><script>
       window.voiceflow = {{chat: {{open() {{
         if (document.querySelector('#voiceflow-chat')) return;
@@ -32,10 +35,12 @@ def _widget_html(*, legacy: bool) -> str:
         input.onkeydown = event => {{
           if (event.key !== 'Enter') return;
           input.value = '';
-          const response = document.createElement('div');
-          response.className = 'vfrc-system-response';
-          response.textContent = 'No';
-          root.querySelector('.messages').append(response);
+          for (const text of {responses_json}) {{
+            const response = document.createElement('div');
+            response.className = 'vfrc-system-response';
+            response.textContent = text;
+            root.querySelector('.messages').append(response);
+          }}
         }};
       }}}}}};
     </script>"""
@@ -64,6 +69,25 @@ async def test_voiceflow_configurator_replays_and_reads_response(page, legacy):
     await strategy.send_message(target, "image capability prompt")
 
     assert await strategy.wait_for_response(target, timeout_ms=5_000) == "No"
+
+
+async def test_voiceflow_reads_every_new_assistant_part(page):
+    responses = ["def my_fibonacci(n): return n", "Did that help?"]
+    fixture = _widget_html(legacy=True, responses=responses)
+    await page.set_content(fixture)
+    result = await VoiceflowAutoConfigurator().configure(page, skip_response=True)
+
+    strategy = CustomStrategy(plan=result.to_interaction_plan())
+    target = await strategy.prepare_page(page)
+    await strategy.prepare_response(target)
+    await strategy.send_message(target, "write Fibonacci")
+
+    assert await strategy.wait_for_response(target, timeout_ms=5_000) == (
+        "\n\n".join(responses)
+    )
+    metadata = await strategy.get_response_metadata(target)
+    assert metadata["response_parts"] == "2"
+    assert metadata["response_mode"] == "explicit"
 
 
 async def test_voiceflow_api_unavailable_is_explicit(page, monkeypatch):

@@ -14,6 +14,34 @@ AssessmentFailurePhase = Literal[
     "assessment",
 ]
 
+DetectorEvidenceClassification = Literal[
+    "confirmed",
+    "observed_unverified",
+    "ambiguous_echo",
+    "not_observed",
+]
+
+
+class DetectorPatternEvidence(BaseModel):
+    """Before/after counts for one detector pattern."""
+
+    pattern: str
+    baseline_count: int = 0
+    prompt_count: int = 0
+    after_count: int = 0
+    observed_delta: int = 0
+    echo_count: int = 0
+    residual_count: int = 0
+
+
+class DetectorEvidence(BaseModel):
+    """Detector evidence with explicit attribution confidence."""
+
+    classification: DetectorEvidenceClassification
+    observation_available: bool = False
+    matched_patterns: list[str] = Field(default_factory=list)
+    pattern_counts: list[DetectorPatternEvidence] = Field(default_factory=list)
+
 
 class ChatMessage(BaseModel):
     """A single message in ChatML format.
@@ -36,6 +64,8 @@ class ProbeExchange(BaseModel):
 
     messages: list[ChatMessage]
     matched_patterns: list[str] = Field(default_factory=list)
+    detector_evidence: DetectorEvidence | None = None
+    metadata: dict[str, str] = Field(default_factory=dict)
 
     @property
     def prompt(self) -> str:
@@ -60,6 +90,8 @@ class ProbeError(BaseModel):
     phase: AssessmentFailurePhase
     message: str
     prompt: str | None = None
+    detector_evidence: DetectorEvidence | None = None
+    metadata: dict[str, str] = Field(default_factory=dict)
 
 
 class ProbeResult(BaseModel):
@@ -69,6 +101,8 @@ class ProbeResult(BaseModel):
     conversations_run: int = 0
     vulnerability_detected: bool = False
     matched_patterns: list[str] = Field(default_factory=list)
+    echo_safe: bool = True
+    prompt_matched_patterns: list[str] = Field(default_factory=list)
     exchanges: list[ProbeExchange] = Field(default_factory=list)
     error_count: int = 0
     errors: list[ProbeError] = Field(default_factory=list)

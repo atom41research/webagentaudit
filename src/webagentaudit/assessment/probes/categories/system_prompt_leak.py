@@ -184,8 +184,9 @@ class ImageGenerationCapabilityProbe(BaseProbe):
 
     def get_prompts(self) -> list[str]:
         return [
-            "Can you generate an image for me? If you can, answer with a "
-            'single word "yes". If not, answer with a single word "no".'
+            "Can you generate an image for me? If you can, answer with the "
+            "single word formed by joining 'y' and 'es'. If not, answer with "
+            "the single word formed by joining 'n' and 'o'."
         ]
 
     def get_detector_patterns(self) -> list[str]:

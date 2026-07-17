@@ -112,6 +112,16 @@ class InputFinder:
                 score=0.0,
                 score_breakdown={"strong_negative": 0.0},
             )
+        form_context = candidate.form_context.lower()
+        if any(
+            keyword in form_context
+            for keyword in consts.INPUT_FORM_STRONG_NEGATIVE_KEYWORDS
+        ):
+            return ScoredElement(
+                candidate=candidate,
+                score=0.0,
+                score_breakdown={"strong_negative_form": 0.0},
+            )
         has_chat_signal = any(
             keyword in semantic_text for keyword in consts.INPUT_CHAT_SIGNAL_KEYWORDS
         )

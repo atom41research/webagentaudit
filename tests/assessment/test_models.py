@@ -72,6 +72,7 @@ class TestProbeExchange:
             messages=[ChatMessage(role="user", content="hi")]
         )
         assert exchange.matched_patterns == []
+        assert exchange.metadata == {}
 
     def test_matched_patterns_stored(self):
         exchange = ProbeExchange(

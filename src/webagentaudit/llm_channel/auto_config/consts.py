@@ -68,6 +68,17 @@ INPUT_STRONG_NEGATIVE_KEYWORDS = [
     "username",
 ]
 
+# Traditional web forms often label a large textarea "Message". Restrict
+# these negatives to the enclosing form so real chat composers may still use
+# the same words in their own labels and placeholders.
+INPUT_FORM_STRONG_NEGATIVE_KEYWORDS = [
+    "contact",
+    "gform",
+    "gravity",
+    "lead-form",
+    "lead_form",
+]
+
 INPUT_PARENT_KEYWORDS = [
     "chat",
     "assistant",
@@ -126,6 +137,19 @@ RESPONSE_DOM_SETTLE_MS = 500
 RESPONSE_POLL_INTERVAL_MS = 500
 # Valid assistants sometimes answer capability checks with only "No"/"Yes".
 RESPONSE_MIN_TEXT_LENGTH = 1
+RESPONSE_TRANSIENT_PATTERN = r"\b(thinking|loading|generating)\b"
+RESPONSE_METADATA_PATTERN = (
+    r"^(today|yesterday|\d{1,2}:\d{2}(?:\s?[ap]m)?|"
+    r"\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?)$"
+)
+RESPONSE_SYSTEM_PATTERN = (
+    r"^(we (?:have )?received your message|.*\bwill (?:get|be) back\b|"
+    r"give (?:the )?team a way to reach you)"
+)
+RESPONSE_GREETING_PATTERN = (
+    r"^(hi|hello|good morning|good afternoon|good evening)\b.*"
+    r"(how can i help|what would you like|ask me|please select|select which)"
+)
 
 # Elements to skip when building text snapshots
 RESPONSE_IGNORE_TAGS = frozenset(

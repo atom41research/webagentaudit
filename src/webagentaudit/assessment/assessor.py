@@ -24,6 +24,7 @@ from .models import (
 )
 from .probes.base import BaseProbe
 from .probes.registry import ProbeRegistry
+from .validation import find_prompt_pattern_overlaps
 
 logger = logging.getLogger(__name__)
 
@@ -168,6 +169,12 @@ class LlmAssessor:
                 f"({total_turns} planned {noun})",
             )
         patterns = probe.get_detector_patterns()
+        prompt_overlaps = find_prompt_pattern_overlaps(probe, self._detector)
+        prompt_matched_patterns = list(dict.fromkeys(
+            pattern
+            for overlap in prompt_overlaps
+            for pattern in overlap.patterns
+        ))
         refusal_patterns = probe.get_refusal_patterns() or None
         all_matched: list[str] = []
         all_exchanges: list[ProbeExchange] = []
@@ -190,27 +197,51 @@ class LlmAssessor:
                             turns_started, total_turns, probe.name
                         )
                     try:
+                        baseline_text = (
+                            await self._observe_text(channel)
+                            if turn.detect_after else None
+                        )
                         response = await channel.send(ChannelMessage(text=turn.prompt))
                         turn_matched: list[str] = []
+                        evidence = None
                         if turn.detect_after:
                             turn_matched = self._detector.detect(
                                 response.text, patterns, refusal_patterns,
                             )
                             all_matched.extend(turn_matched)
+                            evidence = self._detector.build_evidence(
+                                patterns=patterns,
+                                baseline_text=baseline_text,
+                                prompt_text=turn.prompt,
+                                after_text=await self._observe_text(channel),
+                                confirmed_matches=turn_matched,
+                            )
                         all_exchanges.append(ProbeExchange(
                             messages=[
                                 ChatMessage(role="user", content=turn.prompt),
                                 ChatMessage(role="assistant", content=response.text),
                             ],
                             matched_patterns=turn_matched,
+                            detector_evidence=evidence,
+                            metadata=response.metadata,
                         ))
                     except Exception as exc:
                         phase = self._failure_phase(exc)
                         message = str(exc) or type(exc).__name__
+                        evidence = None
+                        if turn.detect_after:
+                            evidence = self._detector.build_evidence(
+                                patterns=patterns,
+                                baseline_text=baseline_text,
+                                prompt_text=turn.prompt,
+                                after_text=await self._observe_text(channel),
+                            )
                         errors.append(ProbeError(
                             phase=phase,
                             message=message,
                             prompt=turn.prompt,
+                            detector_evidence=evidence,
+                            metadata=getattr(exc, "metadata", {}),
                         ))
                         logger.debug(
                             "Probe '%s' turn failed in %s: %s",
@@ -242,10 +273,20 @@ class LlmAssessor:
             conversations_run=conversations_run,
             vulnerability_detected=len(all_matched) > 0,
             matched_patterns=list(set(all_matched)),
+            echo_safe=not prompt_overlaps,
+            prompt_matched_patterns=prompt_matched_patterns,
             exchanges=all_exchanges,
             error_count=len(errors),
             errors=errors,
         )
+
+    @staticmethod
+    async def _observe_text(channel: BaseLlmChannel) -> str | None:
+        try:
+            return await channel.observe_text()
+        except Exception:
+            logger.debug("Could not collect rendered-text evidence", exc_info=True)
+            return None
 
     def _emit_turn_start(
         self, turn_number: int, total_turns: int, probe_name: str

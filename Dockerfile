@@ -1,5 +1,6 @@
-# Playwright base image includes Chromium, Firefox, WebKit + system deps
-FROM mcr.microsoft.com/playwright/python:v1.58.0-noble
+# Keep this tag aligned with the exact Playwright dependency in pyproject.toml.
+# The image includes the matching browsers and their system dependencies.
+FROM mcr.microsoft.com/playwright/python:v1.61.0-noble
 
 WORKDIR /app
 
@@ -12,9 +13,6 @@ COPY src/ src/
 
 # Install project dependencies (frozen from lock file)
 RUN uv sync --frozen --no-dev --no-editable
-
-# Install Playwright browsers matching the pinned version
-RUN uv run playwright install --with-deps chromium
 
 # Create output directories accessible from host via volume mount
 RUN mkdir -p /data/screenshots /data/output

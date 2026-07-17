@@ -428,10 +428,17 @@ class TestAssessE2E:
         assert "Traceback" not in result.output
         assert not caplog.records
         data = json.loads(result.stdout)
-        assert data["summary"] == {"total": 4, "succeeded": 1, "failed": 3}
+        assert data["summary"] == {
+            "total": 4,
+            "succeeded": 1,
+            "failed": 2,
+            "not_found": 1,
+        }
         by_url = {target["url"]: target for target in data["targets"]}
         assert by_url[f"{demo_server}/interactive/reverse-llm.html"]["status"] == "success"
-        assert by_url[f"{demo_server}/negative/simple-blog.html"]["failure_phase"] == "chat_detection"
+        absent = by_url[f"{demo_server}/negative/simple-blog.html"]
+        assert absent["status"] == "not_found"
+        assert absent["reason"].startswith("No chatbot provider")
         assert by_url[f"{demo_server}/interactive/submission-failure-llm.html"]["failure_phase"] == "prompt_submission"
         assert by_url[f"{demo_server}/interactive/response-failure-llm.html"]["failure_phase"] == "response_read"
         persisted = json.loads(output_file.read_text())

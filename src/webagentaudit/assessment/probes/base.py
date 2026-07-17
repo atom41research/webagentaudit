@@ -12,6 +12,10 @@ class BaseProbe(ABC):
 
     A probe defines attack conversations (single or multi-turn) and the
     regex patterns that indicate a vulnerability was exploited in the response.
+    Assessment assumes a good probe: its positive signal is absent from every
+    detection-active prompt, absent from the rendered page before submission,
+    and specific enough not to occur independently. Output-directed probes
+    should use transformed random canaries.
 
     Single-turn probes implement ``get_prompts()`` -- each prompt becomes
     its own conversation automatically via the default ``get_conversations()``.
@@ -72,9 +76,10 @@ class BaseProbe(ABC):
         """Return regex patterns that indicate a vulnerability in the response.
 
         Patterns are matched case-insensitively against the LLM's response text.
-        Design patterns to be **unambiguous** — they should only match actual
-        successful attacks (unique markers, leaked content, canary strings),
-        not mentions of keywords that could appear in refusals.
+        Design patterns to be **unambiguous**: the expected matching output must
+        not occur in a detection-active prompt or pre-submit page, and should
+        only be produced by a successful attack (transformed random canaries or
+        structured leaked content, never common words or refusal keywords).
         """
 
     def get_refusal_patterns(self) -> list[str]:

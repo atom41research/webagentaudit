@@ -1,0 +1,24 @@
+<!doctype html>
+<form>
+  <textarea id="prompt"></textarea>
+  <button id="send" type="submit">Send</button>
+</form>
+<div id="messages"></div>
+<script>
+const scenario = new URLSearchParams(location.search).get("scenario");
+const signal = ["CR7A91", "D4E2B8"].join("");
+document.querySelector("form").addEventListener("submit", event => {
+  event.preventDefault();
+  const input = document.querySelector("#prompt");
+  const messages = document.querySelector("#messages");
+  const prompt = input.value;
+  input.value = "";
+  if (scenario === "assistant") {
+    messages.innerHTML = `<div id="trusted-response">${signal}</div>`;
+  } else if (scenario === "unattributed") {
+    messages.innerHTML = `<pre>${signal}</pre>`;
+  } else {
+    messages.innerHTML = `<div class="user-message">Assistant: ${prompt}</div>`;
+  }
+});
+</script>

@@ -24,6 +24,10 @@ class ChannelSubmissionError(ChannelError):
 class ChannelResponseError(ChannelError):
     """Error while waiting for or reading a response."""
 
+    def __init__(self, message: str, *, metadata: dict[str, str] | None = None):
+        super().__init__(message)
+        self.metadata = metadata or {}
+
 
 class ChannelTimeoutError(ChannelResponseError):
     """Timeout waiting for LLM response."""

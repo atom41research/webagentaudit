@@ -5,7 +5,7 @@ import json
 import logging
 from collections.abc import Callable
 
-from playwright.async_api import ElementHandle, Frame, Page
+from playwright.async_api import Frame, Page
 
 from webagentaudit.core.exceptions import (
     ChannelError,
@@ -28,7 +28,6 @@ from ..consts import (
     RESPONSE_STABLE_INTERVAL_MS,
     SUBMISSION_CONFIRM_POLL_INTERVAL_MS,
     SUBMISSION_CONFIRM_TIMEOUT_MS,
-    TYPING_INDICATOR_SELECTORS,
 )
 from .base import BaseInteractionStrategy
 
@@ -74,12 +73,10 @@ class CustomStrategy(BaseInteractionStrategy):
             if self._plan.input_frame_path else iframe_selector
         )
         self._trigger_selector = trigger_selector
-        self._baseline_text = ""
-        self._baseline_html = ""
         self._baseline_images: set[str] = set()
-        self._baseline_element: ElementHandle | None = None
         self._response_prepared = False
-        self._response_snapshot: set[str] | None = None
+        self._response_mode = "explicit" if self._response_selector else "discovered"
+        self._response_part_count = 0
         self._submitted_text: str | None = None
         self._response_finder = ResponseFinder()
         self._progress_callback = progress_callback
@@ -177,25 +174,11 @@ class CustomStrategy(BaseInteractionStrategy):
 
     async def prepare_response(self, page: Page | Frame) -> None:
         """Snapshot response content before sending the next message."""
-        if not self._response_selector:
-            self._response_snapshot = await self._response_finder.snapshot(page)
-            self._baseline_images = set(await self._get_page_images(page))
-            self._response_prepared = True
-            return
-        if self._baseline_element:
-            try:
-                await self._baseline_element.dispose()
-            except Exception:
-                pass
-        self._baseline_text = await self._get_response_text(page)
-        self._baseline_html = await self.get_response_html(page) or ""
-        self._baseline_images = set(await self._get_response_images(page))
-        elements = page.locator(self._response_selector)
-        self._baseline_element = (
-            await elements.last.element_handle()
-            if await elements.count()
-            else None
+        await self._response_finder.snapshot(
+            page, scope_selector=self._response_selector
         )
+        self._baseline_images = set(await self._get_page_images(page))
+        self._response_part_count = 0
         self._response_prepared = True
 
     async def send_message(self, page: Page | Frame, text: str) -> None:
@@ -286,11 +269,8 @@ class CustomStrategy(BaseInteractionStrategy):
             except Exception:
                 return True
 
-            current_text = await self._get_response_text(page)
-            current_html = await self.get_response_html(page) or ""
-            if (current_text, current_html) != (
-                self._baseline_text,
-                self._baseline_html,
+            if await self._response_finder.has_activity(
+                page, submitted_text=submitted_text
             ):
                 return True
 
@@ -299,181 +279,54 @@ class CustomStrategy(BaseInteractionStrategy):
         return False
 
     async def wait_for_response(self, page: Page | Frame, timeout_ms: int) -> str:
-        """Wait for response text to stabilise.
-
-        Captures the baseline text before waiting so we can detect
-        actual changes (not just pre-existing content).
-        """
-        logger.debug("wait_for_response: selector='%s', timeout=%dms", self._response_selector, timeout_ms)
+        """Return the stable response qualified by the shared collector."""
+        logger.debug(
+            "wait_for_response: selector='%s', timeout=%dms",
+            self._response_selector,
+            timeout_ms,
+        )
+        if not self._response_prepared:
+            raise ChannelTimeoutError("Response reader was not prepared")
+        scored, response_text = await self._response_finder.wait(
+            page,
+            timeout_ms=timeout_ms,
+            submitted_text=self._submitted_text,
+            scope_selector=self._response_selector,
+            stable_interval_ms=RESPONSE_STABLE_INTERVAL_MS,
+            poll_interval_ms=RESPONSE_POLL_INTERVAL_MS,
+        )
+        if scored is None or response_text is None:
+            raise ChannelTimeoutError(f"No response received within {timeout_ms}ms")
         if not self._response_selector:
-            if self._response_snapshot is None:
-                raise ChannelTimeoutError("Response reader was not prepared")
-            scored, response_text = await self._response_finder.wait(
-                page,
-                self._response_snapshot,
-                timeout_ms=timeout_ms,
-                submitted_text=self._submitted_text,
-            )
-            if scored is None:
-                raise ChannelTimeoutError(f"No response received within {timeout_ms}ms")
             self._response_selector = scored.candidate.selector
             logger.debug(
-                "wait_for_response: discovered selector '%s' from initial text '%s'",
+                "wait_for_response: discovered selector '%s' from text '%s'",
                 self._response_selector,
-                (response_text or "")[:80],
+                response_text[:80],
             )
-            # The discovered text may be only the first streamed token. Fall
-            # through to the same stability loop used by explicit selectors.
-            self._baseline_text = ""
-            self._baseline_html = ""
-            self._baseline_element = None
-        poll_interval_s = RESPONSE_POLL_INTERVAL_MS / 1000
-        stable_threshold_s = RESPONSE_STABLE_INTERVAL_MS / 1000
-        timeout_s = timeout_ms / 1000
-
-        if self._baseline_text:
-            logger.debug("wait_for_response: baseline text (%d chars): '%s...'",
-                         len(self._baseline_text), self._baseline_text[:80].replace("\n", " "))
-
-        previous_signature: tuple[str, str, bool] | None = None
-        previous_text = ""
-        stable_elapsed = 0.0
-        total_elapsed = 0.0
-
-        while total_elapsed < timeout_s:
-            await asyncio.sleep(poll_interval_s)
-            total_elapsed += poll_interval_s
-
-            current_text = await self._get_response_text(page)
-            current_html = await self.get_response_html(page) or ""
-            if not current_text.strip():
-                stable_elapsed = 0.0
-                continue
-            if (
-                self._submitted_text
-                and current_text.strip() == self._submitted_text.strip()
-            ):
-                stable_elapsed = 0.0
-                continue
-            current_signature = (
-                current_text,
-                current_html,
-                await self._is_baseline_element(page),
-            )
-
-            if current_signature == (
-                self._baseline_text,
-                self._baseline_html,
-                True,
-            ):
-                continue
-
-            if current_signature != previous_signature:
-                preview = current_text[:80].replace("\n", " ")
-                logger.debug("wait_for_response: content changed (%.1fs) '%s...'", total_elapsed, preview)
-                previous_signature = current_signature
-                previous_text = current_text
-                stable_elapsed = 0.0
-            else:
-                if await self._is_generating(page):
-                    stable_elapsed = 0.0
-                    continue
-                stable_elapsed += poll_interval_s
-                if stable_elapsed >= stable_threshold_s:
-                    logger.debug("wait_for_response: stable after %.1fs (%d chars)", total_elapsed, len(current_text))
-                    self._emit("RESPONSE READ", "assistant output became stable")
-                    return current_text
-
-        if previous_signature is not None:
-            logger.debug("wait_for_response: timeout but have text (%d chars)", len(previous_text))
-            self._emit("RESPONSE READ", "assistant output read at timeout")
-            return previous_text
-
-        raise ChannelTimeoutError(
-            f"No response received within {timeout_ms}ms"
-        )
-
-    @staticmethod
-    async def _is_generating(page: Page | Frame) -> bool:
-        """Whether a visible known typing indicator is still present."""
-        for selector in TYPING_INDICATOR_SELECTORS:
-            try:
-                if await page.locator(selector).locator("visible=true").count():
-                    return True
-            except Exception:
-                continue
-        return False
-
-    async def _is_baseline_element(self, page: Page | Frame) -> bool:
-        """Whether the current response locator still points to the old node."""
-        try:
-            elements = page.locator(self._response_selector)
-            if await elements.count() == 0:
-                return self._baseline_element is None
-            if self._baseline_element is None:
-                return False
-            current = await elements.last.element_handle()
-            if current is None:
-                return False
-            try:
-                return await current.evaluate(
-                    "(element, baseline) => element === baseline",
-                    self._baseline_element,
-                )
-            finally:
-                await current.dispose()
-        except Exception:
-            return False
+        self._response_part_count = self._response_finder.last_part_count
+        self._emit("RESPONSE READ", "qualified assistant output became stable")
+        return response_text
 
     async def get_response_html(self, page: Page | Frame) -> str | None:
-        """Get the inner HTML of the response element."""
-        if not self._response_selector:
-            return None
-        try:
-            elements = page.locator(self._response_selector)
-            count = await elements.count()
-            if count == 0:
-                return None
-            return await elements.last.inner_html()
-        except Exception:
-            return None
-
-    async def _get_response_text(self, page: Page | Frame) -> str:
-        """Extract text from the response element."""
-        if not self._response_selector:
-            return ""
-        try:
-            elements = page.locator(self._response_selector)
-            count = await elements.count()
-            if count == 0:
-                return ""
-            return (await elements.last.inner_text()).strip()
-        except Exception:
-            return ""
+        """Return the qualified response HTML captured with its text."""
+        return self._response_finder.last_html or None
 
     async def get_response_metadata(self, page: Page | Frame) -> dict[str, str]:
         """Report images added to the response after the prompt was sent."""
-        current_images = set(await self._get_response_images(page))
+        current_images = set(self._response_finder.last_images)
         new_images = sorted(current_images - self._baseline_images)
         return {
             "image_count": str(len(new_images)),
             "image_urls": json.dumps(new_images),
+            "response_mode": self._response_mode,
+            "response_selector": self._response_selector or "",
+            "response_parts": str(self._response_part_count),
+            "response_classification": "assistant",
+            "response_rejected": json.dumps(
+                self._response_finder.last_rejections, sort_keys=True
+            ),
         }
-
-    async def _get_response_images(self, page: Page | Frame) -> list[str]:
-        """Return loaded image URLs within the latest response element."""
-        try:
-            elements = page.locator(self._response_selector)
-            if await elements.count() == 0:
-                return []
-            return await elements.last.locator("img").evaluate_all(
-                """images => images
-                    .filter(image => image.complete && image.naturalWidth > 0)
-                    .map(image => image.currentSrc || image.src)
-                    .filter(Boolean)"""
-            )
-        except Exception:
-            return []
 
     @staticmethod
     async def _get_page_images(page: Page | Frame) -> list[str]:
