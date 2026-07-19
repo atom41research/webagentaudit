@@ -90,6 +90,10 @@ class AlgorithmicAutoConfigurator(BaseAutoConfigurator):
         except Exception:
             logger.debug("Timed-out chat discovery stopped", exc_info=True)
 
+    async def has_usable_input(self, page: Page) -> bool:
+        """Return whether input-first discovery can already use the page."""
+        return await self._find_input(page, None, emit=False) is not None
+
     async def _configure_page(
         self,
         page: Page,
@@ -131,6 +135,19 @@ class AlgorithmicAutoConfigurator(BaseAutoConfigurator):
                     None,
                 )
                 if item is None:
+                    if not branch and chat_only:
+                        found = await self._poll_for_input(
+                            page,
+                            input_hint,
+                            timeout_ms=consts.DISCOVERY_TIMEOUT_MS,
+                        )
+                        if found is not None:
+                            return await self._build_result(
+                                found,
+                                setup_actions=dismiss_actions,
+                                skip_response=skip_response,
+                                submit_hint=submit_hint,
+                            )
                     break
                 fingerprint, frame_path, candidate = item
                 attempted.add(fingerprint)
@@ -174,6 +191,8 @@ class AlgorithmicAutoConfigurator(BaseAutoConfigurator):
                     break
 
             if found is not None:
+                break
+            if not branch:
                 break
             logger.debug("Reloading after unsuccessful trigger branch")
             try:
@@ -261,10 +280,14 @@ class AlgorithmicAutoConfigurator(BaseAutoConfigurator):
         )
 
     async def _poll_for_input(
-        self, page: Page, input_hint: ElementHint | None
+        self,
+        page: Page,
+        input_hint: ElementHint | None,
+        *,
+        timeout_ms: int = consts.DISCOVERY_ACTION_WAIT_MS,
     ) -> tuple[ScoredElement, Page | Frame, FrameCandidate | None] | None:
         elapsed = 0
-        while elapsed < consts.DISCOVERY_ACTION_WAIT_MS:
+        while elapsed < timeout_ms:
             found = await self._find_input(page, input_hint, chat_only=True)
             if found is not None:
                 return found
@@ -278,6 +301,7 @@ class AlgorithmicAutoConfigurator(BaseAutoConfigurator):
         input_hint: ElementHint | None,
         *,
         chat_only: bool = False,
+        emit: bool = True,
     ) -> tuple[ScoredElement, Page | Frame, FrameCandidate | None] | None:
         best: tuple[ScoredElement, Page | Frame, FrameCandidate | None] | None = None
         for context, frame_candidate in await self._contexts(
@@ -289,7 +313,7 @@ class AlgorithmicAutoConfigurator(BaseAutoConfigurator):
                 continue
             if scored is not None and (best is None or scored.score > best[0].score):
                 best = (scored, context, frame_candidate)
-        if best is not None:
+        if best is not None and emit:
             self._emit("CHAT FOUND", best[0].candidate.selector)
         return best
 

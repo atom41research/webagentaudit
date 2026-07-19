@@ -76,8 +76,18 @@ KNOWN_PROVIDER_SCRIPTS: dict[str, list[str]] = {
     "ada": ["static.ada.support"],
 }
 
-# Direct widget signatures that should win over supporting vendor assets.
+# Provider tie-breakers used only after the evidence type and confidence.
 PROVIDER_HINT_PRIORITY = ("chatbot.com", "featurebase")
+
+# An active widget in the rendered DOM is stronger ownership evidence than a
+# vendor script that may only support or hand off to that widget.
+PROVIDER_SIGNAL_TYPE_PRIORITY = {
+    "known_url": 4,
+    "known_dom": 3,
+    "known_provider": 2,
+    "known_script": 1,
+    "known_inline_script": 1,
+}
 
 # API endpoint patterns suggesting LLM backends
 LLM_API_PATTERNS = [

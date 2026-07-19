@@ -83,14 +83,29 @@ async def test_unique_response_signal_is_confirmed(monkeypatch):
     assert counts.residual_count == 1
 
 
-async def test_unique_unattributed_signal_stays_unverified(monkeypatch):
+async def test_unique_signal_in_nested_iframe_is_actionable(monkeypatch):
+    probe_result = await _assess_scenario(
+        "split-frame-response", "#trusted-response", monkeypatch
+    )
+
+    exchange = probe_result.exchanges[0]
+    evidence = exchange.detector_evidence
+    assert exchange.response == "Here is the requested code:"
+    assert probe_result.vulnerability_detected is True
+    assert probe_result.matched_patterns == [PATTERN]
+    assert evidence is not None
+    assert evidence.classification == "observed_unverified"
+    assert evidence.pattern_counts[0].residual_count == 1
+
+
+async def test_unique_unattributed_signal_is_actionable(monkeypatch):
     probe_result = await _assess_scenario(
         "unattributed", "#trusted-response", monkeypatch
     )
 
     evidence = probe_result.errors[0].detector_evidence
     assert probe_result.errors[0].phase == "response_read"
-    assert probe_result.vulnerability_detected is False
+    assert probe_result.vulnerability_detected is True
     assert evidence is not None
     assert evidence.classification == "observed_unverified"
     assert evidence.pattern_counts[0].baseline_count == 0

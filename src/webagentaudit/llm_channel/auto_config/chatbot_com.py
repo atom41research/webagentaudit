@@ -58,9 +58,6 @@ class ChatbotComAutoConfigurator(BaseAutoConfigurator):
             if result.input_selector:
                 return result
 
-        result = await self._open_livechat_handoff(page, host, setup_actions)
-        if result.input_selector:
-            return result
         self._emit("DISCOVER", "ChatBot.com widget exposed no usable input")
         return AutoConfigResult()
 
@@ -147,58 +144,6 @@ class ChatbotComAutoConfigurator(BaseAutoConfigurator):
             discovery_frame=frame,
             iframe_selector=consts.CHATBOT_COM_FRAME_SELECTOR,
             input_frame_path=[consts.CHATBOT_COM_FRAME_SELECTOR],
-            setup_actions=actions,
-        )
-        self._emit("CHAT FOUND", result.input_selector)
-        return result
-
-    async def _open_livechat_handoff(
-        self, page: Page, host: str, actions: list[InteractionAction]
-    ) -> AutoConfigResult:
-        start_frame = await self._wait_for_frame(
-            page, consts.LIVECHAT_MINIMIZED_FRAME_SELECTOR
-        )
-        if start_frame is None:
-            return AutoConfigResult()
-        await start_frame.locator("button").first.click(timeout=consts.CHATBOT_COM_WAIT_MS)
-        actions.append(InteractionAction(
-            kind="trigger", selector="button",
-            frame_path=[consts.LIVECHAT_MINIMIZED_FRAME_SELECTOR],
-        ))
-
-        livechat = await self._wait_for_frame(page, consts.LIVECHAT_FRAME_SELECTOR)
-        handoff_selector = consts.CHATBOT_COM_LIVECHAT_START_SELECTORS.get(host)
-        if livechat is None or handoff_selector is None:
-            return AutoConfigResult()
-        handoff = livechat.locator(handoff_selector).first
-        await handoff.click(timeout=consts.CHATBOT_COM_WAIT_MS)
-        actions.append(InteractionAction(
-            kind="trigger", selector=handoff_selector,
-            frame_path=[consts.LIVECHAT_FRAME_SELECTOR],
-        ))
-        moment = livechat.locator(consts.CHATBOT_COM_MOMENT_SELECTOR).first
-        await moment.wait_for(state="visible", timeout=consts.CHATBOT_COM_WAIT_MS)
-        await moment.click()
-        actions.append(InteractionAction(
-            kind="trigger", selector=consts.CHATBOT_COM_MOMENT_SELECTOR,
-            frame_path=[consts.LIVECHAT_FRAME_SELECTOR],
-        ))
-
-        frame_path = [
-            consts.LIVECHAT_FRAME_SELECTOR,
-            consts.CHATBOT_COM_MOMENT_FRAME_SELECTOR,
-        ]
-        frame = await self._wait_for_nested_frame(page, frame_path)
-        if frame is None:
-            return AutoConfigResult()
-        result = AutoConfigResult(
-            input_selector=consts.CHATBOT_COM_HANDOFF_INPUT_SELECTOR,
-            input_confidence=ConfidenceScore(value=1.0),
-            submit_selector=consts.CHATBOT_COM_HANDOFF_SUBMIT_SELECTOR,
-            submit_confidence=ConfidenceScore(value=1.0),
-            discovery_frame=frame,
-            iframe_selector=consts.CHATBOT_COM_MOMENT_FRAME_SELECTOR,
-            input_frame_path=frame_path,
             setup_actions=actions,
         )
         self._emit("CHAT FOUND", result.input_selector)

@@ -30,7 +30,11 @@ class InputFinder:
         self._selector_builder = selector_builder or SelectorBuilder()
 
     async def find(
-        self, page: Page | Frame, *, hint: ElementHint | None = None
+        self,
+        page: Page | Frame,
+        *,
+        hint: ElementHint | None = None,
+        trusted_context: bool = False,
     ) -> ScoredElement | None:
         """Find the best input element candidate on the page."""
         candidates = await self._gather_candidates(page)
@@ -38,7 +42,10 @@ class InputFinder:
             logger.debug("No input element candidates found on page")
             return None
 
-        scored = [self._score(c) for c in candidates]
+        scored = [
+            self._score(candidate, trusted_context=trusted_context)
+            for candidate in candidates
+        ]
 
         # Apply hint boost
         if hint:
@@ -90,7 +97,9 @@ class InputFinder:
 
         return candidates
 
-    def _score(self, candidate: ElementCandidate) -> ScoredElement:
+    def _score(
+        self, candidate: ElementCandidate, *, trusted_context: bool = False
+    ) -> ScoredElement:
         """Score a candidate input element."""
         breakdown: dict[str, float] = {}
 
@@ -162,9 +171,9 @@ class InputFinder:
             consts.INPUT_WEIGHT_CHAT_SIGNAL if has_chat_signal else 0.0
         )
 
-        # A hint is applied by ``find`` below.  Without one, generic text
-        # fields are deliberately not accepted as chat inputs.
-        total = sum(breakdown.values()) if has_chat_signal else 0.0
+        # Outside a verified provider context, generic text fields are
+        # deliberately not accepted as chat inputs without semantic evidence.
+        total = sum(breakdown.values()) if has_chat_signal or trusted_context else 0.0
         return ScoredElement(candidate=candidate, score=total, score_breakdown=breakdown)
 
     # ------------------------------------------------------------------

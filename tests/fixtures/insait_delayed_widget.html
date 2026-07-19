@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head><title>Delayed Insait chat widget</title></head>
+<body>
+  <section class="chatbot-container">Loading assistant…</section>
+  <iframe id="insait-chat-frame" title="Chatbot Assistant"
+          aria-label="Chat assistant for loan refinancing"
+          style="width: 400px; height: 600px"></iframe>
+  <script>
+    var frame = document.querySelector("#insait-chat-frame");
+    frame.srcdoc = `
+      <!doctype html>
+      <html>
+      <body>
+        <button type="submit" data-testid="widget-send-button"
+                aria-label="Send message"
+                style="position:fixed;right:8px;bottom:8px;width:40px;height:40px"
+                onclick="window.sendClicks += 1">
+          <svg viewBox="0 0 24 24"><path d="M2 12l20-9-7 18-4-7z"></path></svg>
+        </button>
+        <script>
+          window.sendClicks = 0;
+          setTimeout(() => {
+            const input = document.createElement("textarea");
+            input.id = "composer";
+            input.setAttribute("aria-label", "Type your message...");
+            input.setAttribute("placeholder", "Type your message...");
+            document.body.append(input);
+          }, 1200);
+        <\/script>
+      </body>
+      </html>`;
+  </script>
+</body>
+</html>

@@ -80,6 +80,33 @@ async def test_unknown_iframe_with_real_chat_input_is_discovered(page):
     assert result.input_frame_path == ['iframe[name="vendor-widget"]']
 
 
+async def test_delayed_chat_frame_is_polled_without_clicking_send_or_reloading(
+    page, monkeypatch,
+):
+    html = (
+        Path(__file__).parents[2] / "fixtures" / "insait_delayed_widget.html"
+    ).read_text()
+    await page.set_content(html)
+    reloads = 0
+
+    async def record_reload(*args, **kwargs):
+        nonlocal reloads
+        reloads += 1
+
+    monkeypatch.setattr(page, "reload", record_reload)
+
+    result = await AlgorithmicAutoConfigurator().configure(
+        page, skip_response=True
+    )
+    frame = await page.locator("#insait-chat-frame").element_handle()
+    content = await frame.content_frame()
+
+    assert result.input_selector == "#composer"
+    assert result.setup_actions == []
+    assert reloads == 0
+    assert await content.evaluate("window.sendClicks") == 0
+
+
 async def test_flyweight_chat_frame_is_ranked_before_main_page(page, monkeypatch):
     await page.set_content("""
         <main>
@@ -166,7 +193,7 @@ async def test_timed_out_discovery_result_is_consumed(page, monkeypatch):
     assert events == [("DISCOVER", "time budget exhausted")]
 
 
-async def test_no_chat_page_retries_without_repeating_reload_progress(
+async def test_no_chat_page_does_not_reload_without_a_trigger(
     page, monkeypatch,
 ):
     html = (
@@ -176,20 +203,18 @@ async def test_no_chat_page_retries_without_repeating_reload_progress(
     events: list[tuple[str, str]] = []
     reloads = 0
 
-    async def reload_until_test_limit(*args, **kwargs):
+    async def record_reload(*args, **kwargs):
         nonlocal reloads
         reloads += 1
-        if reloads == 3:
-            raise RuntimeError("test retry limit reached")
 
-    monkeypatch.setattr(page, "reload", reload_until_test_limit)
+    monkeypatch.setattr(page, "reload", record_reload)
 
     result = await AlgorithmicAutoConfigurator(
         progress_callback=lambda phase, detail: events.append((phase, detail))
     ).configure(page, skip_response=True)
 
     assert result.input_selector is None
-    assert reloads == 3
+    assert reloads == 0
     assert events == [
         ("DISCOVER", "scanning page and frames for an input"),
         ("DISCOVER", "no usable chat input found"),

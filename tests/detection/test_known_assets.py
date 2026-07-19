@@ -139,6 +139,24 @@ class TestKnownAssetsChecker:
         )
         assert livechat.metadata["provider"] == "livechat"
 
+    def test_livechat_runtime_dom_is_kept_when_its_script_is_also_present(self):
+        checker = KnownAssetsChecker()
+        page = make_page_data(
+            html='''
+                <script src="https://cdn.livechatinc.com/widget.js"></script>
+                <iframe id="chat-widget"></iframe>
+            ''',
+            scripts=["https://cdn.livechatinc.com/widget.js"],
+        )
+
+        livechat = next(
+            signal
+            for signal in checker.check(page)
+            if signal.metadata.get("asset_name") == "LiveChat"
+        )
+
+        assert livechat.signal_type == "known_dom"
+
     def test_chatbase_runtime_launcher_provides_interaction_hint(self):
         checker = KnownAssetsChecker()
         page = make_page_data(

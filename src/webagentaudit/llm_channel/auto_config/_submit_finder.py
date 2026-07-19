@@ -19,9 +19,10 @@ logger = logging.getLogger(__name__)
 class SubmitFinder:
     """Find the best submit/send button relative to a known input element.
 
-    Candidates must have send/submit label or class semantics, a submit type,
-    or match an explicit hint.  Proximity and a generic SVG icon only rank
-    eligible controls; they cannot make an unrelated control eligible.
+    Normally candidates must have send/submit label or class semantics, a
+    submit type, or match an explicit hint. In a verified provider context,
+    proximity and icon structure may establish eligibility without assuming
+    that visible or accessible labels are English.
 
     Scoring factors:
     - proximity: Euclidean distance from the input element
@@ -40,6 +41,7 @@ class SubmitFinder:
         input_candidate: ElementCandidate,
         *,
         hint: ElementHint | None = None,
+        trusted_context: bool = False,
     ) -> ScoredElement | None:
         """Find the best submit button near *input_candidate*."""
         buttons = await self._gather_candidates(page, input_candidate)
@@ -59,7 +61,8 @@ class SubmitFinder:
         scored = [
             se
             for se in scored
-            if se.score_breakdown["label"] > 0
+            if trusted_context
+            or se.score_breakdown["label"] > 0
             or se.score_breakdown["class"] > 0
             or se.candidate.element_type.lower() == "submit"
             or se.score_breakdown.get("hint_match", 0) > 0

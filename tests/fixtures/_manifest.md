@@ -92,6 +92,33 @@ Fetched on: 2026-03-10
   - `textarea#message`
 - **Provider:** LiveChat
 
+### `livechat_multilingual_gate.html`
+- **Derived from:** The 2026-07-19 EasyTrack LiveChat iframe DOM supplied by
+  the operator.
+- **Description:** Hungarian pre-conversation state with LiveChat's stable
+  `#start-chat-button`, hashed styling classes, structural transcript roles,
+  and composer/send controls whose visible and accessible text is not English.
+  It verifies that discovery and replay advance the gate and use provider-frame
+  structure instead of translated keywords.
+- **Detection signals:**
+  - `iframe#chat-widget`
+  - `#start-chat-button`
+  - `[role="grid"][aria-live="polite"]`
+- **Provider:** LiveChat
+
+### `insait_delayed_widget.html`
+- **Derived from:** A headed 2026-07-19 cold-load inspection of
+  https://reducemypayment.com/.
+- **Description:** An unknown-provider chat iframe whose shell and lower-right
+  SVG send button render before its textarea. The composer appears after a
+  bounded delay. Discovery must poll the recognized frame without treating the
+  submit control as a launcher or reloading the host page.
+- **Detection signals:**
+  - `iframe#insait-chat-frame[title="Chatbot Assistant"]`
+  - `[data-testid="widget-send-button"]`
+  - delayed `textarea#composer`
+- **Provider:** Insait (generic discovery; no canonical provider route)
+
 ### `custom_chatbot_hubspot.html`
 - **Source URL:** https://www.hubspot.com
 - **Description:** HubSpot's own homepage. Contains the HubSpot script loader which powers their chat widget.

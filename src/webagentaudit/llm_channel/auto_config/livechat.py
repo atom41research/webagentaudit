@@ -38,10 +38,29 @@ async def _wait_for_frame(page: Page, selector: str) -> Frame | None:
     return None
 
 
+async def _open_start_gate(frame: Frame) -> None:
+    """Advance LiveChat's language-independent pre-conversation gate."""
+    controls = frame.locator(
+        f"{consts.LIVECHAT_START_SELECTOR}, {consts.LIVECHAT_INPUT_SELECTOR}"
+    ).first
+    try:
+        await controls.wait_for(state="visible", timeout=consts.LIVECHAT_WAIT_MS)
+    except Exception as exc:
+        raise ChannelNotReadyError("LiveChat controls did not render") from exc
+    start = frame.locator(consts.LIVECHAT_START_SELECTOR).first
+    if await start.count() == 0 or not await start.is_visible():
+        return
+    await start.click(timeout=consts.LIVECHAT_WAIT_MS)
+    await frame.locator(consts.LIVECHAT_INPUT_SELECTOR).first.wait_for(
+        state="visible", timeout=consts.LIVECHAT_WAIT_MS
+    )
+
+
 async def open_livechat_widget(page: Page) -> Frame:
     """Open the minimized widget when needed and return its main frame."""
     expanded = await _current_frame(page, consts.LIVECHAT_FRAME_SELECTOR)
     if expanded is not None:
+        await _open_start_gate(expanded)
         return expanded
 
     minimized = await _wait_for_frame(
@@ -56,6 +75,7 @@ async def open_livechat_widget(page: Page) -> Frame:
     expanded = await _wait_for_frame(page, consts.LIVECHAT_FRAME_SELECTOR)
     if expanded is None:
         raise ChannelNotReadyError("LiveChat composer frame did not render")
+    await _open_start_gate(expanded)
     return expanded
 
 
@@ -102,7 +122,10 @@ class LiveChatAutoConfigurator(BaseAutoConfigurator):
             )],
         )
         submit = await self._submit_finder.find(
-            frame, scored.candidate, hint=submit_hint
+            frame,
+            scored.candidate,
+            hint=submit_hint,
+            trusted_context=True,
         )
         if submit is not None:
             result.submit_selector = submit.candidate.selector
@@ -118,7 +141,9 @@ class LiveChatAutoConfigurator(BaseAutoConfigurator):
     ):
         elapsed = 0
         while elapsed < consts.LIVECHAT_WAIT_MS:
-            scored = await self._input_finder.find(frame, hint=hint)
+            scored = await self._input_finder.find(
+                frame, hint=hint, trusted_context=True
+            )
             if scored is not None:
                 return scored
             await asyncio.sleep(consts.DISCOVERY_INPUT_POLL_MS / 1000)

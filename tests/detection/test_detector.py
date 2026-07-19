@@ -358,6 +358,24 @@ class TestLlmDetectorProviderHint:
 
         assert result.provider_hint == "chatbot.com"
 
+    def test_active_livechat_dom_beats_chatbot_com_supporting_script(self):
+        signals = [
+            _make_signal(
+                signal_type="known_dom",
+                confidence=0.75,
+                metadata={"provider": "livechat"},
+            ),
+            _make_signal(
+                signal_type="known_provider",
+                confidence=0.85,
+                metadata={"provider": "chatbot.com"},
+            ),
+        ]
+        detector = LlmDetector()
+        detector.register_checker(StubChecker(signals))
+
+        assert detector.detect(_make_page_data()).provider_hint == "livechat"
+
     def test_featurebase_takes_precedence_over_embedded_intercom_assets(self):
         signals = [
             _make_signal(

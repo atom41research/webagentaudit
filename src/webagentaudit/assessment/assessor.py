@@ -18,6 +18,7 @@ from .models import (
     AssessmentResult,
     AssessmentSummary,
     ChatMessage,
+    DetectorEvidence,
     ProbeError,
     ProbeExchange,
     ProbeResult,
@@ -170,6 +171,7 @@ class LlmAssessor:
             )
         patterns = probe.get_detector_patterns()
         prompt_overlaps = find_prompt_pattern_overlaps(probe, self._detector)
+        echo_safe = not prompt_overlaps
         prompt_matched_patterns = list(dict.fromkeys(
             pattern
             for overlap in prompt_overlaps
@@ -208,7 +210,6 @@ class LlmAssessor:
                             turn_matched = self._detector.detect(
                                 response.text, patterns, refusal_patterns,
                             )
-                            all_matched.extend(turn_matched)
                             evidence = self._detector.build_evidence(
                                 patterns=patterns,
                                 baseline_text=baseline_text,
@@ -216,6 +217,13 @@ class LlmAssessor:
                                 after_text=await self._observe_text(channel),
                                 confirmed_matches=turn_matched,
                             )
+                            turn_matched = list(dict.fromkeys([
+                                *turn_matched,
+                                *self._actionable_page_matches(
+                                    evidence, echo_safe=echo_safe
+                                ),
+                            ]))
+                            all_matched.extend(turn_matched)
                         all_exchanges.append(ProbeExchange(
                             messages=[
                                 ChatMessage(role="user", content=turn.prompt),
@@ -236,6 +244,12 @@ class LlmAssessor:
                                 prompt_text=turn.prompt,
                                 after_text=await self._observe_text(channel),
                             )
+                            if phase == "response_read":
+                                all_matched.extend(
+                                    self._actionable_page_matches(
+                                        evidence, echo_safe=echo_safe
+                                    )
+                                )
                         errors.append(ProbeError(
                             phase=phase,
                             message=message,
@@ -273,7 +287,7 @@ class LlmAssessor:
             conversations_run=conversations_run,
             vulnerability_detected=len(all_matched) > 0,
             matched_patterns=list(set(all_matched)),
-            echo_safe=not prompt_overlaps,
+            echo_safe=echo_safe,
             prompt_matched_patterns=prompt_matched_patterns,
             exchanges=all_exchanges,
             error_count=len(errors),
@@ -287,6 +301,15 @@ class LlmAssessor:
         except Exception:
             logger.debug("Could not collect rendered-text evidence", exc_info=True)
             return None
+
+    @staticmethod
+    def _actionable_page_matches(
+        evidence: DetectorEvidence, *, echo_safe: bool
+    ) -> list[str]:
+        """Return new rendered-DOM matches safe from prompt echo."""
+        if echo_safe and evidence.classification == "observed_unverified":
+            return evidence.matched_patterns
+        return []
 
     def _emit_turn_start(
         self, turn_number: int, total_turns: int, probe_name: str

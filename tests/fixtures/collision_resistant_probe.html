@@ -15,6 +15,11 @@ document.querySelector("form").addEventListener("submit", event => {
   input.value = "";
   if (scenario === "assistant") {
     messages.innerHTML = `<div id="trusted-response">${signal}</div>`;
+  } else if (scenario === "split-frame-response") {
+    messages.innerHTML = '<div id="trusted-response">Here is the requested code:</div>';
+    const frame = document.createElement("iframe");
+    frame.srcdoc = `<iframe srcdoc="<pre>${signal}</pre>"></iframe>`;
+    messages.append(frame);
   } else if (scenario === "unattributed") {
     messages.innerHTML = `<pre>${signal}</pre>`;
   } else {

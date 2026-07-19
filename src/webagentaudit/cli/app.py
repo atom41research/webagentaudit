@@ -1066,6 +1066,9 @@ async def _open_and_auto_discover(
                                   full_page=False)
 
         provider_hint = None
+        generic_configurator = AlgorithmicAutoConfigurator(
+            progress_callback=progress_callback
+        )
         try:
             for _ in range(PROVIDER_DETECTION_MAX_ATTEMPTS):
                 detection = await _detection_result_for_page(page, url)
@@ -1075,6 +1078,8 @@ async def _open_and_auto_discover(
                     key in interaction_hint
                     for key in ("input_selector", "widget_selector")
                 ):
+                    break
+                if await generic_configurator.has_usable_input(page):
                     break
                 await page.wait_for_timeout(PROVIDER_DETECTION_POLL_MS)
         except PageDataCollectionError as exc:
@@ -1105,9 +1110,7 @@ async def _open_and_auto_discover(
             if provider_hint == "tidio"
             else VoiceflowAutoConfigurator(progress_callback=progress_callback)
             if provider_hint == "voiceflow"
-            else AlgorithmicAutoConfigurator(
-                progress_callback=progress_callback
-            )
+            else generic_configurator
         )
         try:
             auto_result = await configurator.configure(

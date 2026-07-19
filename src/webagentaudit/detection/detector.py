@@ -4,7 +4,7 @@ from typing import Optional
 
 from ..core.models import ConfidenceScore
 from .config import DetectionConfig
-from .consts import PROVIDER_HINT_PRIORITY
+from .consts import PROVIDER_HINT_PRIORITY, PROVIDER_SIGNAL_TYPE_PRIORITY
 from .deterministic.base import BaseSignalChecker
 from .models import DetectionResult, DetectionSignal, PageData
 
@@ -74,13 +74,18 @@ class LlmDetector:
         ]
         if not provider_signals:
             return None
-        for preferred in PROVIDER_HINT_PRIORITY:
-            if any(
-                signal.metadata.get("provider") == preferred
-                for signal in provider_signals
-            ):
-                return preferred
-        best = max(provider_signals, key=lambda s: s.confidence.value)
+        tie_breakers = {
+            provider: len(PROVIDER_HINT_PRIORITY) - index
+            for index, provider in enumerate(PROVIDER_HINT_PRIORITY)
+        }
+        best = max(
+            provider_signals,
+            key=lambda signal: (
+                PROVIDER_SIGNAL_TYPE_PRIORITY.get(signal.signal_type, 0),
+                signal.confidence.value,
+                tie_breakers.get(signal.metadata.get("provider"), 0),
+            ),
+        )
         return best.metadata["provider"]
 
     def _extract_interaction_hint(

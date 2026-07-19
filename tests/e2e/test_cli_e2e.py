@@ -336,15 +336,21 @@ class TestAssessE2E:
         from webagentaudit.cli import app
 
         url = f"{demo_server}/interactive/reverse-llm.html"
-        collect = app._collect_page_data
+        detect = app._detection_result_for_page
         detection_snapshots = 0
 
-        async def count_snapshots(*args, **kwargs):
+        async def detect_without_interaction_hint(*args, **kwargs):
             nonlocal detection_snapshots
             detection_snapshots += 1
-            return await collect(*args, **kwargs)
+            result = await detect(*args, **kwargs)
+            return result.model_copy(update={
+                "provider_hint": None,
+                "interaction_hint": None,
+            })
 
-        monkeypatch.setattr(app, "_collect_page_data", count_snapshots)
+        monkeypatch.setattr(
+            app, "_detection_result_for_page", detect_without_interaction_hint
+        )
         monkeypatch.setattr(app, "PROVIDER_DETECTION_MAX_ATTEMPTS", 5)
         monkeypatch.setattr(app, "PROVIDER_DETECTION_POLL_MS", 1)
 

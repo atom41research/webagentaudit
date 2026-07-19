@@ -51,9 +51,28 @@ class KnownAssetsChecker(BaseSignalChecker):
                     evidence=page_data.url,
                 ))
 
-        # 2. Check script src URLs against registry
-        all_script_urls = list(page_data.scripts)
+        # 2. Check rendered DOM before supporting assets.  A provider's active
+        # widget is stronger ownership evidence than a script that may merely
+        # load, track, or hand off to it.
         soup = page_data.get_soup()
+        for asset in self._registry.get_all():
+            if asset.name in seen_assets:
+                continue
+            for dom_sig in asset.dom_signatures:
+                try:
+                    if soup.select_one(dom_sig.selector):
+                        seen_assets.add(asset.name)
+                        signals.append(self._make_signal(
+                            asset, "known_dom",
+                            f"DOM element matches {asset.name}: {dom_sig.description}",
+                            evidence=dom_sig.selector,
+                        ))
+                        break
+                except Exception:
+                    continue
+
+        # 3. Check script src URLs against registry
+        all_script_urls = list(page_data.scripts)
         for tag in soup.find_all("script", src=True):
             src = tag.get("src", "")
             if src and src not in all_script_urls:
@@ -68,7 +87,7 @@ class KnownAssetsChecker(BaseSignalChecker):
                         evidence=script_url,
                     ))
 
-        # 3. Check inline scripts against registry
+        # 4. Check inline scripts against registry
         all_inline = list(page_data.inline_scripts)
         for tag in soup.find_all("script"):
             if not tag.get("src") and tag.string:
@@ -85,23 +104,6 @@ class KnownAssetsChecker(BaseSignalChecker):
                         f"Inline script matches {asset.name}",
                         evidence=content[:200],
                     ))
-
-        # 4. Check DOM signatures
-        for asset in self._registry.get_all():
-            if asset.name in seen_assets:
-                continue
-            for dom_sig in asset.dom_signatures:
-                try:
-                    if soup.select_one(dom_sig.selector):
-                        seen_assets.add(asset.name)
-                        signals.append(self._make_signal(
-                            asset, "known_dom",
-                            f"DOM element matches {asset.name}: {dom_sig.description}",
-                            evidence=dom_sig.selector,
-                        ))
-                        break
-                except Exception:
-                    continue
 
         return signals
 

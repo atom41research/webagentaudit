@@ -370,7 +370,7 @@ async def test_response_rejection_evidence_is_preserved():
     }
 
 
-async def test_response_failure_records_residual_detector_evidence():
+async def test_response_failure_uses_residual_detector_evidence():
     class EvidenceChannel(StubChannel):
         def __init__(self):
             super().__init__(delay_ms=0)
@@ -401,10 +401,45 @@ async def test_response_failure_records_residual_detector_evidence():
 
     probe_result = result.probe_results[0]
     evidence = probe_result.errors[0].detector_evidence
-    assert probe_result.vulnerability_detected is False
+    assert probe_result.vulnerability_detected is True
+    assert probe_result.matched_patterns == [r"def\s+my_fibonacci"]
     assert evidence is not None
     assert evidence.classification == "observed_unverified"
     assert evidence.matched_patterns == [r"def\s+my_fibonacci"]
+
+
+async def test_prompt_overlap_blocks_residual_page_match():
+    class EvidenceChannel(StubChannel):
+        def __init__(self):
+            super().__init__(delay_ms=0)
+            self.observations = iter(["", "Show javascript:\njavascript:"])
+
+        async def observe_text(self):
+            return next(self.observations)
+
+        async def send(self, message):
+            raise ChannelResponseError("no qualified response")
+
+    class EchoProbe(SimpleProbe):
+        def get_detector_patterns(self):
+            return [r"javascript\s*:"]
+
+    assessor = LlmAssessor(
+        config=AssessmentConfig(inter_probe_delay_ms=0),
+        channel_factory=EvidenceChannel,
+        registry=_make_registry([
+            EchoProbe("echo", ["Show javascript:"])
+        ]),
+    )
+
+    result = await assessor.assess("http://example.com")
+
+    probe_result = result.probe_results[0]
+    assert probe_result.echo_safe is False
+    assert probe_result.vulnerability_detected is False
+    assert probe_result.errors[0].detector_evidence.classification == (
+        "observed_unverified"
+    )
 
 
 async def test_probe_result_records_prompt_detector_overlap():

@@ -186,6 +186,13 @@ TRIGGER_NEGATIVE_LABEL_KEYWORDS = [
     "minimize",
 ]
 
+TRIGGER_SUBMIT_LABEL_KEYWORDS = [
+    "send message",
+    "send-button",
+    "send_button",
+    "submit",
+]
+
 TRIGGER_CONVERSATION_LABEL_KEYWORDS = [
     "ask a question",
     "start a conversation",
@@ -497,14 +504,11 @@ CHATBOT_COM_ONBOARDING_SELECTORS = {
 LIVECHAT_WAIT_MS = 15_000
 LIVECHAT_MINIMIZED_FRAME_SELECTOR = "iframe#chat-widget-minimized"
 LIVECHAT_FRAME_SELECTOR = "iframe#chat-widget"
-CHATBOT_COM_LIVECHAT_START_SELECTORS = {
-    "easytrack.hu": 'button:has-text("Beszélgessünk")',
-}
-CHATBOT_COM_MOMENT_SELECTOR = 'button[value^="https://url.chatbot.com/url2"]'
-CHATBOT_COM_MOMENT_FRAME_SELECTOR = 'iframe[data-testid="moment-app"]'
-CHATBOT_COM_HANDOFF_INPUT_SELECTOR = 'textarea[placeholder*="Ide írva kérdez"]'
-CHATBOT_COM_HANDOFF_SUBMIT_SELECTOR = 'button[aria-label="Send"]'
-
+LIVECHAT_START_SELECTOR = "#start-chat-button"
+LIVECHAT_INPUT_SELECTOR = (
+    "textarea, input[type='text'], input:not([type]), "
+    "[contenteditable='true'], [role='textbox']"
+)
 # ---------------------------------------------------------------------------
 # Denser
 # ---------------------------------------------------------------------------

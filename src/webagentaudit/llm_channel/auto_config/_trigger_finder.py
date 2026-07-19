@@ -207,6 +207,18 @@ class TriggerFinder:
             candidate.title,
             candidate.data_testid,
         ]).lower()
+        is_conversation_action = any(
+            keyword in label
+            for keyword in consts.TRIGGER_CONVERSATION_LABEL_KEYWORDS
+        )
+        if candidate.element_type.lower() == "submit" or (
+            not is_conversation_action
+            and any(
+                keyword in label
+                for keyword in consts.TRIGGER_SUBMIT_LABEL_KEYWORDS
+            )
+        ):
+            return 0.0, mechanism
         if any(keyword in label for keyword in consts.TRIGGER_NEGATIVE_LABEL_KEYWORDS):
             return 0.0, mechanism
         ai_label_score = 0.0
@@ -236,10 +248,7 @@ class TriggerFinder:
         # Detected via menu selectors in gather
         # Check class names for command/menu/dialog hints
         class_str = " ".join(candidate.classes).lower()
-        if any(
-            keyword in label
-            for keyword in consts.TRIGGER_CONVERSATION_LABEL_KEYWORDS
-        ):
+        if is_conversation_action:
             aria_controls_score = 1.0
         if any(kw in class_str for kw in ("command", "menu", "dialog", "panel", "sheet", "chat")):
             aria_controls_score = 0.5
