@@ -280,6 +280,19 @@ class TestLlmDetectorProviderHint:
 
         assert result.provider_hint is None
 
+    def test_extracts_provider_metadata_from_known_asset_signal(self):
+        signals = [
+            _make_signal(
+                signal_type="known_dom",
+                confidence=0.75,
+                metadata={"provider": "livechat"},
+            ),
+        ]
+        detector = LlmDetector()
+        detector.register_checker(StubChecker(signals))
+
+        assert detector.detect(_make_page_data()).provider_hint == "livechat"
+
     def test_highest_confidence_provider_wins(self):
         """When multiple providers are detected, the highest-confidence one wins."""
         signals = [

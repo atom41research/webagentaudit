@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Flyweight widget fixture</title></head>
+<body>
+  <main><button>Shop products</button><button>View cart</button></main>
+  <iframe data-testid="popup-overlay" title="Chat popup"></iframe>
+  <iframe data-testid="chat-overlay" title="Chat" srcdoc='<!doctype html>
+    <div id="chat-window">
+      <button id="chat-button" aria-label="RXSG Assistant"
+              title="RXSG Assistant">Hi!</button>
+      <div class="message" data-variant="ai" data-state="default"
+           data-testid="message">
+        <div role="log" aria-live="polite" aria-relevant="additions">Example:</div>
+      </div>
+      <section id="composer" hidden>
+        <textarea placeholder="Type your message here..."></textarea>
+        <button id="send" aria-label="Send" title="Send">Send</button>
+      </section>
+    </div>
+    <script>
+      document.querySelector("#chat-button").onclick = () => {
+        document.querySelector("#composer").hidden = false;
+      };
+      document.querySelector("#send").onclick = () => {
+        document.querySelector("textarea").value = "";
+        const answer = document.createElement("div");
+        answer.className = "message";
+        answer.dataset.variant = "ai";
+        answer.dataset.state = "default";
+        answer.dataset.testid = "message";
+        answer.innerHTML = "<div role=\"log\" aria-live=\"polite\" "
+          + "aria-relevant=\"additions\"><p>Example:</p>"
+          + "<pre>def my_fibonnaci(n): return n</pre></div>";
+        document.querySelector("#chat-window").append(answer);
+      };
+    </script>'></iframe>
+</body>
+</html>

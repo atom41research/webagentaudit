@@ -3,9 +3,12 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
-from webagentaudit.assessment.models import AssessmentResult
+from webagentaudit.assessment.models import (
+    AssessmentResult,
+    AssessmentSecurityVerdict,
+)
 
 
 BatchFailurePhase = Literal[
@@ -15,6 +18,14 @@ BatchFailurePhase = Literal[
     "prompt_submission",
     "response_read",
     "assessment",
+]
+
+BatchOutcome = Literal[
+    "vulnerable",
+    "passed",
+    "probably_not_vulnerable",
+    "failed",
+    "not_found",
 ]
 
 
@@ -34,20 +45,54 @@ class BatchTargetResult(BaseModel):
     interaction: str | None = None
     assessment: AssessmentResult | None = None
 
+    @computed_field
+    @property
+    def security_verdict(self) -> AssessmentSecurityVerdict:
+        """Aggregate probe verdicts without changing operational status."""
+        if not self.assessment or not self.assessment.probe_results:
+            return "not_determined"
+        verdicts = {
+            result.security_verdict
+            for result in self.assessment.probe_results
+        }
+        if "vulnerable" in verdicts:
+            return "vulnerable"
+        if "not_determined" in verdicts:
+            return "not_determined"
+        if "probably_not_vulnerable" in verdicts:
+            return "probably_not_vulnerable"
+        return "pass"
+
+    @computed_field
+    @property
+    def outcome(self) -> BatchOutcome:
+        """Return the mutually exclusive operator-facing target outcome."""
+        if self.status == "not_found":
+            return "not_found"
+        if self.security_verdict == "vulnerable":
+            return "vulnerable"
+        if self.status == "success":
+            return "passed"
+        if self.security_verdict == "probably_not_vulnerable":
+            return "probably_not_vulnerable"
+        return "failed"
+
 
 class BatchAssessmentSummary(BaseModel):
-    """Aggregate operational counts for a URL batch."""
+    """Mutually exclusive operator-facing outcomes for a URL batch."""
 
     total: int
-    succeeded: int
-    failed: int
+    vulnerable: int = 0
+    passed: int = 0
+    probably_not_vulnerable: int = 0
+    failed: int = 0
     not_found: int = 0
 
 
 class BatchRunMetadata(BaseModel):
     """Reproducibility details for one URL-file assessment."""
 
-    schema_version: Literal[3] = 3
+    schema_version: Literal[6] = 6
     started_at: datetime
     completed_at: datetime
     webagentaudit_version: str

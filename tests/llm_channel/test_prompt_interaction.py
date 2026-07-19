@@ -227,6 +227,36 @@ async def test_response_reader_waits_for_typing_indicator(page, monkeypatch):
     assert response == "No — completed response"
 
 
+async def test_response_reader_waits_for_chatgpt_stop_button(page, monkeypatch):
+    await page.set_content(
+        '<textarea id="prompt"></textarea>'
+    )
+    monkeypatch.setattr(custom_module, "RESPONSE_POLL_INTERVAL_MS", 20)
+    monkeypatch.setattr(custom_module, "RESPONSE_STABLE_INTERVAL_MS", 100)
+    strategy = CustomStrategy(
+        "#prompt", '[data-message-author-role="assistant"]'
+    )
+    await strategy.prepare_response(page)
+    await page.evaluate(
+        """() => {
+            document.body.insertAdjacentHTML(
+                'beforeend',
+                '<div data-message-author-role="assistant">Here is the function:</div>'
+                + '<button data-testid="stop-button">Stop generating</button>'
+            );
+            setTimeout(() => {
+                document.querySelector('[data-message-author-role="assistant"]')
+                    .textContent = 'Here is the function: def my_fibonnaci(n): return n';
+                document.querySelector('[data-testid="stop-button"]').remove();
+            }, 1_000);
+        }"""
+    )
+
+    response = await strategy.wait_for_response(page, 2_000)
+
+    assert "def my_fibonnaci" in response
+
+
 async def test_channel_waits_for_page_hydration_before_submit(tmp_path, monkeypatch):
     html = tmp_path / "hydrating-chat.html"
     html.write_text(
@@ -320,7 +350,16 @@ async def test_channel_follows_popup_created_after_click(tmp_path, monkeypatch):
         </script>"""
     )
     monkeypatch.setattr(channel_module, "PAGE_SETTLE_MS", 0)
-    monkeypatch.setattr(channel_module, "NEW_PAGE_HANDOFF_WAIT_MS", 100)
+    handoff_timeouts = []
+
+    async def bounded_handoff(page, timeout_ms):
+        handoff_timeouts.append(timeout_ms)
+
+    monkeypatch.setattr(
+        channel_module,
+        "wait_for_domcontentloaded_and_inspect",
+        bounded_handoff,
+    )
     monkeypatch.setattr(custom_module, "RESPONSE_POLL_INTERVAL_MS", 20)
     monkeypatch.setattr(custom_module, "RESPONSE_STABLE_INTERVAL_MS", 100)
     strategy = CustomStrategy(
@@ -339,3 +378,47 @@ async def test_channel_follows_popup_created_after_click(tmp_path, monkeypatch):
         await channel.disconnect()
 
     assert response.text == "Popup response"
+    assert len(handoff_timeouts) == 1
+    assert 0 < handoff_timeouts[0] <= 2_000
+
+
+async def test_channel_follows_delayed_chatgpt_tab(tmp_path, monkeypatch):
+    response_page = tmp_path / "chatgpt-response.html"
+    response_page.write_text(
+        '<div class="flex max-w-full flex-col gap-4 grow">'
+        '<div data-message-author-role="assistant" data-message-id="answer">'
+        '<div class="markdown prose"><pre><code>'
+        '<span>def</span> <span>my_fibonnaci</span><span>(n):</span>'
+        '</code></pre></div></div></div>'
+    )
+    entry_page = tmp_path / "openai-entry.html"
+    entry_page.write_text(
+        f"""<!doctype html><form><textarea></textarea>
+        <button aria-label="Send prompt" type="submit">Send</button></form>
+        <script>
+        document.querySelector('form').addEventListener('submit', event => {{
+            event.preventDefault();
+            document.querySelector('textarea').value = '';
+            setTimeout(() => window.open({response_page.as_uri()!r}), 800);
+        }});
+        </script>"""
+    )
+    monkeypatch.setattr(channel_module, "PAGE_SETTLE_MS", 0)
+    monkeypatch.setattr(custom_module, "RESPONSE_POLL_INTERVAL_MS", 20)
+    monkeypatch.setattr(custom_module, "RESPONSE_STABLE_INTERVAL_MS", 100)
+    strategy = CustomStrategy(
+        "textarea",
+        '[data-message-author-role="assistant"]',
+        'button[aria-label="Send prompt"]',
+    )
+    channel = PlaywrightChannel(
+        ChannelConfig(timeout_ms=2_500), strategy=strategy
+    )
+
+    try:
+        await channel.connect(entry_page.as_uri())
+        response = await channel.send(ChannelMessage(text="Fibonacci"))
+    finally:
+        await channel.disconnect()
+
+    assert "def my_fibonnaci" in response.text

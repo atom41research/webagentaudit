@@ -135,10 +135,19 @@ ASSETS: list[KnownAsset] = [
         ],
         dom_signatures=[
             DomSignature(selector="#chat-widget-container", description="LiveChat container"),
+            DomSignature(
+                selector="iframe#chat-widget-minimized",
+                description="LiveChat minimized launcher frame",
+            ),
+            DomSignature(
+                selector="iframe#chat-widget",
+                description="LiveChat conversation frame",
+            ),
         ],
         inline_script_patterns=[r"LiveChatWidget", r"__lc\.", r"livechatinc"],
         vendor_url="https://livechat.com",
         is_llm_powered=True,
+        provider_hint="livechat",
     ),
     KnownAsset(
         name="HubSpot Chat",

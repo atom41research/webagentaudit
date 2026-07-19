@@ -30,6 +30,14 @@ Fetched on: 2026-03-10
   assistant-message structure.
 - **Provider:** Chatbase
 
+### `chatbase_delayed_bootstrap.html`
+- **Derived from:** `chatbase_widget.html`
+- **Description:** Replayable cold-load variant that withholds all provider
+  evidence until after the initial page-settle window, then renders Rugged
+  Restore's runtime Chatbase launcher DOM without relying on an embed-script
+  signature, followed by the iframe, composer, and assistant-message structure.
+- **Provider:** Chatbase
+
 ### `denser_embed_widget.html`
 - **Source URLs:** https://denser.ai/, https://www.eos.com.au/, https://premiere-concierge.com/
 - **Captured:** 2026-07-14
@@ -68,6 +76,21 @@ Fetched on: 2026-03-10
   - `LiveChatWidget` JavaScript API (`LiveChatWidget.on`, `LiveChatWidget.get`, `LiveChatWidget.call`)
   - Also contains: `hs-script-loader` (HubSpot tracking, `//js-eu1.hs-scripts.com/26269451.js`)
 - **Provider:** LiveChat (+ HubSpot tracking)
+
+### `livechat_delayed_widget.html`
+- **Derived from:** A saved 2026-07-19 standalone LiveChat runtime diagnostic;
+  it is not treated as evidence that Rugged Restore changed providers.
+- **Description:** Replayable delayed standalone LiveChat lifecycle. It renders
+  the minimized launcher iframe after the initial provider-detection window
+  begins and the conversation
+  iframe after the launcher click. The `history=1` variant starts with an old
+  detector match and returns a safe new answer, proving response collection
+  excludes persisted transcript content.
+- **Detection signals:**
+  - `iframe#chat-widget-minimized`
+  - `iframe#chat-widget`
+  - `textarea#message`
+- **Provider:** LiveChat
 
 ### `custom_chatbot_hubspot.html`
 - **Source URL:** https://www.hubspot.com
@@ -175,6 +198,9 @@ Fetched on: 2026-03-10
 | File | Provider | Widget in static HTML? | Key detection pattern |
 |------|----------|----------------------|----------------------|
 | `chatbase_widget.html` | Chatbase | Yes (replayable live structure) | `#chatbase-bubble-button`, `#message` |
+| `chatbase_delayed_bootstrap.html` | Chatbase | Delayed after navigation | `#chatbase-bubble-button`, `#chatbase-bubble-window` |
+| `livechat_delayed_widget.html` | LiveChat | Delayed after navigation and launcher click | `iframe#chat-widget-minimized`, `iframe#chat-widget` |
+| `flyweight_widget.html` | Flyweight AI | Yes (RX Smart Gear runtime structure) | `iframe[data-testid="chat-overlay"]`, `#chat-button` |
 | `denser_embed_widget.html` | Denser | Yes (replayable live structure) | `denser-chatbot`, `iframe[title="Denser Chatbot"]` |
 | `crisp_crisp.html` | Crisp | Yes | `$crisp`, `CRISP_WEBSITE_ID` |
 | `custom_chatbot_tawk.html` | tawk.to | Yes | `Tawk_API`, `embed.tawk.to` |

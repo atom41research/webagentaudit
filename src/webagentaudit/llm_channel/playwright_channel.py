@@ -17,12 +17,14 @@ from webagentaudit.core.exceptions import (
 from .base import BaseLlmChannel
 from .browser import (
     apply_window_geometry,
+    browser_launch_options,
     effective_user_agent,
+    goto_and_inspect,
+    wait_for_domcontentloaded_and_inspect,
     window_position_launch_args,
 )
 from .config import ChannelConfig
 from .consts import (
-    NEW_PAGE_HANDOFF_WAIT_MS,
     PAGE_SETTLE_MS,
     TEXT_OBSERVATION_TIMEOUT_MS,
 )
@@ -71,6 +73,11 @@ class PlaywrightChannel(BaseLlmChannel):
         launch_args.extend(
             window_position_launch_args(self._config.window_position)
         )
+        launch_options = browser_launch_options(
+            self._config.browser,
+            self._config.executable_path,
+            launch_args,
+        )
 
         if self._external_page:
             self._page = self._external_page
@@ -94,8 +101,8 @@ class PlaywrightChannel(BaseLlmChannel):
                 user_agent=user_agent,
                 extra_http_headers=self._config.extra_headers or {},
                 executable_path=self._config.executable_path,
-                args=launch_args or None,
                 ignore_https_errors=self._config.ignore_https_errors,
+                **launch_options,
             )
             self._page = await self._context.new_page()
         elif self._external_browser:
@@ -120,7 +127,7 @@ class PlaywrightChannel(BaseLlmChannel):
             self._browser = await launcher.launch(
                 headless=self._config.headless,
                 executable_path=self._config.executable_path,
-                args=launch_args or None,
+                **launch_options,
             )
             user_agent = effective_user_agent(
                 self._config.browser,
@@ -145,11 +152,7 @@ class PlaywrightChannel(BaseLlmChannel):
         await self._page.bring_to_front()
 
         if not self._external_page:
-            await self._page.goto(
-                url,
-                wait_until="domcontentloaded",
-                timeout=self._config.timeout_ms,
-            )
+            await goto_and_inspect(self._page, url, self._config.timeout_ms)
             await self._page.wait_for_timeout(PAGE_SETTLE_MS)
 
         prepared_target = await self._strategy.prepare_page(self._page)
@@ -205,67 +208,124 @@ class PlaywrightChannel(BaseLlmChannel):
             ) from exc
         started_at = asyncio.get_running_loop().time()
         existing_pages = set(self._context.pages) if self._context else set()
+        new_page: asyncio.Future[Page] | None = None
+        page_listener = None
+        if self._context:
+            new_page = asyncio.get_running_loop().create_future()
+
+            def page_listener(page: Page) -> None:
+                if page not in existing_pages and not new_page.done():
+                    new_page.set_result(page)
+
+            self._context.on("page", page_listener)
         try:
-            await self._strategy.send_message(target, message.text)
-            if self._context:
-                await asyncio.sleep(NEW_PAGE_HANDOFF_WAIT_MS / 1000)
-                new_pages = [
-                    page for page in self._context.pages
-                    if page not in existing_pages
-                ]
-                if new_pages:
-                    self._page = new_pages[-1]
-                    self._interaction_target = self._page
-                    target = self._page
-                    try:
-                        await self._page.wait_for_load_state(
-                            "domcontentloaded", timeout=self._config.timeout_ms
-                        )
-                    except Exception:
-                        logger.debug(
-                            "New interaction page did not reach domcontentloaded"
-                        )
-        except ChannelSubmissionError:
-            raise
-        except Exception as exc:
-            raise ChannelSubmissionError(
-                f"Could not type or submit prompt: {exc}"
-            ) from exc
-        if self._config.post_send_wait_ms:
-            await asyncio.sleep(self._config.post_send_wait_ms / 1000)
-        if self._config.post_send_screenshot_dir and self._page:
-            screenshot_dir = Path(self._config.post_send_screenshot_dir)
-            screenshot_dir.mkdir(parents=True, exist_ok=True)
-            filename = datetime.now(UTC).strftime("after_send_%Y%m%dT%H%M%S%fZ.png")
             try:
-                await self._page.screenshot(
-                    path=str(screenshot_dir / filename), full_page=True
-                )
+                await self._strategy.send_message(target, message.text)
+            except ChannelSubmissionError:
+                raise
             except Exception as exc:
-                logger.warning("Could not save post-send screenshot: %s", exc)
-        try:
-            text = await self._strategy.get_response(
-                target, self._config.timeout_ms
+                raise ChannelSubmissionError(
+                    f"Could not type or submit prompt: {exc}"
+                ) from exc
+            if self._config.post_send_wait_ms:
+                await asyncio.sleep(self._config.post_send_wait_ms / 1000)
+            if new_page and new_page.done():
+                target = await self._activate_page(
+                    new_page.result(), self._config.timeout_ms
+                )
+                if self._context and page_listener:
+                    self._context.remove_listener("page", page_listener)
+                    page_listener = None
+                new_page = None
+            if self._config.post_send_screenshot_dir and self._page:
+                screenshot_dir = Path(self._config.post_send_screenshot_dir)
+                screenshot_dir.mkdir(parents=True, exist_ok=True)
+                filename = datetime.now(UTC).strftime(
+                    "after_send_%Y%m%dT%H%M%S%fZ.png"
+                )
+                try:
+                    await self._page.screenshot(
+                        path=str(screenshot_dir / filename), full_page=True
+                    )
+                except Exception as exc:
+                    logger.warning("Could not save post-send screenshot: %s", exc)
+            text, target = await self._get_response_following_page(
+                target, new_page
             )
             if text is None:
                 raise ChannelTimeoutError("No response received within timeout")
             metadata = await self._strategy.get_response_metadata(target)
-        except ChannelResponseError:
+            response_time_ms = (
+                asyncio.get_running_loop().time() - started_at
+            ) * 1000
+            if self._config.post_success_wait_ms:
+                await asyncio.sleep(self._config.post_success_wait_ms / 1000)
+            return ChannelResponse(
+                text=text,
+                response_time_ms=response_time_ms,
+                timestamp=datetime.now(UTC),
+                metadata=metadata,
+            )
+        except (ChannelSubmissionError, ChannelResponseError):
             raise
         except Exception as exc:
             raise ChannelResponseError(
                 f"Could not read response: {exc}"
             ) from exc
-        response_time_ms = (
-            asyncio.get_running_loop().time() - started_at
-        ) * 1000
-        if self._config.post_success_wait_ms:
-            await asyncio.sleep(self._config.post_success_wait_ms / 1000)
-        return ChannelResponse(
-            text=text,
-            response_time_ms=response_time_ms,
-            timestamp=datetime.now(UTC),
-            metadata=metadata,
+        finally:
+            if self._context and page_listener:
+                self._context.remove_listener("page", page_listener)
+            if new_page and not new_page.done():
+                new_page.cancel()
+
+    async def _activate_page(self, page: Page, timeout_ms: int) -> Page:
+        self._page = page
+        self._interaction_target = page
+        await wait_for_domcontentloaded_and_inspect(page, timeout_ms)
+        return page
+
+    async def _get_response_following_page(
+        self,
+        target: Page | Frame,
+        new_page: asyncio.Future[Page] | None,
+    ) -> tuple[str | None, Page | Frame]:
+        """Read the response, switching if submission opens a delayed page."""
+        if new_page is None:
+            return (
+                await self._strategy.get_response(
+                    target, self._config.timeout_ms
+                ),
+                target,
+            )
+
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + self._config.timeout_ms / 1000
+        response = asyncio.create_task(
+            self._strategy.get_response(target, self._config.timeout_ms)
+        )
+        done, _ = await asyncio.wait(
+            {response, new_page}, return_when=asyncio.FIRST_COMPLETED
+        )
+        if response in done:
+            try:
+                return response.result(), target
+            except ChannelResponseError:
+                if new_page not in done:
+                    raise
+
+        if not response.done():
+            response.cancel()
+            await asyncio.gather(response, return_exceptions=True)
+        remaining_ms = int((deadline - loop.time()) * 1000)
+        if remaining_ms <= 0:
+            raise ChannelTimeoutError("No response received within timeout")
+        target = await self._activate_page(new_page.result(), remaining_ms)
+        remaining_ms = int((deadline - loop.time()) * 1000)
+        if remaining_ms <= 0:
+            raise ChannelTimeoutError("No response received within timeout")
+        return (
+            await self._strategy.get_response(target, remaining_ms),
+            target,
         )
 
     async def write(self, text: str) -> None:

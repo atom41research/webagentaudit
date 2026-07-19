@@ -67,12 +67,32 @@ ASSETS: list[KnownAsset] = [
         ],
         dom_signatures=[
             DomSignature(selector="script[src*='chatbase.co/embed.min.js']", description="Chatbase embed script"),
+            DomSignature(selector="#chatbase-bubble-button", description="Chatbase launcher"),
+            DomSignature(selector="#chatbase-bubble-window", description="Chatbase widget container"),
         ],
         api_signatures=[
             ApiSignature(pattern=r"chatbase\.co/api", description="Chatbase API"),
         ],
         inline_script_patterns=[r"chatbase", r"chatbotId", r"window\.chatbase"],
         vendor_url="https://www.chatbase.co",
+        provider_hint="chatbase",
+    ),
+    KnownAsset(
+        name="Flyweight AI",
+        category=AssetCategory.EMBEDDABLE_SDK,
+        description="Flyweight AI embeddable chat widget",
+        dom_signatures=[
+            DomSignature(
+                selector='iframe[data-testid="chat-overlay"][title="Chat"]',
+                description="Flyweight chat iframe",
+            ),
+            DomSignature(
+                selector='iframe[data-testid="popup-overlay"]',
+                description="Flyweight popup iframe",
+            ),
+        ],
+        vendor_url="https://www.flyweight.io",
+        provider_hint="flyweight",
     ),
     KnownAsset(
         name="CustomGPT",

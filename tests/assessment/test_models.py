@@ -8,7 +8,9 @@ from webagentaudit.assessment.models import (
     AssessmentResult,
     AssessmentSummary,
     ChatMessage,
+    DetectorEvidence,
     ProbeExchange,
+    ProbeError,
     ProbeResult,
 )
 
@@ -106,6 +108,52 @@ class TestProbeResult:
     def test_timestamp_is_utc(self):
         result = ProbeResult(probe_name="test.probe")
         assert result.timestamp.tzinfo is not None
+
+    @pytest.mark.parametrize(
+        ("result", "verdict"),
+        [
+            (
+                ProbeResult(
+                    probe_name="test.probe", vulnerability_detected=True
+                ),
+                "vulnerable",
+            ),
+            (ProbeResult(probe_name="test.probe"), "pass"),
+            (
+                ProbeResult(
+                    probe_name="test.probe",
+                    error_count=1,
+                    errors=[ProbeError(
+                        phase="response_read",
+                        message="No qualified response",
+                        detector_evidence=DetectorEvidence(
+                            classification="not_observed",
+                            observation_available=True,
+                        ),
+                    )],
+                ),
+                "probably_not_vulnerable",
+            ),
+            (
+                ProbeResult(
+                    probe_name="test.probe",
+                    error_count=1,
+                    errors=[ProbeError(
+                        phase="response_read",
+                        message="No observation",
+                    )],
+                ),
+                "not_determined",
+            ),
+            (
+                ProbeResult(probe_name="test.probe", error_count=1),
+                "not_determined",
+            ),
+        ],
+    )
+    def test_security_verdict_tracks_evidence_confidence(self, result, verdict):
+        assert result.security_verdict == verdict
+        assert result.model_dump()["security_verdict"] == verdict
 
 
 class TestAssessmentSummary:

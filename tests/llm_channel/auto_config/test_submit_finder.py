@@ -103,6 +103,18 @@ UNRELATED_ICON_HTML = """\
 </body></html>
 """
 
+NEARBY_SCROLL_BUTTON_HTML = """\
+<!DOCTYPE html>
+<html><body>
+<div style="display: flex; align-items: center; gap: 4px;">
+    <textarea id="chat-input" style="width: 200px; height: 40px;"></textarea>
+    <button data-testid="scroll-to-bottom-button" style="width: 40px; height: 40px;">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14m-7-7 7 7 7-7"/></svg>
+    </button>
+</div>
+</body></html>
+"""
+
 DEFERRED_SEND_BUTTON_HTML = """\
 <!DOCTYPE html>
 <html><body>
@@ -221,6 +233,12 @@ class TestSubmitFinderBasic:
     async def test_weak_unrelated_icon_is_not_used_as_submit(self, page, finder):
         """A distant generic icon must fall back to Enter rather than be clicked."""
         await page.set_content(UNRELATED_ICON_HTML, wait_until="domcontentloaded")
+        input_candidate = await _get_input_candidate(page)
+        assert await finder.find(page, input_candidate) is None
+
+    async def test_nearby_scroll_icon_is_not_used_as_submit(self, page, finder):
+        """A nearby generic SVG control must fall back to Enter."""
+        await page.set_content(NEARBY_SCROLL_BUTTON_HTML, wait_until="domcontentloaded")
         input_candidate = await _get_input_candidate(page)
         assert await finder.find(page, input_candidate) is None
 

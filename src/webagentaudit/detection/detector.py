@@ -67,10 +67,10 @@ class LlmDetector:
     def _extract_provider_hint(
         self, signals: list[DetectionSignal]
     ) -> Optional[str]:
-        """Extract provider hint from the highest-confidence known_provider signal."""
+        """Extract a canonical provider hint from authoritative signals."""
         provider_signals = [
             s for s in signals
-            if s.signal_type == "known_provider" and "provider" in s.metadata
+            if "provider" in s.metadata
         ]
         if not provider_signals:
             return None

@@ -304,15 +304,17 @@ class TestAssessE2E:
         from webagentaudit.cli import app
 
         url, handler = denser_request_server
-        identify_provider = app._provider_hint_for_page
+        detect_page = app._detection_result_for_page
         provider_checks = 0
 
         async def count_provider_checks(page, target_url):
             nonlocal provider_checks
             provider_checks += 1
-            return await identify_provider(page, target_url)
+            return await detect_page(page, target_url)
 
-        monkeypatch.setattr(app, "_provider_hint_for_page", count_provider_checks)
+        monkeypatch.setattr(
+            app, "_detection_result_for_page", count_provider_checks
+        )
 
         result = runner.invoke(cli, [
             "assess", "--url", url,
@@ -327,6 +329,35 @@ class TestAssessE2E:
         assert handler.request_count == 1
         assert provider_checks == 1
         assert "ERROR" not in result.output
+
+    def test_ready_generic_composer_stops_provider_polling(
+        self, runner, demo_server, tmp_path, monkeypatch,
+    ):
+        from webagentaudit.cli import app
+
+        url = f"{demo_server}/interactive/reverse-llm.html"
+        collect = app._collect_page_data
+        detection_snapshots = 0
+
+        async def count_snapshots(*args, **kwargs):
+            nonlocal detection_snapshots
+            detection_snapshots += 1
+            return await collect(*args, **kwargs)
+
+        monkeypatch.setattr(app, "_collect_page_data", count_snapshots)
+        monkeypatch.setattr(app, "PROVIDER_DETECTION_MAX_ATTEMPTS", 5)
+        monkeypatch.setattr(app, "PROVIDER_DETECTION_POLL_MS", 1)
+
+        result = runner.invoke(cli, [
+            "assess", url,
+            "--probe-file", SINGLE_PROBE_YAML,
+            "--probes", SINGLE_PROBE_NAME,
+            "--timeout", "5000",
+            "--output-file", str(tmp_path / "result.json"),
+        ])
+
+        assert result.exit_code == 0, result.output
+        assert detection_snapshots == 1
 
     def test_assess_vulnerable_finds_vuln(self, runner, demo_server):
         """assess against vulnerable page should find vulnerabilities."""
@@ -430,8 +461,10 @@ class TestAssessE2E:
         data = json.loads(result.stdout)
         assert data["summary"] == {
             "total": 4,
-            "succeeded": 1,
-            "failed": 2,
+            "vulnerable": 0,
+            "passed": 1,
+            "probably_not_vulnerable": 1,
+            "failed": 1,
             "not_found": 1,
         }
         by_url = {target["url"]: target for target in data["targets"]}
@@ -441,6 +474,15 @@ class TestAssessE2E:
         assert absent["reason"].startswith("No chatbot provider")
         assert by_url[f"{demo_server}/interactive/submission-failure-llm.html"]["failure_phase"] == "prompt_submission"
         assert by_url[f"{demo_server}/interactive/response-failure-llm.html"]["failure_phase"] == "response_read"
+        assert by_url[
+            f"{demo_server}/interactive/response-failure-llm.html"
+        ]["security_verdict"] == "probably_not_vulnerable"
+        assert by_url[
+            f"{demo_server}/interactive/response-failure-llm.html"
+        ]["outcome"] == "probably_not_vulnerable"
+        assert by_url[
+            f"{demo_server}/negative/simple-blog.html"
+        ]["outcome"] == "not_found"
         persisted = json.loads(output_file.read_text())
         persisted_by_url = {
             target["url"]: target for target in persisted["targets"]

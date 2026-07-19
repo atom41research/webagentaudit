@@ -9,6 +9,7 @@ import logging
 import subprocess
 import sys
 import time
+from collections import Counter
 from collections.abc import Callable
 from datetime import UTC, datetime
 from importlib.metadata import version
@@ -20,6 +21,16 @@ import click
 
 from webagentaudit.core.consts import VERSION
 from webagentaudit.core.enums import ProbeCategory, Severity, Sophistication
+from webagentaudit.llm_channel.browser import goto_and_inspect
+
+from .consts import (
+    PAGE_DATA_COLLECTION_TIMEOUT_MS,
+    PAGE_DATA_MAX_ATTEMPTS,
+    PAGE_DATA_RETRY_WAIT_MS,
+    PAGE_DATA_TRANSIENT_ERROR_FRAGMENTS,
+    PROVIDER_DETECTION_MAX_ATTEMPTS,
+    PROVIDER_DETECTION_POLL_MS,
+)
 
 if TYPE_CHECKING:
     from webagentaudit.llm_channel.models import InteractionPlan
@@ -112,7 +123,7 @@ def _emit_probe_progress(probe_result, callback: Callable[[str, str], None]) -> 
             f"{completed} {noun} completed",
         )
 
-    if probe_result.vulnerability_detected:
+    if probe_result.security_verdict == "vulnerable":
         matched = (
             f"; matched: {', '.join(probe_result.matched_patterns)}"
             if probe_result.matched_patterns else ""
@@ -121,7 +132,13 @@ def _emit_probe_progress(probe_result, callback: Callable[[str, str], None]) -> 
             "SECURITY VERDICT VULNERABLE",
             f"{probe_result.probe_name}{matched}",
         )
-    elif probe_result.error_count:
+    elif probe_result.security_verdict == "probably_not_vulnerable":
+        callback(
+            "SECURITY VERDICT PROBABLY NOT VULNERABLE",
+            f"{probe_result.probe_name} "
+            "(submitted; detector pattern not observed)",
+        )
+    elif probe_result.security_verdict == "not_determined":
         callback(
             "SECURITY VERDICT NOT DETERMINED",
             f"{probe_result.probe_name} (execution error)",
@@ -186,6 +203,10 @@ class TargetNotFound(click.ClickException):
     """A target without provider evidence or a usable chat input."""
 
 
+class PageDataCollectionError(RuntimeError):
+    """The live document never stabilized enough for provider detection."""
+
+
 # ---------------------------------------------------------------------------
 # CLI group
 # ---------------------------------------------------------------------------
@@ -235,44 +256,91 @@ def detect(url: str, headful: bool, fullscreen: bool,
     ))
 
 
-async def _collect_page_data(page, url: str):
-    """Collect PageData from a live Playwright page."""
+async def _collect_page_data(
+    page,
+    url: str,
+    *,
+    timeout_ms: int = PAGE_DATA_COLLECTION_TIMEOUT_MS,
+):
+    """Collect one coherent PageData snapshot, retrying active navigation."""
+    from playwright.async_api import (
+        Error as PlaywrightError,
+        TimeoutError as PlaywrightTimeoutError,
+    )
+
     from webagentaudit.detection.models import PageData
 
-    html = await page.content()
-    scripts = await page.evaluate(
-        "() => Array.from(document.querySelectorAll('script[src]')).map(s => s.src)"
-    )
-    inline_scripts = await page.evaluate(
-        "() => Array.from(document.querySelectorAll('script:not([src])'))"
-        ".map(s => s.textContent || '').filter(t => t.trim().length > 0)"
-    )
-    stylesheets = await page.evaluate(
-        "() => Array.from(document.querySelectorAll('link[rel=\"stylesheet\"]'))"
-        ".map(l => l.href)"
-    )
-    meta_tags = await page.evaluate("""() => {
-        const m = {};
-        document.querySelectorAll('meta[name], meta[property]').forEach(el => {
-            const key = el.getAttribute('name') || el.getAttribute('property');
-            m[key] = el.getAttribute('content') || '';
-        });
-        return m;
-    }""")
-    iframes = await page.evaluate(
-        "() => Array.from(document.querySelectorAll('iframe'))"
-        ".map(f => f.src).filter(s => s)"
-    )
-    return PageData(
-        url=url, html=html, scripts=scripts, inline_scripts=inline_scripts,
-        stylesheets=stylesheets, meta_tags=meta_tags, iframes=iframes,
-    )
+    deadline = time.monotonic() + max(timeout_ms, 0) / 1000
+    last_error: PlaywrightError | None = None
+    for attempt in range(PAGE_DATA_MAX_ATTEMPTS):
+        try:
+            snapshot = await page.evaluate("""() => {
+                const metaTags = {};
+                document.querySelectorAll('meta[name], meta[property]').forEach(
+                    element => {
+                        const key = element.getAttribute('name')
+                            || element.getAttribute('property');
+                        metaTags[key] = element.getAttribute('content') || '';
+                    }
+                );
+                return {
+                    html: document.documentElement
+                        ? document.documentElement.outerHTML : '',
+                    scripts: Array.from(document.querySelectorAll('script[src]'))
+                        .map(element => element.src),
+                    inline_scripts: Array.from(
+                        document.querySelectorAll('script:not([src])')
+                    ).map(element => element.textContent || '')
+                        .filter(text => text.trim().length > 0),
+                    stylesheets: Array.from(
+                        document.querySelectorAll('link[rel="stylesheet"]')
+                    ).map(element => element.href),
+                    meta_tags: metaTags,
+                    iframes: Array.from(document.querySelectorAll('iframe'))
+                        .map(element => element.src).filter(Boolean),
+                };
+            }""")
+            return PageData(url=url, **snapshot)
+        except PlaywrightError as exc:
+            message = str(exc).lower()
+            if not any(
+                fragment in message
+                for fragment in PAGE_DATA_TRANSIENT_ERROR_FRAGMENTS
+            ):
+                raise
+            last_error = exc
+            remaining_ms = int((deadline - time.monotonic()) * 1000)
+            if attempt == PAGE_DATA_MAX_ATTEMPTS - 1 or remaining_ms <= 0:
+                break
+            try:
+                await page.wait_for_load_state(
+                    "domcontentloaded", timeout=max(1, remaining_ms)
+                )
+            except PlaywrightTimeoutError:
+                break
+            remaining_ms = int((deadline - time.monotonic()) * 1000)
+            if remaining_ms <= 0:
+                break
+            await page.wait_for_timeout(
+                min(PAGE_DATA_RETRY_WAIT_MS, remaining_ms)
+            )
+
+    detail = str(last_error).split("\n")[0] if last_error else "navigation"
+    raise PageDataCollectionError(
+        f"Page did not stabilize while collecting detection data for {url}: "
+        f"{detail}"
+    ) from last_error
 
 
-async def _provider_hint_for_page(page, url: str) -> str | None:
-    """Identify a known chat provider on an already-open live page."""
-    page_data = await _collect_page_data(page, url)
-    return _create_detector().detect(page_data).provider_hint
+async def _detection_result_for_page(
+    page,
+    url: str,
+    *,
+    timeout_ms: int = PAGE_DATA_COLLECTION_TIMEOUT_MS,
+):
+    """Detect provider and interaction readiness on an open live page."""
+    page_data = await _collect_page_data(page, url, timeout_ms=timeout_ms)
+    return _create_detector().detect(page_data)
 
 
 def _create_detector():
@@ -310,6 +378,7 @@ async def _launch_browser(pw, browser: str, headful: bool,
     """
     from webagentaudit.llm_channel.browser import (
         apply_window_geometry,
+        browser_launch_options,
         effective_user_agent,
         window_position_launch_args,
     )
@@ -325,8 +394,9 @@ async def _launch_browser(pw, browser: str, headful: bool,
     if fullscreen:
         launch_args.append("--start-fullscreen")
     launch_args.extend(window_position_launch_args(window_position))
-    if launch_args:
-        launch_kw["args"] = launch_args
+    launch_kw.update(browser_launch_options(
+        browser, browser_exe, launch_args
+    ))
 
     viewport = None if fullscreen else {"width": 1280, "height": 720}
 
@@ -388,7 +458,7 @@ async def _detect(url: str, headful: bool, fullscreen: bool,
 
         click.echo(f"Navigating to {_style(url, fg='cyan')}...", err=is_json)
         try:
-            await page.goto(url, wait_until="domcontentloaded", timeout=timeout)
+            await goto_and_inspect(page, url, timeout)
         except Exception as exc:
             await closeable.close()
             msg = str(exc).split("\n")[0]
@@ -396,7 +466,16 @@ async def _detect(url: str, headful: bool, fullscreen: bool,
                               fg="red"), err=True)
             sys.exit(1)
         await page.wait_for_timeout(3000)
-        page_data = await _collect_page_data(page, url)
+        try:
+            page_data = await _collect_page_data(
+                page,
+                url,
+                timeout_ms=min(timeout, PAGE_DATA_COLLECTION_TIMEOUT_MS),
+            )
+        except PageDataCollectionError as exc:
+            await closeable.close()
+            click.echo(_style(f"Error: {exc}", fg="red"), err=True)
+            raise click.exceptions.Exit(1) from exc
         await closeable.close()
 
     if verbose:
@@ -938,7 +1017,9 @@ async def _open_and_auto_discover(
         ChatbotComAutoConfigurator,
         DenserAutoConfigurator,
         FeaturebaseAutoConfigurator,
+        FlyweightAutoConfigurator,
         IntercomAutoConfigurator,
+        LiveChatAutoConfigurator,
         TidioAutoConfigurator,
         VoiceflowAutoConfigurator,
     )
@@ -957,7 +1038,7 @@ async def _open_and_auto_discover(
 
     try:
         try:
-            await page.goto(url, wait_until="domcontentloaded", timeout=timeout)
+            await goto_and_inspect(page, url, timeout)
         except Exception as exc:
             msg = str(exc).split("\n")[0]
             raise TargetAssessmentFailure(
@@ -985,11 +1066,19 @@ async def _open_and_auto_discover(
                                   full_page=False)
 
         provider_hint = None
-        for _ in range(4):
-            provider_hint = await _provider_hint_for_page(page, url)
-            if provider_hint:
-                break
-            await page.wait_for_timeout(1_000)
+        try:
+            for _ in range(PROVIDER_DETECTION_MAX_ATTEMPTS):
+                detection = await _detection_result_for_page(page, url)
+                provider_hint = detection.provider_hint
+                interaction_hint = detection.interaction_hint or {}
+                if provider_hint or any(
+                    key in interaction_hint
+                    for key in ("input_selector", "widget_selector")
+                ):
+                    break
+                await page.wait_for_timeout(PROVIDER_DETECTION_POLL_MS)
+        except PageDataCollectionError as exc:
+            raise TargetAssessmentFailure("navigation", str(exc)) from exc
         if provider_hint and progress_callback:
             progress_callback("PROVIDER", provider_hint)
         interaction = _interaction_description(provider_hint=provider_hint)
@@ -1004,10 +1093,14 @@ async def _open_and_auto_discover(
             if provider_hint == "intercom"
             else ChatbotComAutoConfigurator(progress_callback=progress_callback)
             if provider_hint == "chatbot.com"
+            else LiveChatAutoConfigurator(progress_callback=progress_callback)
+            if provider_hint == "livechat"
             else DenserAutoConfigurator(progress_callback=progress_callback)
             if provider_hint == "denser"
             else FeaturebaseAutoConfigurator(progress_callback=progress_callback)
             if provider_hint == "featurebase"
+            else FlyweightAutoConfigurator(progress_callback=progress_callback)
+            if provider_hint == "flyweight"
             else TidioAutoConfigurator(progress_callback=progress_callback)
             if provider_hint == "tidio"
             else VoiceflowAutoConfigurator(progress_callback=progress_callback)
@@ -1269,14 +1362,24 @@ async def _assess_file(
         targets.append(target_result)
         if not is_json:
             seconds = target_result.duration_ms / 1000
-            if target_result.status == "success":
+            if target_result.outcome == "vulnerable":
                 click.echo(
-                    f"[{index}/{len(urls)}] OK   {target_url} ({seconds:.1f}s)"
+                    f"[{index}/{len(urls)}] VULN {target_url} ({seconds:.1f}s)"
                 )
-            elif target_result.status == "not_found":
+            elif target_result.outcome == "passed":
                 click.echo(
-                    f"[{index}/{len(urls)}] NONE {target_url}: "
+                    f"[{index}/{len(urls)}] PASS {target_url} ({seconds:.1f}s)"
+                )
+            elif target_result.outcome == "not_found":
+                click.echo(
+                    f"[{index}/{len(urls)}] NOT_FOUND {target_url}: "
                     f"{target_result.reason}"
+                )
+            elif target_result.outcome == "probably_not_vulnerable":
+                click.echo(
+                    f"[{index}/{len(urls)}] PROBABLY_NOT_VULNERABLE "
+                    f"{target_url} phase={target_result.failure_phase}: "
+                    f"{target_result.error}"
                 )
             else:
                 click.echo(
@@ -1284,14 +1387,16 @@ async def _assess_file(
                     f"phase={target_result.failure_phase}: {target_result.error}"
                 )
 
-    failed = sum(target.status == "failed" for target in targets)
-    not_found = sum(target.status == "not_found" for target in targets)
+    operational_failures = sum(target.status == "failed" for target in targets)
+    outcomes = Counter(target.outcome for target in targets)
     batch_result = BatchAssessmentResult(
         summary=BatchAssessmentSummary(
             total=len(targets),
-            succeeded=len(targets) - failed - not_found,
-            failed=failed,
-            not_found=not_found,
+            vulnerable=outcomes["vulnerable"],
+            passed=outcomes["passed"],
+            probably_not_vulnerable=outcomes["probably_not_vulnerable"],
+            failed=outcomes["failed"],
+            not_found=outcomes["not_found"],
         ),
         targets=targets,
         run=BatchRunMetadata(
@@ -1315,14 +1420,22 @@ async def _assess_file(
     else:
         click.echo()
         click.echo(
-            f"Batch complete: {len(targets) - failed - not_found} succeeded, "
-            f"{not_found} not found, {failed} failed, {len(targets)} total."
+            f"Batch complete: {outcomes['vulnerable']} vulnerable, "
+            f"{outcomes['passed']} passed, "
+            f"{outcomes['probably_not_vulnerable']} probably not vulnerable, "
+            f"{outcomes['failed']} failed, {outcomes['not_found']} not found, "
+            f"{len(targets)} total."
         )
+        if outcomes["probably_not_vulnerable"]:
+            click.echo(
+                "Probably not vulnerable means submission completed and the "
+                "detector pattern was not observed."
+            )
     if output_file:
         _write_json_output(output_file, batch_result)
         if not is_json:
             click.echo(f"Wrote complete JSON results to {output_file}")
-    return failed > 0
+    return operational_failures > 0
 
 
 def _write_json_output(path: Path, result) -> None:
@@ -1511,9 +1624,7 @@ async def _assess(
                 fullscreen=fullscreen, window_position=window_position,
             )
             try:
-                await first_page.goto(
-                    url, wait_until="domcontentloaded", timeout=timeout
-                )
+                await goto_and_inspect(first_page, url, timeout)
                 await first_page.wait_for_timeout(PAGE_SETTLE_MS)
             except Exception as exc:
                 await discovered_closeable.close()
@@ -1632,6 +1743,11 @@ def _print_assessment_result(result) -> None:
                 )
                 for error in pr.errors:
                     click.echo(f"      [{error.phase}] {error.message}")
+                if pr.security_verdict == "probably_not_vulnerable":
+                    click.echo(
+                        "       verdict:  probably not vulnerable "
+                        "(submitted; detector pattern not observed)"
+                    )
             elif pr.vulnerability_detected:
                 click.echo(f"  {_style('VULN', fg='red', bold=True)}"
                            f"  {pr.probe_name}")

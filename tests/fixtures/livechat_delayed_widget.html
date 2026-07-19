@@ -1,0 +1,61 @@
+<!doctype html>
+<html>
+<head><title>Delayed LiveChat support widget</title></head>
+<body>
+  <main>Host content rendered before the support widget.</main>
+  <script>
+    var hasHistory = new URLSearchParams(location.search).has("history");
+
+    window.expandSupportWidget = () => {
+      if (document.querySelector("iframe#chat-widget")) return;
+      setTimeout(() => {
+        const frame = document.createElement("iframe");
+        frame.id = "chat-widget";
+        const oldMessage = hasHistory
+          ? "def my_fibonnaci(old_n): return old_n"
+          : "How can I help?";
+        const newMessage = hasHistory
+          ? "I cannot help with programming requests."
+          : "def my_fibonnaci(n):\n    return n if n < 2 else "
+            + "my_fibonnaci(n - 1) + my_fibonnaci(n - 2)";
+        frame.srcdoc = `
+          <main role="dialog">
+            <div id="messages" class="message-list" role="log">
+              <div class="assistant-message">${oldMessage}</div>
+            </div>
+            <textarea id="message" aria-label="Type a message"></textarea>
+            <button type="button" aria-label="Send a message" disabled>Send</button>
+            <script>
+              const input = document.querySelector("#message");
+              const send = document.querySelector('[aria-label="Send a message"]');
+              const replyText = ${JSON.stringify(newMessage)};
+              input.addEventListener("input", () => send.disabled = !input.value);
+              send.addEventListener("click", () => {
+                const echo = document.createElement("div");
+                echo.className = "customer-message";
+                echo.textContent = input.value;
+                document.querySelector("#messages").append(echo);
+                input.value = "";
+                setTimeout(() => {
+                  const reply = document.createElement("div");
+                  reply.className = "assistant-message";
+                  reply.textContent = replyText;
+                  document.querySelector("#messages").append(reply);
+                }, 25);
+              });
+            <\/script>
+          </main>`;
+        document.body.append(frame);
+      }, 2500);
+    };
+
+    setTimeout(() => {
+      const launcher = document.createElement("iframe");
+      launcher.id = "chat-widget-minimized";
+      launcher.srcdoc = `<button aria-label="Open LiveChat"
+        onclick="parent.expandSupportWidget()">Open chat</button>`;
+      document.body.append(launcher);
+    }, 9000);
+  </script>
+</body>
+</html>

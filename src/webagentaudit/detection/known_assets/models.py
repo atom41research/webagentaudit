@@ -63,3 +63,4 @@ class KnownAsset(BaseModel):
     # Additional metadata
     vendor_url: Optional[str] = None  # Vendor's main website
     is_llm_powered: bool = True  # False for traditional chatbots
+    provider_hint: Optional[str] = None  # Canonical provider used for interaction

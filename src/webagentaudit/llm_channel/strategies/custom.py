@@ -21,6 +21,8 @@ from ..auto_config.botpress import open_botpress_widget
 from ..auto_config.chatbase import open_chatbase_widget
 from ..auto_config.denser import open_denser_widget
 from ..auto_config.featurebase import open_featurebase_composer
+from ..auto_config.flyweight import open_flyweight_widget
+from ..auto_config.livechat import open_livechat_widget
 from ..auto_config.tidio import open_tidio_widget
 from ..auto_config.voiceflow import open_voiceflow_widget
 from ..consts import (
@@ -97,6 +99,9 @@ class CustomStrategy(BaseInteractionStrategy):
                 if action.kind == "featurebase_new_message":
                     await open_featurebase_composer(page)
                     continue
+                if action.kind == "flyweight_open":
+                    await open_flyweight_widget(page)
+                    continue
                 if action.kind == "intercom_show":
                     await page.wait_for_function(
                         "typeof window.Intercom === 'function'",
@@ -110,6 +115,9 @@ class CustomStrategy(BaseInteractionStrategy):
                         timeout=8_000,
                     )
                     await page.evaluate("window.BE_API.openChatWindow()")
+                    continue
+                if action.kind == "livechat_open":
+                    await open_livechat_widget(page)
                     continue
                 if action.kind == "tidio_open":
                     await open_tidio_widget(page)

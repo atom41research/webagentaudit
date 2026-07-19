@@ -80,6 +80,66 @@ async def test_unknown_iframe_with_real_chat_input_is_discovered(page):
     assert result.input_frame_path == ['iframe[name="vendor-widget"]']
 
 
+async def test_flyweight_chat_frame_is_ranked_before_main_page(page, monkeypatch):
+    await page.set_content("""
+        <main>
+          <button>Shop products</button>
+          <button>View cart</button>
+        </main>
+        <iframe data-testid="chat-overlay" title="Chat" srcdoc="
+          <button id='chat-button' aria-label='RXSG Assistant'
+                  title='RXSG Assistant'
+                  style='position:fixed;right:1rem;bottom:1rem'
+                  onclick='message.hidden=false'>Hi!</button>
+          <textarea id='message' placeholder='Type your message here...'
+                    hidden></textarea>
+          <button aria-label='Send' title='Send'>Send</button>
+        "></iframe>
+    """)
+    configurator = AlgorithmicAutoConfigurator()
+    original_rank = configurator._trigger_finder.ranked_candidates
+    original_find_input = configurator._input_finder.find
+    original_dismiss = configurator._preflight.dismiss_one
+    ranked_main_page = False
+    scanned_main_page_for_input = False
+    scanned_main_page_for_blockers = False
+
+    async def record_context(context):
+        nonlocal ranked_main_page
+        if context is page:
+            ranked_main_page = True
+        return await original_rank(context)
+
+    async def record_input_context(context, *args, **kwargs):
+        nonlocal scanned_main_page_for_input
+        if context is page:
+            scanned_main_page_for_input = True
+        return await original_find_input(context, *args, **kwargs)
+
+    async def record_blocker_context(context):
+        nonlocal scanned_main_page_for_blockers
+        if context is page:
+            scanned_main_page_for_blockers = True
+        return await original_dismiss(context)
+
+    monkeypatch.setattr(
+        configurator._trigger_finder, "ranked_candidates", record_context
+    )
+    monkeypatch.setattr(configurator._input_finder, "find", record_input_context)
+    monkeypatch.setattr(
+        configurator._preflight, "dismiss_one", record_blocker_context
+    )
+
+    result = await configurator.configure(page, skip_response=True)
+
+    assert result.input_selector == "#message"
+    assert result.input_frame_path == ['iframe[data-testid="chat-overlay"]']
+    assert result.setup_actions[0].selector == "#chat-button"
+    assert not scanned_main_page_for_input
+    assert not scanned_main_page_for_blockers
+    assert not ranked_main_page
+
+
 async def test_timed_out_discovery_result_is_consumed(page, monkeypatch):
     events: list[tuple[str, str]] = []
     configurator = AlgorithmicAutoConfigurator(

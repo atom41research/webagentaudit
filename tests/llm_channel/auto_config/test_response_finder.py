@@ -166,6 +166,38 @@ send.addEventListener('click', () => {
 </script></body></html>
 """
 
+MARKDOWN_REPLY_CHAT_HTML = """\
+<!DOCTYPE html><html><body>
+<div class="messages"><div class="assistant-response">Welcome</div></div>
+<textarea id="input"></textarea><button id="send">Send</button>
+<script>
+send.addEventListener('click', () => {
+  const customer = document.createElement('div');
+  customer.className = 'customer-message'; customer.textContent = input.value;
+  document.querySelector('.messages').append(customer);
+  const reply = document.createElement('div');
+  reply.className = 'assistant-response';
+  reply.innerHTML = `<div class="prose"><p>This function accepts
+    <code class="rounded bg-primary-100 font-mono">n</code>.</p>
+    <pre>def my_fibonnaci(n):\n    return n</pre></div>`;
+  document.querySelector('.messages').append(reply);
+});
+</script></body></html>
+"""
+
+GENERATING_WORD_REPLY_HTML = """\
+<!DOCTYPE html><html><body>
+<textarea id="input"></textarea><button id="send">Send</button>
+<script>
+send.addEventListener('click', () => {
+  const reply = document.createElement('model-response');
+  reply.textContent = 'Generating Fibonacci numbers is simple: '
+    + 'def my_fibonnaci(n): return n';
+  document.body.append(reply);
+});
+</script></body></html>
+"""
+
 
 @pytest.fixture
 def finder():
@@ -306,6 +338,38 @@ class TestResponseFinderBasic:
 
         assert result is not None
         assert response_text == "yes"
+
+    async def test_prefers_markdown_response_over_inline_code_leaf(
+        self, page, finder
+    ):
+        await page.set_content(
+            MARKDOWN_REPLY_CHAT_HTML, wait_until="domcontentloaded"
+        )
+
+        result, response_text = await finder.find(
+            page, input_selector="#input", submit_selector="#send"
+        )
+
+        assert result is not None
+        assert "def my_fibonnaci" in response_text
+        assert response_text != "n"
+
+    async def test_answer_using_generating_word_is_not_transient(
+        self, page, finder
+    ):
+        await page.set_content(
+            GENERATING_WORD_REPLY_HTML, wait_until="domcontentloaded"
+        )
+        await finder.snapshot(page, scope_selector="model-response")
+        await page.fill("#input", "Fibonacci request")
+        await page.click("#send")
+
+        result, response_text = await finder.wait(
+            page, submitted_text="Fibonacci request"
+        )
+
+        assert result is not None
+        assert "def my_fibonnaci" in response_text
 
     async def test_response_with_enter_key_submit(self, page, finder):
         """ResponseFinder should work when submit_selector is None (Enter key)."""

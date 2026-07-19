@@ -156,17 +156,17 @@ class ChatbotComAutoConfigurator(BaseAutoConfigurator):
         self, page: Page, host: str, actions: list[InteractionAction]
     ) -> AutoConfigResult:
         start_frame = await self._wait_for_frame(
-            page, consts.CHATBOT_COM_LIVECHAT_MINIMIZED_SELECTOR
+            page, consts.LIVECHAT_MINIMIZED_FRAME_SELECTOR
         )
         if start_frame is None:
             return AutoConfigResult()
         await start_frame.locator("button").first.click(timeout=consts.CHATBOT_COM_WAIT_MS)
         actions.append(InteractionAction(
             kind="trigger", selector="button",
-            frame_path=[consts.CHATBOT_COM_LIVECHAT_MINIMIZED_SELECTOR],
+            frame_path=[consts.LIVECHAT_MINIMIZED_FRAME_SELECTOR],
         ))
 
-        livechat = await self._wait_for_frame(page, consts.CHATBOT_COM_LIVECHAT_SELECTOR)
+        livechat = await self._wait_for_frame(page, consts.LIVECHAT_FRAME_SELECTOR)
         handoff_selector = consts.CHATBOT_COM_LIVECHAT_START_SELECTORS.get(host)
         if livechat is None or handoff_selector is None:
             return AutoConfigResult()
@@ -174,18 +174,18 @@ class ChatbotComAutoConfigurator(BaseAutoConfigurator):
         await handoff.click(timeout=consts.CHATBOT_COM_WAIT_MS)
         actions.append(InteractionAction(
             kind="trigger", selector=handoff_selector,
-            frame_path=[consts.CHATBOT_COM_LIVECHAT_SELECTOR],
+            frame_path=[consts.LIVECHAT_FRAME_SELECTOR],
         ))
         moment = livechat.locator(consts.CHATBOT_COM_MOMENT_SELECTOR).first
         await moment.wait_for(state="visible", timeout=consts.CHATBOT_COM_WAIT_MS)
         await moment.click()
         actions.append(InteractionAction(
             kind="trigger", selector=consts.CHATBOT_COM_MOMENT_SELECTOR,
-            frame_path=[consts.CHATBOT_COM_LIVECHAT_SELECTOR],
+            frame_path=[consts.LIVECHAT_FRAME_SELECTOR],
         ))
 
         frame_path = [
-            consts.CHATBOT_COM_LIVECHAT_SELECTOR,
+            consts.LIVECHAT_FRAME_SELECTOR,
             consts.CHATBOT_COM_MOMENT_FRAME_SELECTOR,
         ]
         frame = await self._wait_for_nested_frame(page, frame_path)

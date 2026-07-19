@@ -34,7 +34,8 @@ class InteractionAction(BaseModel):
     kind: Literal[
         "dismiss", "trigger", "botpress_open", "chatbase_open",
         "denser_open", "featurebase_new_message", "intercom_show",
-        "chatbot_open", "tidio_open", "voiceflow_open"
+        "chatbot_open", "flyweight_open", "livechat_open", "tidio_open",
+        "voiceflow_open"
     ]
     selector: str
     frame_path: list[str] = Field(default_factory=list)

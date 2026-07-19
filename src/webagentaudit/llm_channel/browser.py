@@ -7,8 +7,13 @@ import os
 import sys
 from typing import TYPE_CHECKING
 
+from .consts import (
+    CHROMIUM_DISABLE_AUTOMATION_CONTROLLED_ARG,
+    DEFAULT_NAVIGATION_TIMEOUT_MS,
+)
+
 if TYPE_CHECKING:
-    from playwright.async_api import Page
+    from playwright.async_api import Page, Response
 
 _CHROMIUM_USER_AGENT = (
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
@@ -16,6 +21,63 @@ _CHROMIUM_USER_AGENT = (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def browser_launch_options(
+    browser: str,
+    executable_path: str | None = None,
+    extra_args: list[str] | None = None,
+) -> dict[str, object]:
+    """Return project-wide browser fingerprint and binary options."""
+    args = (
+        [CHROMIUM_DISABLE_AUTOMATION_CONTROLLED_ARG]
+        if browser == "chromium" else []
+    )
+    args.extend(extra_args or [])
+    options: dict[str, object] = {}
+    if browser == "chromium" and not executable_path:
+        options["channel"] = "chrome"
+    if args:
+        options["args"] = args
+    return options
+
+
+async def goto_and_inspect(
+    page: Page, url: str, timeout_ms: int
+) -> Response | None:
+    """Stop waiting at the navigation budget and inspect the current DOM."""
+    from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+
+    navigation_timeout_ms = min(timeout_ms, DEFAULT_NAVIGATION_TIMEOUT_MS)
+    try:
+        return await page.goto(
+            url, wait_until="domcontentloaded", timeout=navigation_timeout_ms
+        )
+    except PlaywrightTimeoutError:
+        logger.debug(
+            "Navigation to %s exceeded %sms; inspecting current DOM",
+            url,
+            navigation_timeout_ms,
+        )
+        return None
+
+
+async def wait_for_domcontentloaded_and_inspect(
+    page: Page, timeout_ms: int
+) -> None:
+    """Bound a page handoff wait, then continue with its current DOM."""
+    from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+
+    navigation_timeout_ms = min(timeout_ms, DEFAULT_NAVIGATION_TIMEOUT_MS)
+    try:
+        await page.wait_for_load_state(
+            "domcontentloaded", timeout=navigation_timeout_ms
+        )
+    except PlaywrightTimeoutError:
+        logger.debug(
+            "Page handoff exceeded %sms; inspecting current DOM",
+            navigation_timeout_ms,
+        )
 
 
 def effective_user_agent(

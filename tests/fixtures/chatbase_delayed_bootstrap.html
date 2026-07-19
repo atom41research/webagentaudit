@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head><title>Delayed support widget</title></head>
+<body>
+  <main>Host content rendered before the support widget.</main>
+  <script>
+    setTimeout(() => {
+      const launcher = document.createElement("button");
+      launcher.type = "button";
+      launcher.id = "chatbase-bubble-button";
+      launcher.setAttribute("aria-label", "Open Ruger from Rugged Restore");
+      launcher.setAttribute("aria-expanded", "false");
+      launcher.setAttribute("aria-haspopup", "dialog");
+      launcher.setAttribute("aria-controls", "chatbase-bubble-window");
+      launcher.textContent = "Open Ruger from Rugged Restore";
+
+      const windowElement = document.createElement("div");
+      windowElement.id = "chatbase-bubble-window";
+      const frame = document.createElement("iframe");
+      frame.title = "Observed support widget";
+      windowElement.append(frame);
+
+      launcher.addEventListener("click", () => {
+        if (frame.srcdoc) return;
+        frame.srcdoc = `
+          <main role="dialog">
+            <div role="log">
+              <div aria-busy="false" data-loading-assistant="false">
+                <div class="prose">How can I help?</div>
+              </div>
+            </div>
+            <textarea id="message" aria-label="Message..."></textarea>
+            <button type="button" aria-label="Send" disabled>Send</button>
+            <script>
+              const input = document.querySelector("#message");
+              const send = document.querySelector('[aria-label="Send"]');
+              input.addEventListener("input", () => send.disabled = !input.value);
+              send.addEventListener("click", () => {
+                input.value = "";
+                setTimeout(() => {
+                  const reply = document.createElement("div");
+                  reply.dataset.loadingAssistant = "false";
+                  reply.innerHTML = '<div class="prose">Yes</div>';
+                  document.querySelector('[role="log"]').append(reply);
+                }, 25);
+              });
+            <\/script>
+          </main>`;
+      });
+
+      document.body.append(launcher, windowElement);
+    }, 3500);
+  </script>
+</body>
+</html>

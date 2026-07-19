@@ -23,11 +23,11 @@ RESPONSE_POLL_INTERVAL_MS = 200
 # A send action must change navigation, page count, input content, or response DOM.
 SUBMISSION_CONFIRM_TIMEOUT_MS = 3_000
 SUBMISSION_CONFIRM_POLL_INTERVAL_MS = 100
-NEW_PAGE_HANDOFF_WAIT_MS = 500
 TEXT_OBSERVATION_TIMEOUT_MS = 1_000
 
-# Default navigation timeout (ms)
-DEFAULT_NAVIGATION_TIMEOUT_MS = 30_000
+# Maximum time spent waiting for navigation readiness. Response timeouts are
+# intentionally longer and must not be reused for pages that keep loading.
+DEFAULT_NAVIGATION_TIMEOUT_MS = 20_000
 
 # Wait time after navigation for JS frameworks to render (ms)
 PAGE_SETTLE_MS = 3_000
@@ -37,6 +37,9 @@ SUPPORTED_BROWSER_TYPES = ("chromium", "firefox", "webkit")
 
 # Default browser type
 DEFAULT_BROWSER_TYPE = "chromium"
+CHROMIUM_DISABLE_AUTOMATION_CONTROLLED_ARG = (
+    "--disable-blink-features=AutomationControlled"
+)
 
 # Stable response containers for first-party LLM pages whose entry point may
 # navigate to a different host before rendering the response.
@@ -52,6 +55,8 @@ DEFAULT_RESPONSE_SELECTORS_BY_PROVIDER = {
 
 # Known typing indicator selectors that signal the LLM is still generating
 TYPING_INDICATOR_SELECTORS = [
+    '[data-testid="stop-button"]',
+    'button[aria-label*="Stop generating" i]',
     ".typing-indicator",
     "[data-testid='typing-indicator']",
     ".is-typing",

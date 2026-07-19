@@ -213,6 +213,36 @@ class TestHelpAndVersion:
 
         assert (expected_phase, expected_detail) in events
 
+    def test_probe_progress_reports_unobserved_pattern_after_submission(self):
+        from webagentaudit.assessment.models import (
+            DetectorEvidence,
+            ProbeError,
+            ProbeResult,
+        )
+
+        events = []
+        result = ProbeResult(
+            probe_name="probe.name",
+            error_count=1,
+            errors=[ProbeError(
+                phase="response_read",
+                message="No qualified response",
+                detector_evidence=DetectorEvidence(
+                    classification="not_observed",
+                    observation_available=True,
+                ),
+            )],
+        )
+
+        _emit_probe_progress(
+            result, lambda phase, detail: events.append((phase, detail))
+        )
+
+        assert (
+            "SECURITY VERDICT PROBABLY NOT VULNERABLE",
+            "probe.name (submitted; detector pattern not observed)",
+        ) in events
+
     def test_detect_help(self, runner):
         result = runner.invoke(cli, ["detect", "--help"])
         assert result.exit_code == 0
@@ -338,7 +368,11 @@ class TestDetectCommand:
         assert closeable is browser
         launcher.launch.assert_awaited_once_with(
             headless=False,
-            args=["--start-fullscreen"],
+            channel="chrome",
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--start-fullscreen",
+            ],
         )
         browser.new_context.assert_awaited_once_with(
             viewport=None,
@@ -398,7 +432,12 @@ class TestDetectCommand:
 
         launcher.launch.assert_awaited_once_with(
             headless=False,
-            args=["--ozone-platform=x11", "--window-position=0,640"],
+            channel="chrome",
+            args=[
+                "--disable-blink-features=AutomationControlled",
+                "--ozone-platform=x11",
+                "--window-position=0,640",
+            ],
         )
         assert session.send.await_args_list[1].args == (
             "Browser.setWindowBounds",
@@ -466,6 +505,7 @@ class TestDetectCommand:
             headless=False,
             executable_path="/browser",
             args=[
+                "--disable-blink-features=AutomationControlled",
                 "--profile-directory=Profile 1",
                 "--start-fullscreen",
                 "--ozone-platform=x11",
@@ -520,6 +560,11 @@ class TestDetectCommand:
         )
 
         context_kwargs = browser.new_context.await_args.kwargs
+        launcher.launch.assert_awaited_once_with(
+            headless=True,
+            channel="chrome",
+            args=["--disable-blink-features=AutomationControlled"],
+        )
         assert "Chrome/145.0.1.2" in context_kwargs["user_agent"]
         assert "HeadlessChrome" not in context_kwargs["user_agent"]
 
@@ -826,6 +871,7 @@ class TestAssessOptionParsing:
         from webagentaudit.assessment.models import (
             AssessmentResult,
             AssessmentSummary,
+            ProbeResult,
         )
 
         warning_flags = []
@@ -834,16 +880,26 @@ class TestAssessOptionParsing:
             warning_flags.append(kwargs["warn_probe_overlaps"])
             if kwargs["url"].endswith("missing"):
                 raise TargetNotFound("No chatbot found")
-            return AssessmentResult(summary=AssessmentSummary(
-                total_probes=1,
-                target_url=kwargs["url"],
-            ))
+            return AssessmentResult(
+                summary=AssessmentSummary(
+                    total_probes=1,
+                    target_url=kwargs["url"],
+                ),
+                probe_results=[ProbeResult(
+                    probe_name="test.probe",
+                    vulnerability_detected=kwargs["url"].endswith("vulnerable"),
+                )],
+            )
 
         monkeypatch.setattr("webagentaudit.cli.app._assess", assess_target)
         url_file = tmp_path / "urls.txt"
         output_file = tmp_path / "results.json"
         probe_file = tmp_path / "probe.yaml"
-        url_file.write_text("https://example.test/ok\nhttps://example.test/missing\n")
+        url_file.write_text(
+            "https://example.test/ok\n"
+            "https://example.test/vulnerable\n"
+            "https://example.test/missing\n"
+        )
         probe_file.write_text("name: test.probe\n")
 
         result = runner.invoke(cli, [
@@ -855,19 +911,64 @@ class TestAssessOptionParsing:
         assert result.exit_code == 0
         data = json.loads(result.stdout)
         assert data["summary"] == {
-            "total": 2,
-            "succeeded": 1,
+            "total": 3,
+            "vulnerable": 1,
+            "passed": 1,
+            "probably_not_vulnerable": 0,
             "failed": 0,
             "not_found": 1,
         }
-        assert data["targets"][1]["status"] == "not_found"
-        assert data["targets"][1]["reason"] == "No chatbot found"
-        assert data["run"]["schema_version"] == 3
+        assert data["targets"][0]["outcome"] == "passed"
+        assert data["targets"][0]["security_verdict"] == "pass"
+        assert data["targets"][1]["outcome"] == "vulnerable"
+        assert data["targets"][1]["security_verdict"] == "vulnerable"
+        assert data["targets"][2]["outcome"] == "not_found"
+        assert data["targets"][2]["security_verdict"] == "not_determined"
+        assert data["targets"][2]["status"] == "not_found"
+        assert data["targets"][2]["reason"] == "No chatbot found"
+        assert data["run"]["schema_version"] == 6
         assert len(data["run"]["url_file_sha256"]) == 64
         assert len(data["run"]["probe_files_sha256"][str(probe_file)]) == 64
         assert data["run"]["browser_name"] == "chromium"
         assert data["run"]["playwright_version"]
-        assert warning_flags == [True, False]
+        assert warning_flags == [True, False, False]
+
+    def test_batch_text_reports_every_status_and_security_verdict(
+        self, runner, tmp_path, monkeypatch,
+    ):
+        from webagentaudit.assessment.models import (
+            AssessmentResult,
+            AssessmentSummary,
+            ProbeResult,
+        )
+
+        async def assess_target(**kwargs):
+            if kwargs["url"].endswith("missing"):
+                raise TargetNotFound("No chatbot found")
+            return AssessmentResult(
+                summary=AssessmentSummary(total_probes=1),
+                probe_results=[ProbeResult(probe_name="test.probe")],
+            )
+
+        monkeypatch.setattr("webagentaudit.cli.app._assess", assess_target)
+        url_file = tmp_path / "urls.txt"
+        url_file.write_text(
+            "https://example.test/ok\nhttps://example.test/missing\n"
+        )
+
+        result = runner.invoke(cli, [
+            "assess", "--url-file", str(url_file), "--output", "text",
+        ])
+
+        assert result.exit_code == 0
+        assert "[1/2] PASS https://example.test/ok" in result.output
+        assert "[2/2] NOT_FOUND https://example.test/missing" in result.output
+        assert (
+            "Batch complete: 0 vulnerable, 1 passed, 0 probably not "
+            "vulnerable, 0 failed, 1 not found, 2 total."
+            in result.output
+        )
+        assert "not determined" not in result.output.lower()
 
     def test_single_not_found_is_a_non_error_result(
         self, runner, tmp_path, monkeypatch,

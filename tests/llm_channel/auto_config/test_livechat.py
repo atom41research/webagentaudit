@@ -1,0 +1,34 @@
+"""Standalone LiveChat discovery regressions."""
+
+from pathlib import Path
+
+import pytest
+
+from webagentaudit.llm_channel.auto_config.livechat import (
+    LiveChatAutoConfigurator,
+)
+from webagentaudit.llm_channel.strategies.custom import CustomStrategy
+
+pytestmark = pytest.mark.browser
+
+FIXTURE = (
+    Path(__file__).parents[2] / "fixtures" / "livechat_delayed_widget.html"
+)
+
+
+async def test_livechat_delayed_launcher_discovers_and_replays(page):
+    html = FIXTURE.read_text().replace("9000", "25").replace("2500", "25")
+    await page.set_content(html)
+
+    result = await LiveChatAutoConfigurator().configure(page, skip_response=True)
+
+    assert result.input_selector == "#message"
+    assert result.submit_selector == 'button[aria-label="Send a message"]'
+    assert result.input_frame_path == ["iframe#chat-widget"]
+    assert [action.kind for action in result.setup_actions] == ["livechat_open"]
+
+    await page.set_content(html)
+    target = await CustomStrategy(
+        plan=result.to_interaction_plan()
+    ).prepare_page(page)
+    assert await target.locator(result.input_selector).count() == 1

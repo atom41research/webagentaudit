@@ -137,7 +137,9 @@ RESPONSE_DOM_SETTLE_MS = 500
 RESPONSE_POLL_INTERVAL_MS = 500
 # Valid assistants sometimes answer capability checks with only "No"/"Yes".
 RESPONSE_MIN_TEXT_LENGTH = 1
-RESPONSE_TRANSIENT_PATTERN = r"\b(thinking|loading|generating)\b"
+RESPONSE_TRANSIENT_PATTERN = (
+    r"^\s*(thinking|loading|generating)(?:\s+(response|answer))?[.\u2026]*\s*$"
+)
 RESPONSE_METADATA_PATTERN = (
     r"^(today|yesterday|\d{1,2}:\d{2}(?:\s?[ap]m)?|"
     r"\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?)$"
@@ -147,8 +149,9 @@ RESPONSE_SYSTEM_PATTERN = (
     r"give (?:the )?team a way to reach you)"
 )
 RESPONSE_GREETING_PATTERN = (
-    r"^(hi|hello|good morning|good afternoon|good evening)\b.*"
-    r"(how can i help|what would you like|ask me|please select|select which)"
+    r"^(?:(?:hi|hello|good morning|good afternoon|good evening)\b.*"
+    r"(?:how can i help|what would you like|ask me|please select|select which|"
+    r"speaking with|ready to assist).*|how can i help\??)$"
 )
 
 # Elements to skip when building text snapshots
@@ -318,6 +321,8 @@ SELECTOR_DYNAMIC_ID_PATTERNS = (
 # CSS selectors for known chat widget iframes (ordered by specificity)
 FRAME_CHAT_SELECTORS: list[str] = [
     # Vendor-specific (high confidence)
+    "iframe#chat-widget",
+    "iframe#chat-widget-minimized",
     "iframe#tidio-chat-iframe",
     "#tidio-chat iframe",
     "iframe#intercom-frame",
@@ -375,6 +380,19 @@ CHATBASE_FRAME_SELECTOR = "#chatbase-bubble-window iframe"
 CHATBASE_INPUT_SELECTOR = "#message"
 CHATBASE_RESPONSE_SELECTOR = (
     '[role="log"] [data-loading-assistant] .prose'
+)
+
+# ---------------------------------------------------------------------------
+# Flyweight AI
+# ---------------------------------------------------------------------------
+
+FLYWEIGHT_WAIT_MS = 15_000
+FLYWEIGHT_FRAME_SELECTOR = 'iframe[data-testid="chat-overlay"]'
+FLYWEIGHT_LAUNCHER_SELECTOR = "#chat-button"
+FLYWEIGHT_INPUT_SELECTOR = 'textarea[placeholder="Type your message here..."]'
+FLYWEIGHT_SUBMIT_SELECTOR = 'button[aria-label="Send"]'
+FLYWEIGHT_RESPONSE_SELECTOR = (
+    '[data-testid="message"][data-variant="ai"] [role="log"]'
 )
 
 # ---------------------------------------------------------------------------
@@ -476,8 +494,9 @@ CHATBOT_COM_ONBOARDING_SELECTORS = {
         '[data-conversation-button-tittle*="I know what to do"]'
     ),
 }
-CHATBOT_COM_LIVECHAT_MINIMIZED_SELECTOR = "iframe#chat-widget-minimized"
-CHATBOT_COM_LIVECHAT_SELECTOR = "iframe#chat-widget"
+LIVECHAT_WAIT_MS = 15_000
+LIVECHAT_MINIMIZED_FRAME_SELECTOR = "iframe#chat-widget-minimized"
+LIVECHAT_FRAME_SELECTOR = "iframe#chat-widget"
 CHATBOT_COM_LIVECHAT_START_SELECTORS = {
     "easytrack.hu": 'button:has-text("Beszélgessünk")',
 }

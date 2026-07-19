@@ -19,6 +19,10 @@ logger = logging.getLogger(__name__)
 class SubmitFinder:
     """Find the best submit/send button relative to a known input element.
 
+    Candidates must have send/submit label or class semantics, a submit type,
+    or match an explicit hint.  Proximity and a generic SVG icon only rank
+    eligible controls; they cannot make an unrelated control eligible.
+
     Scoring factors:
     - proximity: Euclidean distance from the input element
     - label: text content or aria-label matching send/submit keywords
@@ -51,6 +55,18 @@ class SubmitFinder:
                 boost = match * consts.HINT_BOOST_MAX
                 se.score += boost
                 se.score_breakdown["hint_match"] = boost
+
+        scored = [
+            se
+            for se in scored
+            if se.score_breakdown["label"] > 0
+            or se.score_breakdown["class"] > 0
+            or se.candidate.element_type.lower() == "submit"
+            or se.score_breakdown.get("hint_match", 0) > 0
+        ]
+        if not scored:
+            logger.debug("No semantically identifiable submit candidates found")
+            return None
 
         scored.sort(key=lambda s: s.score, reverse=True)
 

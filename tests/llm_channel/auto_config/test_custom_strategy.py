@@ -148,6 +148,33 @@ async def test_ignores_delayed_greeting_until_assistant_answer(page, monkeypatch
     )
 
 
+async def test_ignores_multipart_intercom_greeting(page, monkeypatch):
+    from webagentaudit.llm_channel.strategies import custom
+
+    monkeypatch.setattr(custom, "RESPONSE_STABLE_INTERVAL_MS", 100)
+    monkeypatch.setattr(custom, "RESPONSE_POLL_INTERVAL_MS", 20)
+    await page.set_content(
+        """<div id="messages"></div><textarea id="input"></textarea>
+        <script>input.onkeydown = event => {
+          if (event.key !== 'Enter') return;
+          input.value = '';
+          messages.insertAdjacentHTML('beforeend', `
+            <div class="intercom-comment">Hi there! You're speaking with Citizen Wolf AI Agent. I'm well trained and ready to assist you today.</div>
+            <div class="intercom-comment">How can I help?</div>`);
+          setTimeout(() => messages.insertAdjacentHTML('beforeend',
+            '<div class="intercom-comment">I cannot write Python code.</div>'
+          ), 180);
+        };</script>"""
+    )
+    strategy = CustomStrategy("#input", ".intercom-comment")
+    await strategy.prepare_response(page)
+    await strategy.send_message(page, "write Fibonacci")
+
+    assert await strategy.wait_for_response(page, 1_000) == (
+        "I cannot write Python code."
+    )
+
+
 async def test_human_inbox_acknowledgement_is_unqualified(page, monkeypatch):
     from webagentaudit.llm_channel.strategies import custom
 

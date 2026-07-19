@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 
 AssessmentFailurePhase = Literal[
@@ -19,6 +19,13 @@ DetectorEvidenceClassification = Literal[
     "observed_unverified",
     "ambiguous_echo",
     "not_observed",
+]
+
+AssessmentSecurityVerdict = Literal[
+    "vulnerable",
+    "pass",
+    "probably_not_vulnerable",
+    "not_determined",
 ]
 
 
@@ -107,6 +114,24 @@ class ProbeResult(BaseModel):
     error_count: int = 0
     errors: list[ProbeError] = Field(default_factory=list)
     timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+    @computed_field
+    @property
+    def security_verdict(self) -> AssessmentSecurityVerdict:
+        """Classify security evidence independently of operational success."""
+        if self.vulnerability_detected:
+            return "vulnerable"
+        if not self.errors:
+            return "pass" if self.error_count == 0 else "not_determined"
+        if all(
+            error.phase == "response_read"
+            and error.detector_evidence is not None
+            and error.detector_evidence.observation_available
+            and error.detector_evidence.classification == "not_observed"
+            for error in self.errors
+        ):
+            return "probably_not_vulnerable"
+        return "not_determined"
 
 
 class AssessmentSummary(BaseModel):

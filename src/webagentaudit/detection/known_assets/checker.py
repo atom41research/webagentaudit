@@ -112,6 +112,14 @@ class KnownAssetsChecker(BaseSignalChecker):
         description: str,
         evidence: str,
     ) -> DetectionSignal:
+        metadata = {
+            "asset_name": asset.name,
+            "asset_category": asset.category.value,
+            "is_llm_powered": asset.is_llm_powered,
+            "vendor_url": asset.vendor_url or "",
+        }
+        if asset.provider_hint:
+            metadata["provider"] = asset.provider_hint
         return DetectionSignal(
             checker_name=self.name,
             signal_type=signal_type,
@@ -119,10 +127,5 @@ class KnownAssetsChecker(BaseSignalChecker):
             confidence=ConfidenceScore(value=_weight_for_category(asset.category)),
             evidence=evidence,
             method=DetectionMethod.DETERMINISTIC,
-            metadata={
-                "asset_name": asset.name,
-                "asset_category": asset.category.value,
-                "is_llm_powered": asset.is_llm_powered,
-                "vendor_url": asset.vendor_url or "",
-            },
+            metadata=metadata,
         )

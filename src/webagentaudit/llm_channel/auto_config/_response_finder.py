@@ -46,6 +46,7 @@ _RESPONSE_ELEMENT_KEYWORDS = [
     "bot",
     "assistant",
     "output",
+    "prose",
     "result",
 ]
 
@@ -241,6 +242,8 @@ class ResponseFinder:
                     const classes = el.className && typeof el.className === "string"
                         ? el.className.split(/\\s+/).filter(Boolean) : [];
                     const context = contextFor(el);
+                    const ownContext = `${el.tagName} ${el.id || ""} ${classes}`
+                        .toLowerCase();
                     const semantic = contextKeywords.some(
                         keyword => context.includes(keyword)
                     );
@@ -254,6 +257,9 @@ class ResponseFinder:
                         el, text, html: el.innerHTML, classes, depth, semantic,
                         assistantSemantic: assistantKeywords.some(
                             keyword => context.includes(keyword)
+                        ),
+                        ownAssistantSemantic: assistantKeywords.some(
+                            keyword => ownContext.includes(keyword)
                         ),
                         customerSemantic: /\\b(user|customer|outgoing|sent)\\b/.test(
                             context
@@ -446,7 +452,12 @@ class ResponseFinder:
                 ));
                 let matches = leaves;
                 if (!state.scopeSelector) {
-                    matches = [...leaves].sort((a, b) =>
+                    const responseContainers = eligible.filter(match =>
+                        match.ownAssistantSemantic && (!submitted
+                            || !normalise(match.text).includes(submitted))
+                    );
+                    matches = [...(responseContainers.length
+                        ? responseContainers : leaves)].sort((a, b) =>
                         Number(b.assistantSemantic) - Number(a.assistantSemantic)
                         || Number(b.semantic) - Number(a.semantic)
                         || b.depth - a.depth || a.text.length - b.text.length

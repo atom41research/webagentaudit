@@ -99,12 +99,17 @@ class AlgorithmicAutoConfigurator(BaseAutoConfigurator):
         submit_hint: ElementHint | None,
     ) -> AutoConfigResult:
         self._emit("DISCOVER", "scanning page and frames for an input")
-        found = await self._find_input(page, input_hint)
+        chat_only = await self._has_chat_frame(page)
+        found = await self._find_input(page, input_hint, chat_only=chat_only)
         dismiss_actions: list[InteractionAction] = []
 
         if found is None:
-            dismiss_actions = await self._dismiss_blockers(page, input_hint)
-            found = await self._find_input(page, input_hint)
+            dismiss_actions = await self._dismiss_blockers(
+                page, input_hint, chat_only=chat_only
+            )
+            found = await self._find_input(
+                page, input_hint, chat_only=chat_only
+            )
 
         attempted: set[str] = set()
         trigger_attempts = 0
@@ -176,8 +181,13 @@ class AlgorithmicAutoConfigurator(BaseAutoConfigurator):
             except Exception:
                 logger.debug("Reload after trigger failed", exc_info=True)
                 break
-            dismiss_actions = await self._dismiss_blockers(page, input_hint)
-            found = await self._find_input(page, input_hint)
+            chat_only = await self._has_chat_frame(page)
+            dismiss_actions = await self._dismiss_blockers(
+                page, input_hint, chat_only=chat_only
+            )
+            found = await self._find_input(
+                page, input_hint, chat_only=chat_only
+            )
 
         if found is None:
             self._emit("DISCOVER", "no usable chat input found")
@@ -208,11 +218,15 @@ class AlgorithmicAutoConfigurator(BaseAutoConfigurator):
         )
 
     async def _dismiss_blockers(
-        self, page: Page, input_hint: ElementHint | None
+        self,
+        page: Page,
+        input_hint: ElementHint | None,
+        *,
+        chat_only: bool = False,
     ) -> list[InteractionAction]:
         actions: list[InteractionAction] = []
         for _ in range(consts.DISCOVERY_MAX_BLOCKERS):
-            contexts = await self._contexts(page)
+            contexts = await self._contexts(page, chat_only=chat_only)
             dismissed = False
             for context, frame_candidate in contexts:
                 try:
@@ -231,12 +245,20 @@ class AlgorithmicAutoConfigurator(BaseAutoConfigurator):
                 ))
                 self._emit("BLOCKER", f"dismissed {selector}")
                 dismissed = True
-                if await self._find_input(page, input_hint) is not None:
+                if await self._find_input(
+                    page, input_hint, chat_only=chat_only
+                ) is not None:
                     return actions
                 break
             if not dismissed:
                 break
         return actions
+
+    async def _has_chat_frame(self, page: Page) -> bool:
+        return any(
+            frame_candidate is not None
+            for _, frame_candidate in await self._contexts(page, chat_only=True)
+        )
 
     async def _poll_for_input(
         self, page: Page, input_hint: ElementHint | None
@@ -275,32 +297,29 @@ class AlgorithmicAutoConfigurator(BaseAutoConfigurator):
         self, page: Page
     ) -> list[tuple[str, list[str], TriggerCandidate]]:
         ranked: list[tuple[str, list[str], TriggerCandidate]] = []
-        try:
-            main_candidates = await self._trigger_finder.ranked_candidates(page)
-        except Exception:
-            main_candidates = []
-        if (
-            main_candidates
-            and main_candidates[0].score >= consts.TRIGGER_DECISIVE_SCORE
-        ):
-            return [
-                (f"::{candidate.candidate.selector}", [], candidate)
-                for candidate in main_candidates
-            ]
         for context, frame_candidate in await self._contexts(page):
-            frame_path = frame_candidate.frame_path if frame_candidate else []
             if frame_candidate is None:
-                candidates = main_candidates
-            else:
-                try:
-                    candidates = await self._trigger_finder.ranked_candidates(context)
-                except Exception:
-                    continue
+                continue
+            frame_path = frame_candidate.frame_path
+            try:
+                candidates = await self._trigger_finder.ranked_candidates(context)
+            except Exception:
+                continue
             for candidate in candidates:
                 fingerprint = f"{' > '.join(frame_path)}::{candidate.candidate.selector}"
                 ranked.append((fingerprint, frame_path, candidate))
             if candidates and candidates[0].score >= consts.TRIGGER_DECISIVE_SCORE:
-                break
+                ranked.sort(key=lambda item: item[2].score, reverse=True)
+                return ranked
+
+        try:
+            main_candidates = await self._trigger_finder.ranked_candidates(page)
+        except Exception:
+            main_candidates = []
+        ranked.extend(
+            (f"::{candidate.candidate.selector}", [], candidate)
+            for candidate in main_candidates
+        )
         ranked.sort(key=lambda item: item[2].score, reverse=True)
         return ranked
 
@@ -348,6 +367,8 @@ class AlgorithmicAutoConfigurator(BaseAutoConfigurator):
 
     @staticmethod
     def _is_known_chat_frame(candidate: FrameCandidate) -> bool:
+        if candidate.has_input:
+            return True
         identity = " ".join([
             candidate.src,
             candidate.title,

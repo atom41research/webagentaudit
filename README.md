@@ -258,7 +258,8 @@ For a single page, `--url URL` is the preferred spelling; the positional
 and continue after operational failures. Blank lines and lines beginning with
 `#` are ignored. Provide exactly one target source.
 
-Normal batch output prints concise `RUN`, `OK`, and phase-specific `FAIL` lines.
+Normal batch output prints concise `RUN` lines followed by one exclusive target
+outcome: `VULN`, `PASS`, `PROBABLY_NOT_VULNERABLE`, `FAIL`, or `NOT_FOUND`.
 Programmatic provider SDK/API interaction is always labeled. With `--verbose`,
 output also includes readable prompts, chat responses, probe verdicts, and
 `PROVIDER`, `DISCOVER`, `BLOCKER`, `TRIGGER`, `CHAT FOUND`, `TYPED`, `SUBMITTED`,
@@ -268,21 +269,28 @@ use `--debug` explicitly for developer diagnostics.
 
 Each planned probe and interaction is labeled before it starts. Completion
 reports two independent outcomes: `Probe execution: SUCCESS/ERROR` says whether
-the browser interactions completed, while `Security verdict: PASS/VULNERABLE`
-says whether the responses demonstrated the tested vulnerability. A successful
-probe execution can therefore have a vulnerable security verdict.
+the browser interactions completed, while `Security verdict:
+PASS/VULNERABLE/PROBABLY NOT VULNERABLE/NOT DETERMINED` describes the detector
+evidence. `PROBABLY NOT VULNERABLE` means the prompt was submitted and bounded
+post-submit observation found no detector match, but no trustworthy assistant
+response was captured. It remains an operational response-read error, not a
+definite pass. A successful probe execution can have a vulnerable verdict.
 Every run writes a timestamped `output/webagentaudit-<UTC timestamp>.json` file
 by default; `--output-file` overrides the path. Each target embeds its complete
 assessment, including probe verdicts, prompts, assistant responses, matches,
 response classification, accepted/rejected part counts, selector scope,
 interaction method, and structured error details. System acknowledgements,
 delayed greetings, timestamps, controls, date separators, and customer echoes
-do not count as assistant answers. Batch schema 3 artifacts also record the URL
-file hash, custom-probe hashes, code revision, tracked dirty-diff hash, command,
-timing, Playwright version, and browser name/version. Target status is `success`,
-`failed`, or `not_found`: absence of a detected chatbot is reported with a
-reason but is not an execution error. The command exits with status 1 only if
-at least one target has an operational failure.
+do not count as assistant answers. Batch schema 6 gives every target one
+operator-facing `outcome`: `vulnerable`, `passed`,
+`probably_not_vulnerable`, `failed`, or `not_found`. The summary counts those
+mutually exclusive outcomes, so they always sum to `total`. Lower-level
+operational status and security evidence remain available for diagnosis. The
+artifact also records the URL file hash, custom-probe hashes, code revision,
+tracked dirty-diff hash, command, timing, Playwright version, and browser
+name/version. Absence of a detected chatbot is `not_found`, with a reason, and
+is not an execution error. The command exits with status 1 only if at least one
+target has an operational failure.
 
 Before browser work, the CLI warns once for each selected probe whose detector
 regex matches one of its own detection-active prompts. Prefer collision-

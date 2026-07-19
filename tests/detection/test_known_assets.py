@@ -123,6 +123,67 @@ class TestKnownAssetsChecker:
         assert len(signals) >= 1
         assert any(s.metadata.get("asset_name") == "Intercom" for s in signals)
 
+    def test_livechat_runtime_iframe_provides_interaction_hint(self):
+        checker = KnownAssetsChecker()
+        page = make_page_data(
+            html='<iframe id="chat-widget-minimized"></iframe>',
+            url="https://shop.example",
+        )
+
+        signals = checker.check(page)
+
+        livechat = next(
+            signal
+            for signal in signals
+            if signal.metadata.get("asset_name") == "LiveChat"
+        )
+        assert livechat.metadata["provider"] == "livechat"
+
+    def test_chatbase_runtime_launcher_provides_interaction_hint(self):
+        checker = KnownAssetsChecker()
+        page = make_page_data(
+            html="""
+            <button type="button" id="chatbase-bubble-button"
+                    aria-label="Open Ruger from Rugged Restore"
+                    aria-expanded="false" aria-haspopup="dialog"
+                    aria-controls="chatbase-bubble-window">
+              <img src="https://backend.chatbase.co/storage/v1/object/public/chat-icons/icon.jpg"
+                   alt="Ruger from Rugged Restore">
+            </button>
+            """,
+            url="https://ruggedrestore.com/",
+        )
+
+        signals = checker.check(page)
+
+        chatbase = next(
+            signal
+            for signal in signals
+            if signal.metadata.get("asset_name") == "Chatbase"
+        )
+        assert chatbase.signal_type == "known_dom"
+        assert chatbase.metadata["provider"] == "chatbase"
+
+    def test_flyweight_runtime_frame_provides_interaction_hint(self):
+        checker = KnownAssetsChecker()
+        page = make_page_data(
+            html="""
+            <iframe data-testid="popup-overlay" title="Chat popup"></iframe>
+            <iframe data-testid="chat-overlay" title="Chat"></iframe>
+            """,
+            url="https://rxsmartgear.com/",
+        )
+
+        signals = checker.check(page)
+
+        flyweight = next(
+            signal
+            for signal in signals
+            if signal.metadata.get("asset_name") == "Flyweight AI"
+        )
+        assert flyweight.signal_type == "known_dom"
+        assert flyweight.metadata["provider"] == "flyweight"
+
     def test_detects_featurebase_by_script(self):
         checker = KnownAssetsChecker()
         signals = checker.check(make_page_data(
