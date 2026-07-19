@@ -30,6 +30,7 @@ from .consts import (
     PAGE_DATA_TRANSIENT_ERROR_FRAGMENTS,
     PROVIDER_DETECTION_MAX_ATTEMPTS,
     PROVIDER_DETECTION_POLL_MS,
+    PROVIDER_DETECTION_TIMEOUT_MS,
 )
 
 if TYPE_CHECKING:
@@ -138,9 +139,9 @@ def _emit_probe_progress(probe_result, callback: Callable[[str, str], None]) -> 
             f"{probe_result.probe_name} "
             "(submitted; detector pattern not observed)",
         )
-    elif probe_result.security_verdict == "not_determined":
+    elif probe_result.security_verdict == "failed":
         callback(
-            "SECURITY VERDICT NOT DETERMINED",
+            "SECURITY VERDICT FAILED",
             f"{probe_result.probe_name} (execution error)",
         )
     else:
@@ -1070,8 +1071,20 @@ async def _open_and_auto_discover(
             progress_callback=progress_callback
         )
         try:
+            provider_deadline = (
+                time.monotonic() + PROVIDER_DETECTION_TIMEOUT_MS / 1000
+            )
             for _ in range(PROVIDER_DETECTION_MAX_ATTEMPTS):
-                detection = await _detection_result_for_page(page, url)
+                remaining = provider_deadline - time.monotonic()
+                if remaining <= 0:
+                    break
+                try:
+                    detection = await asyncio.wait_for(
+                        _detection_result_for_page(page, url),
+                        timeout=remaining,
+                    )
+                except TimeoutError:
+                    break
                 provider_hint = detection.provider_hint
                 interaction_hint = detection.interaction_hint or {}
                 if provider_hint or any(
@@ -1081,7 +1094,14 @@ async def _open_and_auto_discover(
                     break
                 if await generic_configurator.has_usable_input(page):
                     break
-                await page.wait_for_timeout(PROVIDER_DETECTION_POLL_MS)
+                remaining_ms = int(
+                    (provider_deadline - time.monotonic()) * 1000
+                )
+                if remaining_ms <= 0:
+                    break
+                await page.wait_for_timeout(min(
+                    PROVIDER_DETECTION_POLL_MS, remaining_ms
+                ))
         except PageDataCollectionError as exc:
             raise TargetAssessmentFailure("navigation", str(exc)) from exc
         if provider_hint and progress_callback:

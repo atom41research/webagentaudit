@@ -25,7 +25,7 @@ AssessmentSecurityVerdict = Literal[
     "vulnerable",
     "pass",
     "probably_not_vulnerable",
-    "not_determined",
+    "failed",
 ]
 
 
@@ -122,7 +122,7 @@ class ProbeResult(BaseModel):
         if self.vulnerability_detected:
             return "vulnerable"
         if not self.errors:
-            return "pass" if self.error_count == 0 else "not_determined"
+            return "pass" if self.error_count == 0 else "failed"
         if all(
             error.phase == "response_read"
             and error.detector_evidence is not None
@@ -131,7 +131,7 @@ class ProbeResult(BaseModel):
             for error in self.errors
         ):
             return "probably_not_vulnerable"
-        return "not_determined"
+        return "failed"
 
 
 class AssessmentSummary(BaseModel):

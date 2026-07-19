@@ -3,62 +3,82 @@
 <head><title>Multilingual LiveChat gate</title></head>
 <body>
   <main>Host page content.</main>
+  <div class="consent-banner-root" role="region"
+       style="position:fixed;inset:0;z-index:999999;background:white">
+    <span id="cookies_policy_description">Cookie settings</span>
+    <button type="button" class="mQxxMq"
+            onclick="this.parentElement.remove()">Elfogadom</button>
+  </div>
+  <!-- LiveChat creates the expanded frame before it contains usable controls. -->
   <iframe id="chat-widget" title="LiveChat"
-          style="width: 380px; height: 650px"></iframe>
+          style="display:none;width:380px;height:650px"></iframe>
+  <iframe id="chat-widget-minimized" title="LiveChat launcher"
+          style="width:80px;height:80px"></iframe>
   <script>
-    var frame = document.querySelector("iframe#chat-widget");
-    frame.srcdoc = `
-      <!doctype html>
-      <html lang="hu">
-      <head>
-        <title>Contact us via LiveChat!</title>
-        <style>
-          body { margin: 0; width: 360px; height: 620px; }
-          #message-list { height: 470px; }
-          .lc-f8a1 { display: flex; align-items: center; }
-          textarea { width: 290px; height: 42px; }
-        </style>
-      </head>
-      <body>
-        <div id="widget-global-q3g9y7cgrx">
-          <div role="main">
-            <button type="button" aria-label="Menü megnyitása" class="lc-580xri">
-              <svg viewBox="0 0 28 28"><path d="M7 16h14"></path></svg>
-            </button>
-            <button type="button" aria-label="Ablak ikonba" id="minimize">
-              <svg viewBox="0 0 28 28"><path d="M7 19h14"></path></svg>
-            </button>
-            <div id="message-list" role="grid" aria-live="polite"
-                 aria-relevant="additions">
-              <div role="row"><span class="Linkify">Üdvözlöm! Miben segíthetek?</span></div>
-            </div>
-            <div id="gate">
-              <button id="start-chat-button" type="button">
-                <span>Beszélgessünk</span>
+    const expanded = document.querySelector("iframe#chat-widget");
+    expanded.srcdoc = '<!doctype html><div id="root"></div>';
+
+    const minimized = document.querySelector("iframe#chat-widget-minimized");
+    minimized.srcdoc = `<button type="button"
+      aria-label="LiveChat chat widget megnyitása"
+      onclick="parent.openLiveChat()">Chat</button>`;
+
+    window.openLiveChat = () => {
+      minimized.style.display = "none";
+      expanded.style.display = "block";
+      expanded.srcdoc = `
+        <!doctype html>
+        <html lang="hu">
+        <head>
+          <title>Contact us via LiveChat!</title>
+          <style>
+            body { margin: 0; width: 360px; height: 620px; }
+            #message-list { height: 470px; }
+            .lc-f8a1 { display: flex; align-items: center; }
+            textarea { width: 290px; height: 42px; }
+          </style>
+        </head>
+        <body>
+          <div id="widget-global-q3g9y7cgrx">
+            <div role="main">
+              <button type="button" aria-label="Menü megnyitása" class="lc-580xri">
+                <svg viewBox="0 0 28 28"><path d="M7 16h14"></path></svg>
               </button>
+              <button type="button" aria-label="Ablak ikonba" id="minimize">
+                <svg viewBox="0 0 28 28"><path d="M7 19h14"></path></svg>
+              </button>
+              <div id="message-list" role="grid" aria-live="polite"
+                   aria-relevant="additions">
+                <div role="row"><span class="Linkify">Üdvözlöm! Miben segíthetek?</span></div>
+              </div>
+              <div id="gate">
+                <button id="start-chat-button" type="button">
+                  <span>Beszélgessünk</span>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-        <script>
-          document.querySelector("#start-chat-button").addEventListener("click", () => {
-            document.querySelector("#gate").outerHTML = \`
-              <div class="lc-f8a1">
-                <textarea class="lc-4d2b" placeholder="Ide írva kérdezhet..."></textarea>
-                <button type="button" class="lc-91ce" aria-label="Üzenet küldése" disabled>
-                  <svg viewBox="0 0 28 28"><path d="M3 14l22-10-7 20-4-8z"></path></svg>
-                </button>
-              </div>\`;
-            const input = document.querySelector("textarea");
-            const send = document.querySelector("button.lc-91ce");
-            input.addEventListener("input", () => send.disabled = !input.value);
-            send.addEventListener("click", () => {
-              input.value = "";
-              send.disabled = true;
+          <script>
+            document.querySelector("#start-chat-button").addEventListener("click", () => {
+              document.querySelector("#gate").outerHTML = \`
+                <div class="lc-f8a1">
+                  <textarea class="lc-4d2b" placeholder="Ide írva kérdezhet..."></textarea>
+                  <button type="button" class="lc-91ce" aria-label="Üzenet küldése" disabled>
+                    <svg viewBox="0 0 28 28"><path d="M3 14l22-10-7 20-4-8z"></path></svg>
+                  </button>
+                </div>\`;
+              const input = document.querySelector("textarea");
+              const send = document.querySelector("button.lc-91ce");
+              input.addEventListener("input", () => send.disabled = !input.value);
+              send.addEventListener("click", () => {
+                input.value = "";
+                send.disabled = true;
+              });
             });
-          });
-        <\/script>
-      </body>
-      </html>`;
+          <\/script>
+        </body>
+        </html>`;
+    };
   </script>
 </body>
 </html>

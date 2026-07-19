@@ -424,6 +424,7 @@ class ResponseFinder:
                 const normalise = text => text.replace(/\\s+/g, " ").trim();
                 const transient = new RegExp(config.transientPattern, "i");
                 const metadata = new RegExp(config.metadataPattern, "i");
+                const attribution = new RegExp(config.attributionPattern, "i");
                 const system = new RegExp(config.systemPattern, "i");
                 const greeting = new RegExp(config.greetingPattern, "i");
                 const submitted = normalise(config.submittedText || "");
@@ -437,6 +438,7 @@ class ResponseFinder:
                     let reason = null;
                     if (transient.test(text)) reason = "transient";
                     else if (metadata.test(text)) reason = "metadata";
+                    else if (attribution.test(text)) reason = "attribution";
                     else if (candidate.customerSemantic) reason = "customer";
                     else if (submitted && (
                         text === submitted
@@ -511,6 +513,7 @@ class ResponseFinder:
                 "submittedText": submitted_text or consts.RESPONSE_PROBE_MESSAGE,
                 "transientPattern": consts.RESPONSE_TRANSIENT_PATTERN,
                 "metadataPattern": consts.RESPONSE_METADATA_PATTERN,
+                "attributionPattern": consts.RESPONSE_ATTRIBUTION_PATTERN,
                 "systemPattern": consts.RESPONSE_SYSTEM_PATTERN,
                 "greetingPattern": consts.RESPONSE_GREETING_PATTERN,
                 "typingSelectors": TYPING_INDICATOR_SELECTORS,

@@ -13,6 +13,7 @@ from webagentaudit.llm_channel.models import InteractionAction
 
 from . import consts
 from ._input_finder import InputFinder
+from ._preflight import PreflightDismissal
 from ._selector_builder import SelectorBuilder
 from ._submit_finder import SubmitFinder
 from .base import BaseAutoConfigurator
@@ -56,10 +57,20 @@ async def _open_start_gate(frame: Frame) -> None:
     )
 
 
+async def _has_visible_controls(frame: Frame) -> bool:
+    controls = frame.locator(
+        f"{consts.LIVECHAT_START_SELECTOR}, {consts.LIVECHAT_INPUT_SELECTOR}"
+    ).first
+    try:
+        return await controls.count() > 0 and await controls.is_visible()
+    except Exception:
+        return False
+
+
 async def open_livechat_widget(page: Page) -> Frame:
     """Open the minimized widget when needed and return its main frame."""
     expanded = await _current_frame(page, consts.LIVECHAT_FRAME_SELECTOR)
-    if expanded is not None:
+    if expanded is not None and await _has_visible_controls(expanded):
         await _open_start_gate(expanded)
         return expanded
 
@@ -67,6 +78,9 @@ async def open_livechat_widget(page: Page) -> Frame:
         page, consts.LIVECHAT_MINIMIZED_FRAME_SELECTOR
     )
     if minimized is None:
+        if expanded is not None:
+            await _open_start_gate(expanded)
+            return expanded
         raise ChannelNotReadyError("LiveChat launcher did not render")
     launcher = minimized.locator("button").first
     await launcher.wait_for(state="visible", timeout=consts.LIVECHAT_WAIT_MS)
@@ -88,6 +102,7 @@ class LiveChatAutoConfigurator(BaseAutoConfigurator):
     ) -> None:
         selector_builder = SelectorBuilder()
         self._input_finder = InputFinder(selector_builder)
+        self._preflight = PreflightDismissal(selector_builder)
         self._submit_finder = SubmitFinder(selector_builder)
         self._progress_callback = progress_callback
 
@@ -104,6 +119,16 @@ class LiveChatAutoConfigurator(BaseAutoConfigurator):
         if not isinstance(page, Page):
             return AutoConfigResult()
 
+        setup_actions: list[InteractionAction] = []
+        for _ in range(consts.PREFLIGHT_MAX_DISMISSALS):
+            dismissed = await self._preflight.dismiss_one(page)
+            if dismissed is None:
+                break
+            setup_actions.append(InteractionAction(
+                kind="dismiss", selector=dismissed, optional=True
+            ))
+            self._emit("BLOCKER", f"dismissed {dismissed}")
+
         frame = await open_livechat_widget(page)
         self._emit("TRIGGER", "opened LiveChat widget")
         scored = await self._poll_for_input(frame, input_hint)
@@ -116,7 +141,7 @@ class LiveChatAutoConfigurator(BaseAutoConfigurator):
             discovery_frame=frame,
             iframe_selector=consts.LIVECHAT_FRAME_SELECTOR,
             input_frame_path=[consts.LIVECHAT_FRAME_SELECTOR],
-            setup_actions=[InteractionAction(
+            setup_actions=[*setup_actions, InteractionAction(
                 kind="livechat_open",
                 selector=consts.LIVECHAT_MINIMIZED_FRAME_SELECTOR,
             )],

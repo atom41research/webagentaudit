@@ -143,11 +143,11 @@ class TestProbeResult:
                         message="No observation",
                     )],
                 ),
-                "not_determined",
+                "failed",
             ),
             (
                 ProbeResult(probe_name="test.probe", error_count=1),
-                "not_determined",
+                "failed",
             ),
         ],
     )

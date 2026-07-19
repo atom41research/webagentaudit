@@ -97,11 +97,14 @@ Fetched on: 2026-03-10
   the operator.
 - **Description:** Hungarian pre-conversation state with LiveChat's stable
   `#start-chat-button`, hashed styling classes, structural transcript roles,
-  and composer/send controls whose visible and accessible text is not English.
-  It verifies that discovery and replay advance the gate and use provider-frame
-  structure instead of translated keywords.
+  a host-page consent blocker, a pre-created blank expanded iframe, a separate
+  minimized launcher iframe, and composer/send controls whose visible and
+  accessible text is not English. It verifies that discovery and fresh-page
+  replay dismiss the blocker, open the launcher, advance the gate, and use
+  provider-frame structure instead of translated keywords.
 - **Detection signals:**
   - `iframe#chat-widget`
+  - `iframe#chat-widget-minimized`
   - `#start-chat-button`
   - `[role="grid"][aria-live="polite"]`
 - **Provider:** LiveChat

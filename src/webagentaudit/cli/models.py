@@ -47,18 +47,18 @@ class BatchTargetResult(BaseModel):
 
     @computed_field
     @property
-    def security_verdict(self) -> AssessmentSecurityVerdict:
+    def security_verdict(self) -> AssessmentSecurityVerdict | None:
         """Aggregate probe verdicts without changing operational status."""
         if not self.assessment or not self.assessment.probe_results:
-            return "not_determined"
+            return None
         verdicts = {
             result.security_verdict
             for result in self.assessment.probe_results
         }
         if "vulnerable" in verdicts:
             return "vulnerable"
-        if "not_determined" in verdicts:
-            return "not_determined"
+        if "failed" in verdicts:
+            return "failed"
         if "probably_not_vulnerable" in verdicts:
             return "probably_not_vulnerable"
         return "pass"
@@ -92,7 +92,7 @@ class BatchAssessmentSummary(BaseModel):
 class BatchRunMetadata(BaseModel):
     """Reproducibility details for one URL-file assessment."""
 
-    schema_version: Literal[6] = 6
+    schema_version: Literal[7] = 7
     started_at: datetime
     completed_at: datetime
     webagentaudit_version: str

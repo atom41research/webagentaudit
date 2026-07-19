@@ -61,10 +61,14 @@ class BotpressAutoConfigurator(BaseAutoConfigurator):
             "INTERACTION",
             consts.PROGRAMMATIC_INTERACTION_DESCRIPTIONS["botpress_open"],
         )
-        await open_botpress_widget(page)
-        self._emit("TRIGGER", "opened Botpress widget")
-
-        context, frame_path = await self._wait_for_composer(page)
+        context = None
+        frame_path: list[str] = []
+        for _ in range(consts.BOTPRESS_OPEN_ATTEMPTS):
+            await open_botpress_widget(page)
+            self._emit("TRIGGER", "opened Botpress widget")
+            context, frame_path = await self._wait_for_composer(page)
+            if context is not None:
+                break
         if context is None:
             raise ChannelNotReadyError(
                 "Botpress opened, but did not render a usable chat composer"
@@ -92,10 +96,13 @@ class BotpressAutoConfigurator(BaseAutoConfigurator):
     ) -> tuple[Page | Frame | None, list[str]]:
         elapsed = 0
         while elapsed < consts.BOTPRESS_WAIT_MS:
-            if await page.locator(
-                f"{consts.BOTPRESS_INPUT_SELECTOR}:visible"
-            ).count():
-                return page, []
+            try:
+                if await page.locator(
+                    f"{consts.BOTPRESS_INPUT_SELECTOR}:visible"
+                ).count():
+                    return page, []
+            except Exception:
+                pass
             for frame in page.frames:
                 if frame is page.main_frame:
                     continue

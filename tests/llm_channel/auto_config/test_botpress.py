@@ -78,6 +78,31 @@ async def test_botpress_embedded_configurator_uses_host_document(page):
     ).prepare_page(page), Page)
 
 
+async def test_botpress_reopens_after_first_widget_boot_is_lost(
+    page, monkeypatch
+):
+    monkeypatch.setattr("webagentaudit.llm_channel.auto_config.consts.BOTPRESS_WAIT_MS", 50)
+    monkeypatch.setattr(
+        "webagentaudit.llm_channel.auto_config.consts.DISCOVERY_INPUT_POLL_MS", 10
+    )
+    await page.set_content("""<script>
+      window.opens = 0;
+      window.botpress = { open() {
+        window.opens += 1;
+        if (window.opens === 2) {
+          document.body.insertAdjacentHTML(
+            'beforeend', '<textarea class="bpComposerInput"></textarea>'
+          );
+        }
+      }};
+    </script>""")
+
+    result = await BotpressAutoConfigurator().configure(page, skip_response=True)
+
+    assert result.input_selector == "textarea.bpComposerInput"
+    assert await page.evaluate("window.opens") == 2
+
+
 async def test_botpress_api_unavailable_is_explicit(page):
     await page.set_content("<div>page with a broken Botpress embed</div>")
 

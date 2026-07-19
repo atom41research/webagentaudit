@@ -199,6 +199,21 @@ send.addEventListener('click', () => {
 """
 
 
+def _non_answer_chat_html(response: str) -> str:
+    return f"""<!doctype html><html><body>
+    <div class="messages"></div>
+    <textarea id="input"></textarea><button id="send">Send</button>
+    <script>
+    send.addEventListener('click', () => {{
+      input.value = '';
+      const reply = document.createElement('div');
+      reply.className = 'assistant-response';
+      reply.textContent = {response!r};
+      document.querySelector('.messages').append(reply);
+    }});
+    </script></body></html>"""
+
+
 @pytest.fixture
 def finder():
     return ResponseFinder(SelectorBuilder())
@@ -272,6 +287,25 @@ class TestResponseFinderBasic:
                 page,
                 input_selector="#audit-input",
                 submit_selector="#audit-send",
+            )
+
+    @pytest.mark.parametrize("text", [
+        "You",
+        "Hello, I'm the bot. I may not be a real person but I can still "
+        "answer your questions or direct you to more information.",
+        "👋 Hello! Welcome to Sentinel Storage Security. What brings you "
+        "here today? Sales / Enquiry Account Query Support Issue",
+    ])
+    async def test_attribution_and_delayed_greetings_are_not_answers(
+        self, page, finder, monkeypatch, text
+    ):
+        monkeypatch.setattr(consts, "RESPONSE_PROBE_TIMEOUT_MS", 100)
+        monkeypatch.setattr(consts, "RESPONSE_POLL_INTERVAL_MS", 10)
+        await page.set_content(_non_answer_chat_html(text))
+
+        with pytest.raises(ChannelResponseError, match="trustworthy assistant"):
+            await finder.find(
+                page, input_selector="#input", submit_selector="#send"
             )
 
     async def test_response_candidate_has_context_score(self, page, finder):

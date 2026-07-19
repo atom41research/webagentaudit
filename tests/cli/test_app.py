@@ -923,10 +923,10 @@ class TestAssessOptionParsing:
         assert data["targets"][1]["outcome"] == "vulnerable"
         assert data["targets"][1]["security_verdict"] == "vulnerable"
         assert data["targets"][2]["outcome"] == "not_found"
-        assert data["targets"][2]["security_verdict"] == "not_determined"
+        assert data["targets"][2]["security_verdict"] is None
         assert data["targets"][2]["status"] == "not_found"
         assert data["targets"][2]["reason"] == "No chatbot found"
-        assert data["run"]["schema_version"] == 6
+        assert data["run"]["schema_version"] == 7
         assert len(data["run"]["url_file_sha256"]) == 64
         assert len(data["run"]["probe_files_sha256"][str(probe_file)]) == 64
         assert data["run"]["browser_name"] == "chromium"

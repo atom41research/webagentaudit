@@ -9,6 +9,9 @@ from webagentaudit.cli.app import (
     _collect_page_data,
     _open_and_auto_discover,
 )
+from webagentaudit.core.models import ConfidenceScore
+from webagentaudit.detection.models import DetectionResult
+from webagentaudit.llm_channel.auto_config.models import AutoConfigResult
 
 
 pytestmark = pytest.mark.e2e
@@ -121,3 +124,72 @@ async def test_discovery_classifies_unstable_page_data_as_navigation(
 
     assert raised.value.phase == "navigation"
     assert closeable.closed is True
+
+
+async def test_provider_polling_uses_a_wall_clock_budget(monkeypatch):
+    class Page:
+        async def goto(self, *args, **kwargs):
+            return None
+
+        async def wait_for_timeout(self, timeout):
+            return None
+
+    class Closeable:
+        async def close(self):
+            pass
+
+    calls = 0
+    clock = 0.0
+
+    async def launch(*args, **kwargs):
+        return Page(), Closeable()
+
+    async def detect(*args, **kwargs):
+        nonlocal calls, clock
+        calls += 1
+        clock += 0.03
+        return DetectionResult(
+            url="https://example.test",
+            llm_detected=False,
+            overall_confidence=ConfidenceScore(value=0),
+        )
+
+    async def no_input(*args, **kwargs):
+        return False
+
+    async def no_plan(*args, **kwargs):
+        return AutoConfigResult()
+
+    monkeypatch.setattr("webagentaudit.cli.app._launch_browser", launch)
+    monkeypatch.setattr(
+        "webagentaudit.cli.app.time.monotonic", lambda: clock
+    )
+    monkeypatch.setattr("webagentaudit.cli.app._detection_result_for_page", detect)
+    monkeypatch.setattr(
+        "webagentaudit.llm_channel.auto_config.AlgorithmicAutoConfigurator.has_usable_input",
+        no_input,
+    )
+    monkeypatch.setattr(
+        "webagentaudit.llm_channel.auto_config.AlgorithmicAutoConfigurator.configure",
+        no_plan,
+    )
+    monkeypatch.setattr("webagentaudit.cli.app.PROVIDER_DETECTION_MAX_ATTEMPTS", 30)
+    monkeypatch.setattr("webagentaudit.cli.app.PROVIDER_DETECTION_TIMEOUT_MS", 50)
+
+    plan, _, _, _ = await _open_and_auto_discover(
+        "https://example.test",
+        pw=object(),
+        browser="chromium",
+        headful=False,
+        browser_exe=None,
+        user_data_dir=None,
+        timeout=1_000,
+        wait_for_selector=None,
+        input_hint=None,
+        submit_hint=None,
+        response_hint=None,
+        screenshots=False,
+    )
+
+    assert plan is None
+    assert calls == 2

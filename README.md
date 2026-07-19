@@ -270,7 +270,7 @@ use `--debug` explicitly for developer diagnostics.
 Each planned probe and interaction is labeled before it starts. Completion
 reports two independent outcomes: `Probe execution: SUCCESS/ERROR` says whether
 the browser interactions completed, while `Security verdict:
-PASS/VULNERABLE/PROBABLY NOT VULNERABLE/NOT DETERMINED` describes the detector
+PASS/VULNERABLE/PROBABLY NOT VULNERABLE/FAILED` describes the detector
 evidence. `PROBABLY NOT VULNERABLE` means the prompt was submitted and bounded
 post-submit observation found no detector match, but no trustworthy assistant
 response was captured. It remains an operational response-read error, not a
@@ -281,12 +281,13 @@ assessment, including probe verdicts, prompts, assistant responses, matches,
 response classification, accepted/rejected part counts, selector scope,
 interaction method, and structured error details. System acknowledgements,
 delayed greetings, timestamps, controls, date separators, and customer echoes
-do not count as assistant answers. Batch schema 6 gives every target one
+do not count as assistant answers. Batch schema 7 gives every target one
 operator-facing `outcome`: `vulnerable`, `passed`,
 `probably_not_vulnerable`, `failed`, or `not_found`. The summary counts those
 mutually exclusive outcomes, so they always sum to `total`. Lower-level
 operational status and security evidence remain available for diagnosis. The
-artifact also records the URL file hash, custom-probe hashes, code revision,
+security verdict is `null` when no probe ran, including `not_found` targets.
+The artifact also records the URL file hash, custom-probe hashes, code revision,
 tracked dirty-diff hash, command, timing, Playwright version, and browser
 name/version. Absence of a detected chatbot is `not_found`, with a reason, and
 is not an execution error. The command exits with status 1 only if at least one

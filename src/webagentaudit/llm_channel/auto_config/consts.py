@@ -144,14 +144,16 @@ RESPONSE_METADATA_PATTERN = (
     r"^(today|yesterday|\d{1,2}:\d{2}(?:\s?[ap]m)?|"
     r"\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?)$"
 )
+RESPONSE_ATTRIBUTION_PATTERN = r"^(you|me|agent|bot|assistant)$"
 RESPONSE_SYSTEM_PATTERN = (
     r"^(we (?:have )?received your message|.*\bwill (?:get|be) back\b|"
     r"give (?:the )?team a way to reach you)"
 )
 RESPONSE_GREETING_PATTERN = (
-    r"^(?:(?:hi|hello|good morning|good afternoon|good evening)\b.*"
+    r"^(?:[^\w]*)(?:(?:hi|hello|welcome|good morning|good afternoon|good evening)\b.*"
     r"(?:how can i help|what would you like|ask me|please select|select which|"
-    r"speaking with|ready to assist).*|how can i help\??)$"
+    r"what brings you|answer your questions|direct you|speaking with|"
+    r"ready to assist).*|how can i help\??)$"
 )
 
 # Elements to skip when building text snapshots
@@ -407,6 +409,7 @@ FLYWEIGHT_RESPONSE_SELECTOR = (
 # ---------------------------------------------------------------------------
 
 BOTPRESS_WAIT_MS = 10_000
+BOTPRESS_OPEN_ATTEMPTS = 2
 BOTPRESS_INPUT_SELECTOR = "textarea.bpComposerInput"
 BOTPRESS_RESPONSE_SELECTOR = (
     "div.bpMessageContainer:not(.bpMessageDeliveryStatus)"
@@ -501,7 +504,7 @@ CHATBOT_COM_ONBOARDING_SELECTORS = {
         '[data-conversation-button-tittle*="I know what to do"]'
     ),
 }
-LIVECHAT_WAIT_MS = 15_000
+LIVECHAT_WAIT_MS = 30_000
 LIVECHAT_MINIMIZED_FRAME_SELECTOR = "iframe#chat-widget-minimized"
 LIVECHAT_FRAME_SELECTOR = "iframe#chat-widget"
 LIVECHAT_START_SELECTOR = "#start-chat-button"
