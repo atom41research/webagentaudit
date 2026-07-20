@@ -540,15 +540,16 @@ class TestDetectUrlFailures:
         assert "Error: Could not load" in result.output
         assert "Traceback" not in result.output
 
-    def test_detect_timeout(self, runner):
-        """Very short timeout should error cleanly, not crash."""
-        # 1ms timeout — navigation can't complete in time
+    def test_detect_timeout_continues_with_usable_dom(self, runner, demo_server):
+        """A navigation timeout must not discard an already usable page."""
+        url = f"{demo_server}/interactive/reverse-llm.html"
         result = runner.invoke(cli, [
-            "detect", "https://example.com",
+            "detect", url,
             "--timeout", "1",
         ])
-        assert result.exit_code != 0
-        assert "Error: Could not load" in result.output
+
+        assert result.exit_code == 0, result.output
+        assert "Detection Result" in result.output
         assert "Traceback" not in result.output
 
     def test_detect_invalid_url_scheme(self, runner):
@@ -594,12 +595,22 @@ class TestAssessUrlFailures:
         assert "Error: Could not load" in result.output
         assert "Traceback" not in result.output
 
-    def test_assess_timeout(self, runner):
-        """Very short timeout should error cleanly, not crash."""
+    def test_assess_timeout_continues_with_usable_dom(
+        self, runner, demo_server, tmp_path,
+    ):
+        """Assessment continues when usable DOM arrives after navigation timeout."""
+        url = f"{demo_server}/interactive/reverse-llm.html"
         result = runner.invoke(cli, [
-            "assess", "https://example.com",
+            "assess", url,
             "--timeout", "1",
+            "--input-selector", "#prompt-input",
+            "--response-selector", ".bot-message:last-child",
+            "--submit-selector", "#send-btn",
+            "--probe-file", SINGLE_PROBE_YAML,
+            "--probes", SINGLE_PROBE_NAME,
+            "--output-file", str(tmp_path / "result.json"),
         ])
-        assert result.exit_code != 0
-        assert "Error: Could not load" in result.output
+
+        assert result.exit_code == 0, result.output
+        assert "Results" in result.output
         assert "Traceback" not in result.output

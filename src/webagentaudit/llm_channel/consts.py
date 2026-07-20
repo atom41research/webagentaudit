@@ -40,6 +40,7 @@ DEFAULT_BROWSER_TYPE = "chromium"
 CHROMIUM_DISABLE_AUTOMATION_CONTROLLED_ARG = (
     "--disable-blink-features=AutomationControlled"
 )
+CHROMIUM_AUTOMATION_DEFAULT_ARG = "--enable-automation"
 
 # Stable response containers for first-party LLM pages whose entry point may
 # navigate to a different host before rendering the response.

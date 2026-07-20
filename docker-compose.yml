@@ -2,6 +2,7 @@ services:
   webagentaudit:
     build: .
     user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
+    ipc: host
     volumes:
       # Screenshots and reports are written here — accessible from host
       - ./docker-output/screenshots:/data/screenshots

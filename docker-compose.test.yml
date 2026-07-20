@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.test
+    ipc: host
     # Run all tests: docker compose -f docker-compose.test.yml run --rm test
     # Run subset:    docker compose -f docker-compose.test.yml run --rm test -m unit -n auto
 
@@ -10,10 +11,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.test
+    ipc: host
     command: ["-m", "unit", "-n", "auto", "--dist", "worksteal", "-v"]
 
   test-e2e:
     build:
       context: .
       dockerfile: Dockerfile.test
+    ipc: host
     command: ["-m", "e2e or browser", "-n", "2", "--dist", "worksteal", "-v"]

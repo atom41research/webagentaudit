@@ -4,14 +4,17 @@ Python project for detecting and assessing interactive LLMs on webpages.
 
 ## Modules
 
-Three independent modules + shared core:
+Four functional modules plus the CLI composition root:
 
 - `src/webagentaudit/core/` — Shared models, enums, exceptions, constants (no external deps except pydantic)
-- `src/webagentaudit/detection/` — Detect interactive LLMs on webpages (deterministic + AI-assisted)
+- `src/webagentaudit/detection/` — Deterministically detect interactive LLMs on webpages (`ai_assisted/` is reserved, not implemented)
 - `src/webagentaudit/assessment/` — Assess LLM security via probes (like AgentSeal/Garak)
-- `src/webagentaudit/llm_channel/` — Interface for sending/receiving messages to web-based LLMs
+- `src/webagentaudit/llm_channel/` — Browser/API interfaces for sending and receiving LLM messages
+- `src/webagentaudit/cli/` — Composition root for detection, discovery, assessment, and artifacts
 
-Dependency graph: `core` ← `detection`, `llm_channel`, `assessment`. Assessment takes `BaseLlmChannel` via constructor injection (Dependency Inversion).
+Dependency graph: `detection` → `core`; `llm_channel` → `core`;
+`assessment` → `core` + `llm_channel`; `cli` composes all modules. Assessment
+takes `BaseLlmChannel` via constructor injection (Dependency Inversion).
 
 ## Git & Commits
 
@@ -120,12 +123,15 @@ webagentaudit/
 │   ├── core/                    # Shared models, enums, exceptions, constants
 │   ├── detection/               # LLM detection on webpages
 │   │   ├── deterministic/       # DOM patterns, selectors, signatures
-│   │   └── ai_assisted/         # Screenshot + DOM AI analysis
+│   │   ├── known_assets/        # Curated provider/application registry
+│   │   └── ai_assisted/         # Reserved namespace; not implemented
 │   ├── assessment/              # LLM security assessment
 │   │   ├── probes/              # Attack probes by category
 │   │   │   └── categories/      # prompt_injection, extraction, jailbreak, etc.
 │   │   └── detectors/           # Response analysis (pattern matching)
-│   └── llm_channel/             # Web-based LLM interaction
-│       └── strategies/          # Interaction strategies (chat widget, custom)
+│   ├── llm_channel/             # Browser/API LLM interaction
+│   │   ├── auto_config/         # Generic and provider-specific discovery
+│   │   └── strategies/          # Interaction strategies (chat widget, custom)
+│   └── cli/                     # Click commands and orchestration
 └── tests/
 ```

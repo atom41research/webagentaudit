@@ -20,14 +20,16 @@ import pytest
 from click.testing import CliRunner
 
 from webagentaudit.assessment.probes.registry import ProbeRegistry
-from webagentaudit.assessment.probes.yaml_loader import YamlProbe
+from webagentaudit.assessment.probes.yaml_loader import YamlProbe, load_yaml_probe
 from webagentaudit.assessment.probes.yaml_schema import YamlProbeSchema
+from webagentaudit.assessment.validation import find_prompt_pattern_overlaps
 from webagentaudit.cli.app import (
     TargetAssessmentFailure,
     TargetNotFound,
     _emit_probe_progress,
     _interaction_description,
     _launch_browser,
+    _screenshots_output_dir,
     _warn_probe_prompt_overlaps,
     cli,
 )
@@ -313,6 +315,19 @@ class TestHelpAndVersion:
             else:
                 assert f"<{parameter.name}>" in section
 
+    def test_readme_custom_probe_example_is_valid_and_echo_safe(self, tmp_path):
+        readme = (Path(__file__).parents[2] / "README.md").read_text()
+        marker = "```yaml\n# my_probes/cookie_theft.yaml\n"
+        yaml_start = readme.index(marker) + len("```yaml\n")
+        yaml_end = readme.index("\n```", yaml_start)
+        probe_path = tmp_path / "cookie_theft.yaml"
+        probe_path.write_text(readme[yaml_start:yaml_end] + "\n")
+
+        probe = load_yaml_probe(probe_path)
+
+        assert probe.name == "extraction.cookie_theft_attempt"
+        assert find_prompt_pattern_overlaps(probe) == []
+
 
 # ---------------------------------------------------------------------------
 # Detect command
@@ -369,6 +384,7 @@ class TestDetectCommand:
         launcher.launch.assert_awaited_once_with(
             headless=False,
             channel="chrome",
+            ignore_default_args=["--enable-automation"],
             args=[
                 "--disable-blink-features=AutomationControlled",
                 "--start-fullscreen",
@@ -433,6 +449,7 @@ class TestDetectCommand:
         launcher.launch.assert_awaited_once_with(
             headless=False,
             channel="chrome",
+            ignore_default_args=["--enable-automation"],
             args=[
                 "--disable-blink-features=AutomationControlled",
                 "--ozone-platform=x11",
@@ -504,6 +521,7 @@ class TestDetectCommand:
             "/browser-data",
             headless=False,
             executable_path="/browser",
+            ignore_default_args=["--enable-automation"],
             args=[
                 "--disable-blink-features=AutomationControlled",
                 "--profile-directory=Profile 1",
@@ -563,6 +581,7 @@ class TestDetectCommand:
         launcher.launch.assert_awaited_once_with(
             headless=True,
             channel="chrome",
+            ignore_default_args=["--enable-automation"],
             args=["--disable-blink-features=AutomationControlled"],
         )
         assert "Chrome/145.0.1.2" in context_kwargs["user_agent"]
@@ -693,6 +712,15 @@ class TestAssessOptionParsing:
     def test_assess_missing_url(self, runner):
         result = runner.invoke(cli, ["assess"])
         assert result.exit_code != 0
+
+    @pytest.mark.parametrize("workers", ["0", "-1"])
+    def test_assess_rejects_non_positive_workers(self, runner, workers):
+        result = runner.invoke(cli, [
+            "assess", "https://example.com", "--workers", workers,
+        ])
+
+        assert result.exit_code == 2
+        assert "x>=1" in result.output
 
     def test_all_assess_options_are_forwarded(
         self, runner, tmp_path, monkeypatch, yaml_probes_dir,
@@ -1109,6 +1137,15 @@ class TestScreenshotsDir:
         # They should be near each other (within 3 lines)
         assert abs(ss_dir_line - ss_line) <= 3
 
+    def test_docker_screenshot_env_applies_to_all_assessment_screenshots(
+        self, monkeypatch,
+    ):
+        monkeypatch.setenv("WEBAGENTAUDIT_SCREENSHOTS_DIR", "/data/screenshots")
+
+        assert _screenshots_output_dir(True, None) == "/data/screenshots"
+        assert _screenshots_output_dir(True, "/explicit") == "/explicit"
+        assert _screenshots_output_dir(False, None) is None
+
 
 # ---------------------------------------------------------------------------
 # Assess path-based options
@@ -1203,7 +1240,9 @@ class TestProbesCommand:
             "probes", "--probe-dir", yaml_probes_dir, "--output", "json",
         ])
         assert result.exit_code == 0
-        assert "extraction" in result.output  # fixtures contain extraction probes
+        data = json.loads(result.stdout)
+        assert any(item["category"] == "extraction" for item in data)
+        assert "Loaded 4 custom probe(s)" in result.stderr
 
     def test_probes_category_filter_with_custom_dir(self, runner, yaml_probes_dir):
         result = runner.invoke(cli, [
@@ -1302,17 +1341,7 @@ class TestEdgeCases:
             "probes", "--probe-dir", yaml_probes_dir, "--output", "json",
         ])
         assert result.exit_code == 0
-        # Filter out any non-JSON lines (like "Loaded X custom probe(s)")
-        lines = result.output.strip().split("\n")
-        # Find the JSON array in the output
-        json_start = None
-        for i, line in enumerate(lines):
-            if line.strip().startswith("["):
-                json_start = i
-                break
-        assert json_start is not None, "No JSON array found in output"
-        json_str = "\n".join(lines[json_start:])
-        data = json.loads(json_str)
+        data = json.loads(result.stdout)
         assert isinstance(data, list)
         assert len(data) > 0
         for item in data:

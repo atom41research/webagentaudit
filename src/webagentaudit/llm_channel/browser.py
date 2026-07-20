@@ -8,6 +8,7 @@ import sys
 from typing import TYPE_CHECKING
 
 from .consts import (
+    CHROMIUM_AUTOMATION_DEFAULT_ARG,
     CHROMIUM_DISABLE_AUTOMATION_CONTROLLED_ARG,
     DEFAULT_NAVIGATION_TIMEOUT_MS,
 )
@@ -37,6 +38,8 @@ def browser_launch_options(
     options: dict[str, object] = {}
     if browser == "chromium" and not executable_path:
         options["channel"] = "chrome"
+    if browser == "chromium":
+        options["ignore_default_args"] = [CHROMIUM_AUTOMATION_DEFAULT_ARG]
     if args:
         options["args"] = args
     return options

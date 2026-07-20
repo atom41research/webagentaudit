@@ -56,6 +56,7 @@ def test_chrome_launch_options_are_shared():
 
     assert options == {
         "channel": "chrome",
+        "ignore_default_args": ["--enable-automation"],
         "args": [
             "--disable-blink-features=AutomationControlled",
             "--start-fullscreen",

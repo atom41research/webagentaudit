@@ -14,6 +14,10 @@ COPY src/ src/
 # Install project dependencies (frozen from lock file)
 RUN uv sync --frozen --no-dev --no-editable
 
+# The project deliberately launches branded Chrome (channel="chrome") to
+# minimize browser-fingerprint differences from a normal user session.
+RUN uv run --frozen --no-dev playwright install chrome
+
 # Create output directories accessible from host via volume mount
 RUN mkdir -p /data/screenshots /data/output
 

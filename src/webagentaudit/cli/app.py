@@ -6,6 +6,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import os
 import subprocess
 import sys
 import time
@@ -31,6 +32,7 @@ from .consts import (
     PROVIDER_DETECTION_MAX_ATTEMPTS,
     PROVIDER_DETECTION_POLL_MS,
     PROVIDER_DETECTION_TIMEOUT_MS,
+    SCREENSHOTS_DIR_ENV,
 )
 
 if TYPE_CHECKING:
@@ -46,6 +48,15 @@ def _parse_csv(value: str | None) -> list[str]:
     if not value:
         return []
     return [v.strip() for v in value.split(",") if v.strip()]
+
+
+def _screenshots_output_dir(
+    enabled: bool, configured_dir: str | None
+) -> str | None:
+    """Resolve the shared discovery and post-send screenshot directory."""
+    if not enabled:
+        return None
+    return configured_dir or os.environ.get(SCREENSHOTS_DIR_ENV) or "screenshots"
 
 
 def _style(text: str, **kwargs) -> str:
@@ -234,7 +245,7 @@ def cli() -> None:
 @click.option("--browser-exe", type=click.Path(exists=True), default=None,
               help="Path to browser executable.")
 @click.option("--user-data-dir", type=click.Path(), default=None,
-              help="Browser profile directory for authenticated sessions.")
+              help="Browser user-data root for authenticated sessions.")
 @click.option("--timeout", default=30000, type=int, help="Navigation timeout in ms.")
 @click.option("-v", "--verbose", is_flag=True,
               help="Show detailed operator-facing progress.")
@@ -764,13 +775,14 @@ async def _prompt(
 @click.option("--browser-exe", type=click.Path(exists=True), default=None,
               help="Path to browser executable.")
 @click.option("--user-data-dir", type=click.Path(), default=None,
-              help="Browser profile directory for authenticated sessions.")
+              help="Browser user-data root for authenticated sessions.")
 @click.option("--timeout", type=int, default=30000, help="Timeout in ms.")
 @click.option("--post-send-wait", type=click.IntRange(min=0), default=0,
               help="Wait this many ms after sending before reading a response.")
 @click.option("--post-success-wait", type=click.IntRange(min=0), default=0,
               help="Keep the browser open this many ms after reading a response.")
-@click.option("--workers", default=1, type=int, help="Concurrent probe workers.")
+@click.option("--workers", default=1, type=click.IntRange(min=1),
+              help="Concurrent probe workers.")
 @click.option("--input-selector", type=str, help="CSS selector for input element.")
 @click.option("--response-selector", type=str,
               help="CSS selector for response container.")
@@ -1056,12 +1068,7 @@ async def _open_and_auto_discover(
                     " not found within timeout", fg="yellow"), err=is_json)
 
         if screenshots:
-            import os
-            ss_dir = Path(
-                screenshots_dir
-                or os.environ.get("WEBAGENTAUDIT_SCREENSHOTS_DIR")
-                or "screenshots"
-            )
+            ss_dir = Path(_screenshots_output_dir(True, screenshots_dir))
             ss_dir.mkdir(parents=True, exist_ok=True)
             await page.screenshot(path=str(ss_dir / "00_discovery.png"),
                                   full_page=False)
@@ -1633,8 +1640,8 @@ async def _assess(
             timeout_ms=timeout,
             post_send_wait_ms=post_send_wait,
             post_success_wait_ms=post_success_wait,
-            post_send_screenshot_dir=(
-                screenshots_dir or "screenshots" if screenshots else None
+            post_send_screenshot_dir=_screenshots_output_dir(
+                screenshots, screenshots_dir
             ),
             user_data_dir=user_data_dir,
             executable_path=browser_exe,
@@ -1810,7 +1817,10 @@ def probes(category: str | None, sophistication: str | None,
     registry = ProbeRegistry.default()
     if probe_dir:
         loaded = registry.load_yaml_dir(Path(probe_dir))
-        click.echo(f"Loaded {loaded} custom probe(s) from {probe_dir}")
+        click.echo(
+            f"Loaded {loaded} custom probe(s) from {probe_dir}",
+            err=output_format == "json",
+        )
 
     all_probes = registry.get_all()
 

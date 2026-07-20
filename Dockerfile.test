@@ -14,9 +14,13 @@ COPY src/ src/
 # Install ALL dependencies including dev (no --no-dev flag)
 RUN uv sync --frozen --no-editable
 
+# Browser integration tests exercise the same branded-Chrome production path.
+RUN uv run --frozen playwright install chrome
+
 # Copy test files and demo pages (needed by e2e HTTP server)
 COPY tests/ tests/
 COPY docs/ docs/
+COPY README.md ./
 
 ENTRYPOINT ["uv", "run", "pytest"]
 CMD ["-n", "auto", "--dist", "worksteal", "-v"]

@@ -14,7 +14,7 @@
 | `tests/core/` | Shared models, enums, exceptions | No | Fast |
 | `tests/detection/` | Individual detection checkers | No | Fast |
 | `tests/assessment/` | Assessor, probes, pattern detector | No | Fast |
-| `tests/llm_channel/` | Channel config, strategies | No | Fast |
+| `tests/llm_channel/` | Channel config and strategies | Mixed | Fast/medium |
 | `tests/e2e/` | Full pipeline with Playwright | Yes | Slow |
 | `tests/fixtures/` | YAML probes, HTML snapshots (not tests) | — | — |
 
