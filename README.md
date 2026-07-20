@@ -3,7 +3,7 @@
 [![Black Hat Arsenal](https://img.shields.io/badge/Black_Hat_Arsenal-USA_2026-black?style=flat-square&labelColor=red)](#)
 ![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue)
 ![Tests passing](https://img.shields.io/badge/tests-passing-brightgreen)
-![48 built-in probes](https://img.shields.io/badge/probes-48%20built--in-orange)
+![48 built-in probes plus custom YAML](https://img.shields.io/badge/probes-48%20built--in%20%2B%20custom%20YAML-orange)
 ![No API tokens required](https://img.shields.io/badge/API%20tokens-not%20required-green)
 [![Built by Atom41](https://img.shields.io/badge/Built%20by-Atom41-blueviolet)](https://www.atom41.com)
 
@@ -605,6 +605,8 @@ Run the fast unit suite with `make test`, or the complete suite with
 parallel, and Docker test commands.
 
 ## Feedback and contributions
+
+Chatbot and AI interfaces change frequently, and previously supported sites can regress as their UIs evolve. We update WebAgentAudit as these cases emerge, but continuous compatibility testing against real interfaces incurs AI usage costs. If you would like to sponsor those testing costs, please let us know.
 
 Real-world interfaces help us improve WebAgentAudit. Please [open a GitHub issue](https://github.com/atom41research/webagentaudit/issues/new) to:
 
