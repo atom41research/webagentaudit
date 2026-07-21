@@ -404,7 +404,7 @@ selectors refine an explicit or successfully discovered plan)
 | `--severity LIST` | Comma-separated severity levels (`critical,high,medium,low,info`) |
 | `--probes LIST` | Comma-separated probe names to run |
 | `--probe-dir DIR` | Directory of custom YAML probes |
-| `--probe-file FILE` | Single custom YAML probe file (repeatable) |
+| `--probe-file FILE` | Run only this custom YAML probe file (repeatable) |
 
 **Output & execution**
 

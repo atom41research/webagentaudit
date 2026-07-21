@@ -808,7 +808,8 @@ async def _prompt(
 @click.option("--probe-dir", type=click.Path(exists=True, file_okay=False),
               help="Directory of custom YAML probes.")
 @click.option("--probe-file", type=click.Path(exists=True, dir_okay=False),
-              multiple=True, help="Single custom YAML probe file.")
+              multiple=True,
+              help="Run only this custom YAML probe file (repeatable).")
 @click.option("--screenshots", is_flag=True,
               help="Save discovery and post-send screenshots.")
 @click.option("--screenshots-dir", type=click.Path(), default=None,
@@ -935,7 +936,7 @@ def _load_registry(
     """Load probes into a registry and apply filters."""
     from webagentaudit.assessment.probes.registry import ProbeRegistry
 
-    registry = ProbeRegistry.default()
+    registry = ProbeRegistry() if probe_file else ProbeRegistry.default()
     if probe_dir:
         loaded = registry.load_yaml_dir(Path(probe_dir))
         if emit_output:

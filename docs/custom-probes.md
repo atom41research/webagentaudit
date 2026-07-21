@@ -344,18 +344,13 @@ my_probes/
 # Run built-in probes + all custom probes from a directory
 webagentaudit assess https://example.com/chat --probe-dir ./my_probes/
 
-# Run built-in probes + a specific custom probe file
+# Run only a specific custom probe file
 webagentaudit assess https://example.com/chat --probe-file ./my_probes/direct_ask.yaml
 
-# Run multiple specific files
+# Run only these specific files
 webagentaudit assess https://example.com/chat \
   --probe-file ./my_probes/direct_ask.yaml \
   --probe-file ./my_probes/trust_building.yaml
-
-# Run ONLY a specific custom probe (filter by name after loading)
-webagentaudit assess https://example.com/chat \
-  --probe-file ./my_probes/direct_ask.yaml \
-  --probes extraction.custom_direct_ask
 
 # List custom probes alongside built-ins
 webagentaudit probes --probe-dir ./my_probes/

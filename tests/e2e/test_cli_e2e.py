@@ -205,7 +205,7 @@ class TestAssessE2E:
         assert "Results" in result.output
 
     def test_assess_with_probe_file(self, runner, demo_server):
-        """assess with --probe-file should succeed."""
+        """assess with --probe-file should run only the custom probe."""
         url = f"{demo_server}/interactive/reverse-llm.html"
         result = runner.invoke(cli, [
             "assess", url,
@@ -213,10 +213,14 @@ class TestAssessE2E:
             "--response-selector", ".bot-message:last-child",
             "--submit-selector", "#send-btn",
             "--probe-file", SINGLE_PROBE_YAML,
-            "--probes", SINGLE_PROBE_NAME,
-            "--output", "text",
+            "--output", "json",
         ])
         assert result.exit_code == 0, f"Failed: {result.output}"
+        data = json.loads(result.output)
+        assert data["summary"]["total_probes"] == 1
+        assert [probe["probe_name"] for probe in data["probe_results"]] == [
+            SINGLE_PROBE_NAME
+        ]
 
     def test_assess_json_output(self, runner, demo_server):
         """assess --output json should produce valid JSON."""
@@ -415,11 +419,12 @@ class TestAssessE2E:
             "--submit-selector", "#send-btn",
             "--probe-file", probe_file_1,
             "--probe-file", probe_file_2,
-            "--probes", f"{SINGLE_PROBE_NAME},extraction.trust_building_custom",
             "--workers", "4",
             "--output", "json",
         ])
         assert result.exit_code == 0, f"Failed: {result.output}"
+        payload = json.loads(result.output[result.output.index("{"):])
+        assert payload["summary"]["total_probes"] == 2
 
     def test_assess_iframe_chat(self, runner, demo_server):
         """assess with --iframe-selector should work against iframe page."""

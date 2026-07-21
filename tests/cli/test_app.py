@@ -29,6 +29,7 @@ from webagentaudit.cli.app import (
     _emit_probe_progress,
     _interaction_description,
     _launch_browser,
+    _load_registry,
     _screenshots_output_dir,
     _warn_probe_prompt_overlaps,
     cli,
@@ -82,6 +83,21 @@ def test_warns_once_for_each_selected_probe_with_prompt_overlap(capsys):
     assert "output_safety.unsafe_custom" in warning
     assert "1 detection-active prompt(s)" in warning
     assert "absent from the input" in warning
+
+
+def test_probe_file_runs_only_explicit_custom_probe(single_turn_yaml):
+    registry = _load_registry(
+        probe_dir=None,
+        probe_file=(single_turn_yaml,),
+        category=None,
+        sophistication=None,
+        probes=None,
+        emit_output=False,
+    )
+
+    assert [probe.name for probe in registry.get_all()] == [
+        "extraction.custom_direct_ask"
+    ]
 
 
 @pytest.fixture
